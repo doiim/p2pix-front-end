@@ -7,6 +7,7 @@ import { NetworkEnum } from "@/model/NetworkEnum";
 import { connectProvider, requestNetworkChange } from "@/blockchain/provider";
 import ethereumImage from "@/assets/ethereum.svg";
 import polygonImage from "@/assets/polygon.svg";
+import rootstockImage from "@/assets/rootstock.svg";
 
 // Store reference
 const etherStore = useEtherStore();
@@ -58,6 +59,7 @@ const getNetworkImage = (networkName: NetworkEnum): string => {
   let validImages = {
     Ethereum: ethereumImage,
     Polygon: polygonImage,
+    Rootstock: rootstockImage,
     Localhost: ethereumImage,
   };
 
@@ -233,6 +235,8 @@ onClickOutside(infoMenuRef, () => {
           <img
             alt="Choosed network image"
             :src="getNetworkImage(etherStore.networkName)"
+            height="24"
+            width="24"
           />
           <span
             class="default-text group-hover:text-gray-900 lg-view"
@@ -269,6 +273,23 @@ onClickOutside(infoMenuRef, () => {
         >
           <div class="mt-2">
             <div class="bg-white rounded-md z-10">
+              <div
+                class="menu-button gap-2 px-4 rounded-md cursor-pointer"
+                @click="networkChange(NetworkEnum.rootstock)"
+              >
+                <img
+                  alt="Rootstock image"
+                  width="20"
+                  height="20"
+                  src="@/assets/rootstock.svg"
+                />
+                <span class="text-gray-900 py-4 text-end font-semibold text-sm">
+                  Rootstock
+                </span>
+              </div>
+              <div class="w-full flex justify-center">
+                <hr class="w-4/5" />
+              </div>
               <div
                 class="menu-button gap-2 px-4 rounded-md cursor-pointer"
                 @click="networkChange(NetworkEnum.ethereum)"
@@ -468,6 +489,23 @@ onClickOutside(infoMenuRef, () => {
     >
       <div class="pl-4 mt-2 h-full">
         <div class="bg-white rounded-md z-10 h-full">
+          <div
+            class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2"
+            @click="networkChange(NetworkEnum.rootstock)"
+          >
+            <img
+              alt="Rootstock image"
+              width="20"
+              height="20"
+              src="@/assets/rootstock.svg"
+            />
+            <span class="text-gray-900 py-4 text-end font-bold text-sm">
+              Rootstock
+            </span>
+          </div>
+          <div class="w-full flex justify-center pb-12">
+            <hr class="w-4/5" />
+          </div>
           <div
             class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2"
             @click="networkChange(NetworkEnum.ethereum)"

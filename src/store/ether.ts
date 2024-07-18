@@ -13,6 +13,8 @@ export const useEtherStore = defineStore("ether", {
     depositsValidListGoerli: [] as ValidDeposit[],
     // Depósitos válidos para compra MUMBAI
     depositsValidListMumbai: [] as ValidDeposit[],
+    // Depósitos válidos para compra ROOTSTOCK
+    depositsValidListRootstock: [] as ValidDeposit[],
     loadingWalletTransactions: false,
     loadingNetworkLiquidity: false,
   }),
@@ -37,6 +39,9 @@ export const useEtherStore = defineStore("ether", {
     },
     setDepositsValidListMumbai(depositsValidList: ValidDeposit[]) {
       this.depositsValidListMumbai = depositsValidList;
+    },
+    setDepositsValidListRootstock(depositsValidList: ValidDeposit[]) {
+      this.depositsValidListRootstock = depositsValidList;
     },
     setLoadingWalletTransactions(isLoadingWalletTransactions: boolean) {
       this.loadingWalletTransactions = isLoadingWalletTransactions;

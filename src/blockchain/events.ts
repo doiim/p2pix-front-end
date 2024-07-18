@@ -21,6 +21,10 @@ const getNetworksLiquidity = async (): Promise<void> => {
     import.meta.env.VITE_MUMBAI_API_URL,
     80001
   ); // mumbai provider
+  const rootstockProvider = new ethers.providers.JsonRpcProvider(
+    import.meta.env.VITE_RSK_API_URL,
+    31
+  ); // rootstock provider
 
   const p2pContractGoerli = new ethers.Contract(
     getP2PixAddress(NetworkEnum.ethereum),
@@ -31,6 +35,12 @@ const getNetworksLiquidity = async (): Promise<void> => {
     getP2PixAddress(NetworkEnum.polygon),
     p2pix.abi,
     mumbaiProvider
+  );
+
+  const p2pContractRootstock = new ethers.Contract(
+    getP2PixAddress(NetworkEnum.rootstock),
+    p2pix.abi,
+    rootstockProvider
   );
 
   etherStore.setLoadingNetworkLiquidity(true);
@@ -45,7 +55,12 @@ const getNetworksLiquidity = async (): Promise<void> => {
   );
 
   etherStore.setDepositsValidListGoerli(depositListGoerli);
+  const depositListRootstock = await getValidDeposits(
+    getTokenAddress(NetworkEnum.rootstock),
+    p2pContractRootstock
+  );
   etherStore.setDepositsValidListMumbai(depositListMumbai);
+  etherStore.setDepositsValidListRootstock(depositListRootstock);
   etherStore.setLoadingNetworkLiquidity(false);
 };
 

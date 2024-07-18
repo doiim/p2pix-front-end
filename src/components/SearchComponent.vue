@@ -30,6 +30,7 @@ const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
 const selectedGoerliDeposit = ref<ValidDeposit>();
 const selectedMumbaiDeposit = ref<ValidDeposit>();
+const selectedRootstockDeposit = ref<ValidDeposit>();
 
 // Emits
 const emit = defineEmits(["tokenBuy"]);
@@ -70,6 +71,7 @@ const verifyLiquidity = (): void => {
   enableConfirmButton.value = false;
   selectedGoerliDeposit.value = undefined;
   selectedMumbaiDeposit.value = undefined;
+  selectedRootstockDeposit.value = undefined;
 
   if (tokenValue.value <= 0) {
     enableWalletButton.value = false;
