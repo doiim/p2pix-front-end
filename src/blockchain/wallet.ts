@@ -1,7 +1,7 @@
 import { useEtherStore } from "@/store/ether";
 
 import { getContract, getProvider } from "./provider";
-import { getTokenAddress, possibleChains } from "./addresses";
+import { getTokenAddress, possibleChains, isPossibleNetwork } from "./addresses";
 
 import mockToken from "@/utils/smart_contract_files/MockToken.json";
 
@@ -21,6 +21,10 @@ const updateWalletStatus = async (): Promise<void> => {
   const signer = provider.getSigner();
 
   const { chainId } = await provider.getNetwork();
+  if(!isPossibleNetwork(chainId.toString())){
+    window.alert("Invalid chain!:"+chainId);
+    return;
+  }
   etherStore.setNetworkName(possibleChains[chainId]);
 
   const mockTokenContract = new ethers.Contract(

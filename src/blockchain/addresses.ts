@@ -48,7 +48,7 @@ const network2Chain: { [key: string]: string } = {
 };
 
 const isPossibleNetwork = (networkChain: string): boolean => {
-  if (Object.keys(possibleChains).includes(networkChain)) {
+  if (Object.keys(possibleChains).includes(networkChain.toString())) {
     return true;
   }
   return false;
