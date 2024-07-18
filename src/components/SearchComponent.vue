@@ -17,7 +17,7 @@ const etherStore = useEtherStore();
 const {
   walletAddress,
   networkName,
-  depositsValidListGoerli,
+  depositsValidListSepolia,
   depositsValidListMumbai,
   loadingNetworkLiquidity,
 } = storeToRefs(etherStore);
@@ -28,7 +28,7 @@ const enableConfirmButton = ref<boolean>(false);
 const enableWalletButton = ref<boolean>(false);
 const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
-const selectedGoerliDeposit = ref<ValidDeposit>();
+const selectedSepoliaDeposit = ref<ValidDeposit>();
 const selectedMumbaiDeposit = ref<ValidDeposit>();
 const selectedRootstockDeposit = ref<ValidDeposit>();
 
@@ -45,7 +45,7 @@ const connectAccount = async (): Promise<void> => {
 const emitConfirmButton = (): void => {
   const selectedDeposit =
     networkName.value == NetworkEnum.ethereum
-      ? selectedGoerliDeposit.value
+      ? selectedSepoliaDeposit.value
       : selectedMumbaiDeposit.value;
   emit("tokenBuy", selectedDeposit, tokenValue.value);
 };
@@ -69,7 +69,7 @@ const handleInputEvent = (event: any): void => {
 // Verify if there is a valid deposit to buy
 const verifyLiquidity = (): void => {
   enableConfirmButton.value = false;
-  selectedGoerliDeposit.value = undefined;
+  selectedSepoliaDeposit.value = undefined;
   selectedMumbaiDeposit.value = undefined;
   selectedRootstockDeposit.value = undefined;
 
@@ -78,10 +78,10 @@ const verifyLiquidity = (): void => {
     return;
   }
 
-  selectedGoerliDeposit.value = verifyNetworkLiquidity(
+  selectedSepoliaDeposit.value = verifyNetworkLiquidity(
     tokenValue.value,
     walletAddress.value,
-    depositsValidListGoerli.value
+    depositsValidListSepolia.value
   );
   selectedMumbaiDeposit.value = verifyNetworkLiquidity(
     tokenValue.value,
@@ -90,7 +90,7 @@ const verifyLiquidity = (): void => {
   );
 
   enableOrDisableConfirmButton();
-  if (selectedGoerliDeposit.value || selectedMumbaiDeposit.value) {
+  if (selectedSepoliaDeposit.value || selectedMumbaiDeposit.value) {
     hasLiquidity.value = true;
     enableWalletButton.value = true;
   } else {
@@ -100,7 +100,7 @@ const verifyLiquidity = (): void => {
 };
 
 const enableOrDisableConfirmButton = (): void => {
-  if (selectedGoerliDeposit.value && networkName.value == NetworkEnum.ethereum)
+  if (selectedSepoliaDeposit.value && networkName.value == NetworkEnum.ethereum)
     enableConfirmButton.value = true;
   else if (
     selectedMumbaiDeposit.value &&
@@ -185,7 +185,7 @@ watch(walletAddress, (): void => {
               src="@/assets/ethereum.svg"
               width="24"
               height="24"
-              v-if="selectedGoerliDeposit"
+              v-if="selectedSepoliaDeposit"
             />
           </div>
         </div>

@@ -107,7 +107,7 @@ const showInitialItems = (): void => {
 const openEtherscanUrl = (transactionHash: string): void => {
   const networkUrl =
     etherStore.networkName == NetworkEnum.ethereum
-      ? "goerli.etherscan.io"
+      ? "sepolia.etherscan.io"
       : "mumbai.polygonscan.com";
   const url = `https://${networkUrl}/tx/${transactionHash}`;
   window.open(url, "_blank");

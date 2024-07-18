@@ -9,8 +9,8 @@ export const useEtherStore = defineStore("ether", {
     networkName: NetworkEnum.ethereum,
     loadingLock: false,
     sellerView: false,
-    // Depósitos válidos para compra GOERLI
-    depositsValidListGoerli: [] as ValidDeposit[],
+    // Depósitos válidos para compra SEPOLIA
+    depositsValidListSepolia: [] as ValidDeposit[],
     // Depósitos válidos para compra MUMBAI
     depositsValidListMumbai: [] as ValidDeposit[],
     // Depósitos válidos para compra ROOTSTOCK
@@ -34,8 +34,8 @@ export const useEtherStore = defineStore("ether", {
     setSellerView(sellerView: boolean) {
       this.sellerView = sellerView;
     },
-    setDepositsValidListGoerli(depositsValidList: ValidDeposit[]) {
-      this.depositsValidListGoerli = depositsValidList;
+    setDepositsValidListSepolia(depositsValidList: ValidDeposit[]) {
+      this.depositsValidListSepolia = depositsValidList;
     },
     setDepositsValidListMumbai(depositsValidList: ValidDeposit[]) {
       this.depositsValidListMumbai = depositsValidList;
@@ -54,7 +54,7 @@ export const useEtherStore = defineStore("ether", {
   getters: {
     getValidDepositByWalletAddress: (state) => {
       return (walletAddress: string) =>
-        state.depositsValidListGoerli
+        state.depositsValidListSepolia
           .filter((deposit) => deposit.seller == walletAddress)
           .sort((a, b) => {
             return b.blockNumber - a.blockNumber;

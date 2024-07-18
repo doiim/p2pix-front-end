@@ -5,7 +5,7 @@ const getTokenAddress = (network?: NetworkEnum): string => {
   const etherStore = useEtherStore();
 
   const possibleTokenAddresses: { [key: string]: string } = {
-    Ethereum: "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00",
+    Ethereum: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
     Polygon: "0xC86042E9F2977C62Da8c9dDF7F9c40fde4796A29",
     Rootstock: "0xfE841c74250e57640390f46d914C88d22C51e82e",
   };
@@ -17,7 +17,7 @@ const getP2PixAddress = (network?: NetworkEnum): string => {
   const etherStore = useEtherStore();
 
   const possibleP2PixAddresses: { [key: string]: string } = {
-    Ethereum: "0x2414817FF64A114d91eCFA16a834d3fCf69103d4",
+    Ethereum: "0xb7cD135F5eFD9760981e02E2a898790b688939fe",
     Polygon: "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00",
     Rootstock: "0x98ba35eb14b38D6Aa709338283af3e922476dE34",
   };
@@ -29,7 +29,7 @@ const getProviderUrl = (): string => {
   const etherStore = useEtherStore();
 
   const possibleProvidersUrls: { [key: string]: string } = {
-    Ethereum: import.meta.env.VITE_GOERLI_API_URL,
+    Ethereum: import.meta.env.VITE_SEPOLIA_API_URL,
     Polygon: import.meta.env.VITE_MUMBAI_API_URL,
     Rootstock: import.meta.env.VITE_RSK_API_URL,
   };
@@ -38,15 +38,13 @@ const getProviderUrl = (): string => {
 };
 
 const possibleChains: { [key: string]: NetworkEnum } = {
-  "0x5": NetworkEnum.ethereum,
-  "5": NetworkEnum.ethereum,
-  "0x13881": NetworkEnum.polygon,
+  "11155111": NetworkEnum.ethereum,
   "80001": NetworkEnum.polygon,
   "31": NetworkEnum.rootstock,
 };
 
 const network2Chain: { [key: string]: string } = {
-  Ethereum: "0x5",
+  Ethereum: "0xAA36A7",
   Polygon: "0x13881",
   Localhost: "0x7a69",
   Rootstock: "0x1f",
