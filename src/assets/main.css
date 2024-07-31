@@ -9,8 +9,7 @@
   padding: 2rem;
   height: fit-content;
   min-height: 100vh;
-  background-image: url( './bg.svg' );
-  background-size: cover;
+  background: radial-gradient(ellipse at 50% -50%, rgba(49, 46, 129, 1) 60%, rgba(24, 30, 42, 1) 80%);
   font-weight: normal;
 }
 
