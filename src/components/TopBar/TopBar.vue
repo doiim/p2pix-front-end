@@ -5,9 +5,8 @@ import { ref } from "vue";
 import { onClickOutside } from "@vueuse/core";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import { connectProvider, requestNetworkChange } from "@/blockchain/provider";
-import ethereumImage from "@/assets/ethereum.svg";
-import polygonImage from "@/assets/polygon.svg";
-import rootstockImage from "@/assets/rootstock.svg";
+
+const images = import.meta.glob<string>('@/assets/*.{png,svg}', { eager:true, query:'?url', import: 'default'} );
 
 // Store reference
 const etherStore = useEtherStore();
@@ -56,14 +55,8 @@ const networkChange = async (network: NetworkEnum): Promise<void> => {
 };
 
 const getNetworkImage = (networkName: NetworkEnum): string => {
-  let validImages = {
-    Ethereum: ethereumImage,
-    Polygon: polygonImage,
-    Rootstock: rootstockImage,
-    Localhost: ethereumImage,
-  };
-
-  return validImages[networkName];
+  const path = Object.keys(images).find(key => key.endsWith(`${networkName.toLowerCase()}.svg`));
+  return path ? images[path] : '';
 };
 
 onClickOutside(walletAddressRef, () => {
@@ -273,52 +266,19 @@ onClickOutside(infoMenuRef, () => {
         >
           <div class="mt-2">
             <div class="bg-white rounded-md z-10">
-              <div
+              <div 
+                v-for="network in NetworkEnum"
                 class="menu-button gap-2 px-4 rounded-md cursor-pointer"
-                @click="networkChange(NetworkEnum.rootstock)"
+                @click="networkChange(network)"
               >
                 <img
-                  alt="Rootstock image"
+                  :alt="network + ' image'"
                   width="20"
                   height="20"
-                  src="@/assets/rootstock.svg"
+                  :src="getNetworkImage(network)"
                 />
                 <span class="text-gray-900 py-4 text-end font-semibold text-sm">
-                  Rootstock
-                </span>
-              </div>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
-              </div>
-              <div
-                class="menu-button gap-2 px-4 rounded-md cursor-pointer"
-                @click="networkChange(NetworkEnum.ethereum)"
-              >
-                <img
-                  alt="Ethereum image"
-                  width="20"
-                  height="20"
-                  src="@/assets/ethereum.svg"
-                />
-                <span class="text-gray-900 py-4 text-end font-semibold text-sm">
-                  Ethereum
-                </span>
-              </div>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
-              </div>
-              <div
-                class="menu-button gap-2 px-4 rounded-md cursor-pointer"
-                @click="networkChange(NetworkEnum.polygon)"
-              >
-                <img
-                  alt="Polygon image"
-                  width="20"
-                  height="20"
-                  src="@/assets/polygon.svg"
-                />
-                <span class="text-gray-900 py-4 text-end font-semibold text-sm">
-                  Polygon
+                  {{ network }}
                 </span>
               </div>
               <div class="w-full flex justify-center">
@@ -490,55 +450,20 @@ onClickOutside(infoMenuRef, () => {
       <div class="pl-4 mt-2 h-full">
         <div class="bg-white rounded-md z-10 h-full">
           <div
+            v-for="network in NetworkEnum"
             class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2"
-            @click="networkChange(NetworkEnum.rootstock)"
+            @click="networkChange(network)"
           >
             <img
-              alt="Rootstock image"
+              :alt="network + 'image'"
               width="20"
               height="20"
-              src="@/assets/rootstock.svg"
-            />
+              :src="getNetworkImage(network)"
+
+          />
             <span class="text-gray-900 py-4 text-end font-bold text-sm">
-              Rootstock
+              {{ network }}
             </span>
-          </div>
-          <div class="w-full flex justify-center pb-12">
-            <hr class="w-4/5" />
-          </div>
-          <div
-            class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2"
-            @click="networkChange(NetworkEnum.ethereum)"
-          >
-            <img
-              alt="Ethereum image"
-              width="20"
-              height="20"
-              src="@/assets/ethereum.svg"
-            />
-            <span class="text-gray-900 py-4 text-end font-bold text-sm">
-              Ethereum
-            </span>
-          </div>
-          <div class="w-full flex justify-center">
-            <hr class="w-4/5" />
-          </div>
-          <div
-            class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2"
-            @click="networkChange(NetworkEnum.polygon)"
-          >
-            <img
-              alt="Polygon image"
-              width="20"
-              height="20"
-              src="@/assets/polygon.svg"
-            />
-            <span class="text-gray-900 py-4 text-end font-bold text-sm">
-              Polygon
-            </span>
-          </div>
-          <div class="w-full flex justify-center pb-12">
-            <hr class="w-4/5" />
           </div>
         </div>
       </div>
