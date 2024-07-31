@@ -127,32 +127,39 @@ onClickOutside(infoMenuRef, () => {
               >
                 <div class="redirect_button flex mr-4">
                   <div class="mr-6">
-                    <img
-                      alt="Twitter"
-                      width="20"
-                      height="20"
-                      src="@/assets/twitterIcon.svg"
-                      class="cursor-pointer"
-                      onclick="location.href = 'https://www.twitter.com/doiim';"
-                    />
+                    <a href="https://www.twitter.com/doiim">
+                      <img
+                        alt="Twitter"
+                        width="20"
+                        height="20"
+                        src="@/assets/twitterIcon.svg"
+                        class="cursor-pointer"
+                      />
+                    </a>
                   </div>
                   <div class="mr-6">
-                    <img
-                      alt="Discord"
-                      width="20"
-                      height="20"
-                      src="@/assets/discordIcon.svg"
-                      class="cursor-pointer"
-                    />
+                    <a href="https://www.linkedin.com/company/doiim/">
+                      <img
+                        alt="LinkedIn"
+                        width="20"
+                        height="20"
+                        src="@/assets/linkedinIcon.svg"
+                        class="cursor-pointer"
+                        href="https://www.linkedin.com/company/doiim/"
+                      />
+                    </a>
                   </div>
-                  <img
-                    alt="Github"
-                    width="20"
-                    height="20"
-                    src="@/assets/githubIcon.svg"
-                    class="cursor-pointer"
-                    onclick="location.href = 'https://github.com/doiim';"
-                  />
+                  <div class="mr-6">
+                    <a href="https://www.github.com/doiim">
+                      <img
+                        alt="Github"
+                        width="20"
+                        height="20"
+                        src="@/assets/githubIcon.svg"
+                        class="cursor-pointer"
+                      />
+                    </a>
+                  </div>
                 </div>
               </div>
               <div class="w-full flex justify-center">
@@ -416,28 +423,33 @@ onClickOutside(infoMenuRef, () => {
           </div>
           <div class="menu-button pb-10">
             <div class="redirect_button flex">
-              <img
-                alt="Twitter"
-                width="20"
-                height="20"
-                src="@/assets/twitterIcon.svg"
-                class="mr-6"
-                onclick="location.href = 'https://www.twitter.com/doiim';"
-              />
-              <img
-                alt="Discord"
-                width="20"
-                height="20"
-                src="@/assets/discordIcon.svg"
-                class="mr-6"
-              />
-              <img
-                alt="Github"
-                width="20"
-                height="20"
-                src="@/assets/githubIcon.svg"
-                onclick="location.href = 'https://github.com/doiim';"
-              />
+              <a href="https://www.twitter.com/doiim/">
+                <img
+                  alt="Twitter"
+                  width="20"
+                  height="20"
+                  src="@/assets/twitterIcon.svg"
+                  class="mr-6"
+                  onclick="location.href = 'https://www.twitter.com/doiim';"
+                />
+              </a>
+              <a href="https://www.linkedin.com/company/doiim/">
+                <img
+                  alt="LinkedIn"
+                  width="20"
+                  height="20"
+                  src="@/assets/linkedinIcon.svg"
+                  class="mr-6"
+                />
+              </a>
+              <a href="https://github.com/doiim/">
+                <img
+                  alt="Github"
+                  width="20"
+                  height="20"
+                  src="@/assets/githubIcon.svg"
+                />
+              </a>
             </div>
           </div>
         </div>
