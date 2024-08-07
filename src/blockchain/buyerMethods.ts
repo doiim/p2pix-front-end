@@ -7,6 +7,7 @@ import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 
 import { BigNumber, ethers } from "ethers";
 import { parseEther } from "ethers/lib/utils";
+import type { TokenEnum } from "@/model/NetworkEnum";
 
 const addLock = async (
   seller: string,
@@ -84,11 +85,11 @@ const cancelDeposit = async (depositId: BigNumber): Promise<any> => {
   return cancel;
 };
 
-const withdrawDeposit = async (amount: string): Promise<any> => {
+const withdrawDeposit = async (amount: string, token: TokenEnum): Promise<any> => {
   const contract = getContract();
 
   const withdraw = await contract.withdraw(
-    getTokenAddress(),
+    getTokenAddress(token),
     parseEther(String(amount)),
     []
   );

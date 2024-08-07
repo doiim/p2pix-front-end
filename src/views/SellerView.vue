@@ -77,6 +77,7 @@ const sendNetwork = async () => {
     <SendNetwork
       :pixKey="pixKeyBuyer"
       :offer="Number(offerValue)"
+      :selected-token="etherStore.selectedToken"
       v-if="!loading"
       @send-network="sendNetwork"
     />

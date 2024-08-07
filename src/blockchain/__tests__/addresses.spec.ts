@@ -9,7 +9,7 @@ import {
 } from "../addresses";
 
 import { setActivePinia, createPinia } from "pinia";
-import { NetworkEnum } from "@/model/NetworkEnum";
+import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
 import { useEtherStore } from "@/store/ether";
 
 describe("addresses.ts types", () => {
@@ -32,7 +32,7 @@ describe("addresses.ts functions", () => {
   it("getTokenAddress Ethereum", () => {
     const etherStore = useEtherStore();
     etherStore.setNetworkName(NetworkEnum.ethereum);
-    expect(getTokenAddress()).toBe(
+    expect(getTokenAddress(TokenEnum.BRZ)).toBe(
       "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00"
     );
   });
@@ -40,13 +40,13 @@ describe("addresses.ts functions", () => {
   it("getTokenAddress Polygon", () => {
     const etherStore = useEtherStore();
     etherStore.setNetworkName(NetworkEnum.polygon);
-    expect(getTokenAddress()).toBe(
+    expect(getTokenAddress(TokenEnum.BRZ)).toBe(
       "0xC86042E9F2977C62Da8c9dDF7F9c40fde4796A29"
     );
   });
 
   it("getTokenAddress Default", () => {
-    expect(getTokenAddress()).toBe(
+    expect(getTokenAddress(TokenEnum.BRZ)).toBe(
       "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00"
     );
   });

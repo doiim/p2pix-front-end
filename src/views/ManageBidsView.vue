@@ -17,8 +17,7 @@ import type { WalletTransaction } from "@/model/WalletTransaction";
 import router from "@/router/index";
 
 const etherStore = useEtherStore();
-
-const { walletAddress, networkName } = storeToRefs(etherStore);
+const { walletAddress, networkName, selectedToken } = storeToRefs(etherStore);
 const loadingWithdraw = ref<boolean>(false);
 const showAlert = ref<boolean>(false);
 
@@ -31,7 +30,7 @@ const callWithdraw = async (amount: string) => {
     loadingWithdraw.value = true;
     let withdraw;
     try {
-      withdraw = await withdrawDeposit(amount);
+      withdraw = await withdrawDeposit(amount, selectedToken.value);
     } catch {
       loadingWithdraw.value = false;
     }

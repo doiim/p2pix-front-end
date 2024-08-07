@@ -12,7 +12,6 @@ import type { Pix } from "@/model/Pix";
 
 const getNetworksLiquidity = async (): Promise<void> => {
   const etherStore = useEtherStore();
-
   const sepoliaProvider = new ethers.providers.JsonRpcProvider(
     import.meta.env.VITE_SEPOLIA_API_URL,
     11155111
@@ -36,7 +35,6 @@ const getNetworksLiquidity = async (): Promise<void> => {
     p2pix.abi,
     mumbaiProvider
   );
-
   const p2pContractRootstock = new ethers.Contract(
     getP2PixAddress(NetworkEnum.rootstock),
     p2pix.abi,
@@ -46,22 +44,20 @@ const getNetworksLiquidity = async (): Promise<void> => {
   etherStore.setLoadingNetworkLiquidity(true);
 
   const depositListSepolia = await getValidDeposits(
-    getTokenAddress(NetworkEnum.ethereum),
+    getTokenAddress(etherStore.selectedToken, NetworkEnum.ethereum),
     p2pContractSepolia
-  ); 
-
-  const depositListMumbai = await getValidDeposits(
-    getTokenAddress(NetworkEnum.polygon),
-    p2pContractMumbai
   );
-
+  // const depositListMumbai = await getValidDeposits(
+  //   getTokenAddress(etherStore.selectedToken, NetworkEnum.polygon),
+  //   p2pContractMumbai
+  // );
   const depositListRootstock = await getValidDeposits(
-    getTokenAddress(NetworkEnum.rootstock),
+    getTokenAddress(etherStore.selectedToken, NetworkEnum.rootstock),
     p2pContractRootstock
   );
 
   etherStore.setDepositsValidListSepolia(depositListSepolia);
-  etherStore.setDepositsValidListMumbai(depositListMumbai);
+  // etherStore.setDepositsValidListMumbai(depositListMumbai);
   etherStore.setDepositsValidListRootstock(depositListRootstock);
   etherStore.setLoadingNetworkLiquidity(false);
 };

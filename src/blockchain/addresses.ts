@@ -1,16 +1,53 @@
 import { useEtherStore } from "@/store/ether";
-import { NetworkEnum } from "@/model/NetworkEnum";
+import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
 
-const getTokenAddress = (network?: NetworkEnum): string => {
+const ethereumTokens: { [key in TokenEnum]: string } = {
+  BRZ: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
+  BRX: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
+}
+
+const polygonTokens: { [key in TokenEnum]: string } = {
+  BRZ: "0xC86042E9F2977C62Da8c9dDF7F9c40fde4796A29",
+  BRX: "0xC86042E9F2977C62Da8c9dDF7F9c40fde4796A29",
+}
+
+const rootstockTokens: { [key in TokenEnum]: string } = {
+  BRZ: "0xfE841c74250e57640390f46d914C88d22C51e82e",
+  BRX: "0xfE841c74250e57640390f46d914C88d22C51e82e",
+}
+
+export const getTokenByAddress = (address: string) => {
+  for (const token of Object.keys(ethereumTokens)) {
+    if (address === ethereumTokens[token as TokenEnum]) {
+      return token as TokenEnum;
+    }
+  }
+
+  for (const token of Object.keys(polygonTokens)) {
+    if (address === ethereumTokens[token as TokenEnum]) {
+      return token as TokenEnum;
+    }
+  }
+
+  for (const token of Object.keys(rootstockTokens)) {
+    if (address === ethereumTokens[token as TokenEnum]) {
+      return token as TokenEnum;
+    }
+  }
+
+  return null;
+}
+
+const getTokenAddress = (token: TokenEnum, network?: NetworkEnum): string => {
   const etherStore = useEtherStore();
 
-  const possibleTokenAddresses: { [key: string]: string } = {
-    Ethereum: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
-    Polygon: "0xC86042E9F2977C62Da8c9dDF7F9c40fde4796A29",
-    Rootstock: "0xfE841c74250e57640390f46d914C88d22C51e82e",
+  const possibleTokenAddresses: { [key: string]: { [key in TokenEnum]: string } } = {
+    Ethereum: ethereumTokens,
+    Polygon: polygonTokens,
+    Rootstock: rootstockTokens,
   };
 
-  return possibleTokenAddresses[network ? network : etherStore.networkName];
+  return possibleTokenAddresses[network ? network : etherStore.networkName][token];
 };
 
 const getP2PixAddress = (network?: NetworkEnum): string => {
@@ -27,7 +64,6 @@ const getP2PixAddress = (network?: NetworkEnum): string => {
 
 const getProviderUrl = (): string => {
   const etherStore = useEtherStore();
-
   const possibleProvidersUrls: { [key: string]: string } = {
     Ethereum: import.meta.env.VITE_SEPOLIA_API_URL,
     Polygon: import.meta.env.VITE_MUMBAI_API_URL,

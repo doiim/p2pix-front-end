@@ -1,12 +1,16 @@
-import { NetworkEnum } from "@/model/NetworkEnum";
+
+import { NetworkEnum, TokenEnum } from "../model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { defineStore } from "pinia";
+
+
 
 export const useEtherStore = defineStore("ether", {
   state: () => ({
     walletAddress: "",
     balance: "",
     networkName: NetworkEnum.ethereum,
+    selectedToken: TokenEnum.BRZ,
     loadingLock: false,
     sellerView: false,
     // Depósitos válidos para compra SEPOLIA
@@ -24,6 +28,9 @@ export const useEtherStore = defineStore("ether", {
     },
     setBalance(balance: string) {
       this.balance = balance;
+    },
+    setSelectedToken(token: TokenEnum) {
+      this.selectedToken = token;
     },
     setNetworkName(networkName: NetworkEnum) {
       this.networkName = networkName;

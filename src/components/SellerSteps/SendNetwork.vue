@@ -8,6 +8,7 @@ const emit = defineEmits(["sendNetwork"]);
 const props = defineProps({
   pixKey: String,
   offer: Number,
+  selectedToken: String,
 });
 </script>
 
@@ -31,7 +32,9 @@ const props = defineProps({
       >
         <div>
           <p>Tokens ofertados</p>
-          <p class="text-2xl text-gray-900">{{ props.offer }} BRZ</p>
+          <p class="text-2xl text-gray-900">
+            {{ props.offer }} {{ props.selectedToken }}
+          </p>
         </div>
         <div class="my-3">
           <p>Chave Pix</p>

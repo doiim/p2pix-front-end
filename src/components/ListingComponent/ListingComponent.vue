@@ -9,6 +9,7 @@ import { ref, watch, onMounted } from "vue";
 import SpinnerComponent from "../SpinnerComponent.vue";
 import { decimalCount } from "@/utils/decimalCount";
 import { debounce } from "@/utils/debounce";
+import { getTokenByAddress } from "@/blockchain/addresses";
 import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";
 
 const etherStore = useEtherStore();
@@ -175,11 +176,13 @@ showInitialItems();
             Saldo disponível
           </p>
           <p class="text-xl leading-7 font-semibold text-gray-900">
-            {{ getRemaining() }} BRZ
+            {{ getRemaining() }} {{ etherStore.selectedToken }}
           </p>
           <div class="flex gap-2 w-32 sm:w-56" v-if="activeLockAmount != 0">
             <span class="text-xs font-normal text-gray-400" ref="infoText">{{
-              `com ${activeLockAmount.toFixed(2)} BRZ em lock`
+              `com ${activeLockAmount.toFixed(2)} ${
+                etherStore.selectedToken
+              } em lock`
             }}</span>
             <div
               class="absolute mt-[2px] md-view"
@@ -282,7 +285,7 @@ showInitialItems();
             class="text-xl sm:text-xl leading-7 font-semibold text-gray-900"
           >
             {{ item.amount }}
-            BRZ
+            {{ getTokenByAddress(item.token) }}
           </span>
         </div>
         <div>

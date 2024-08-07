@@ -10,13 +10,18 @@ import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { decimalCount } from "@/utils/decimalCount";
 import SpinnerComponent from "./SpinnerComponent.vue";
+import { getTokenImage } from "@/utils/imagesPath";
+
+import { TokenEnum } from "@/model/NetworkEnum";
 
 // Store reference
 const etherStore = useEtherStore();
+const selectTokenToggle = ref<boolean>(false);
 
 const {
   walletAddress,
   networkName,
+  selectedToken,
   depositsValidListSepolia,
   depositsValidListMumbai,
   loadingNetworkLiquidity,
@@ -64,6 +69,15 @@ const handleInputEvent = (event: any): void => {
   validDecimals.value = true;
 
   verifyLiquidity();
+};
+
+const openTokenSelection = (): void => {
+  selectTokenToggle.value = true;
+};
+
+const handleSelectedToken = (token: TokenEnum): void => {
+  etherStore.setSelectedToken(token);
+  selectTokenToggle.value = false;
 };
 
 // Verify if there is a valid deposit to buy
@@ -150,20 +164,49 @@ watch(walletAddress, (): void => {
             placeholder="0  "
             step=".01"
           />
-          <div
-            class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
-          >
-            <img
-              alt="Token image"
-              class="sm:w-fit w-4"
-              src="@/assets/brz.svg"
-            />
-            <span class="text-gray-900 sm:text-lg text-md w-fit" id="brz"
-              >BRZ</span
+          <div class="relative">
+            <button
+              class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
+              @click="openTokenSelection()"
             >
+              <img
+                alt="Token image"
+                class="sm:w-fit w-4"
+                :src="getTokenImage(selectedToken)"
+              />
+              <span class="text-gray-900 sm:text-lg text-md w-fit" id="token">{{
+                selectedToken
+              }}</span>
+            </button>
+            <div
+              v-if="selectTokenToggle"
+              class="mt-2 w-[100px] text-gray-900 lg-view absolute"
+            >
+              <div class="bg-white rounded-md z-10">
+                <div
+                  v-for="token in TokenEnum"
+                  class="flex menu-button gap-2 px-4 rounded-md cursor-pointer hover:bg-gray-300"
+                  @click="handleSelectedToken(token)"
+                >
+                  <img
+                    :alt="token + ' logo'"
+                    width="20"
+                    height="20"
+                    :src="getTokenImage(token)"
+                  />
+                  <span
+                    class="text-gray-900 py-4 text-end font-semibold text-sm"
+                  >
+                    {{ token }}
+                  </span>
+                </div>
+                <div class="w-full flex justify-center">
+                  <hr class="w-4/5" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
         <div class="custom-divide py-2 mb-2"></div>
         <div
           class="flex justify-between"

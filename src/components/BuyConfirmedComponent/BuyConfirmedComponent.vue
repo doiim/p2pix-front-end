@@ -54,7 +54,7 @@ const getWalletTransactions = async () => {
 const callWithdraw = async (amount: string) => {
   if (amount) {
     etherStore.setLoadingWalletTransactions(true);
-    const withdraw = await withdrawDeposit(amount);
+    const withdraw = await withdrawDeposit(amount, etherStore.selectedToken);
     if (withdraw) {
       console.log("Saque realizado!");
       await getWalletTransactions();
@@ -92,13 +92,15 @@ onMounted(async () => {
       >
         <div>
           <p>Tokens recebidos</p>
-          <p class="text-2xl text-gray-900">{{ props.tokenAmount }} BRZ</p>
+          <p class="text-2xl text-gray-900">
+            {{ props.tokenAmount }} {{ etherStore.selectedToken }}
+          </p>
         </div>
         <div class="my-5">
           <p class="text-sm">
             <b>Não encontrou os tokens? </b><br />Clique no botão abaixo para
             <br />
-            cadastrar o BRZ em sua carteira.
+            cadastrar o {{ etherStore.selectedToken }} em sua carteira.
           </p>
         </div>
         <CustomButton :text="'Cadastrar token'" @buttonClicked="() => {}" />

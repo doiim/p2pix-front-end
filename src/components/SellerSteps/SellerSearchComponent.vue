@@ -4,6 +4,13 @@ import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { decimalCount } from "@/utils/decimalCount";
 
+import { TokenEnum } from "@/model/NetworkEnum";
+import { useEtherStore } from "@/store/ether";
+import { getTokenImage } from "@/utils/imagesPath";
+
+// Store
+const etherStore = useEtherStore();
+
 // Reactive state
 const tokenValue = ref<number>(0);
 const enableSelectButton = ref<boolean>(false);
@@ -58,8 +65,14 @@ const handleInputEvent = (event: any): void => {
           <div
             class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
           >
-            <img alt="Token image" class="w-fit" src="@/assets/brz.svg" />
-            <span class="text-gray-900 text-lg w-fit" id="brz">BRZ</span>
+            <img
+              alt="Token image"
+              class="w-fit"
+              :src="getTokenImage(etherStore.selectedToken)"
+            />
+            <span class="text-gray-900 text-lg w-fit" id="token">{{
+              etherStore.selectedToken
+            }}</span>
           </div>
         </div>
 
@@ -94,6 +107,7 @@ const handleInputEvent = (event: any): void => {
           >
         </div>
       </div>
+
       <CustomButton
         :text="'Conectar carteira'"
         @buttonClicked="emit('tokenBuy')"

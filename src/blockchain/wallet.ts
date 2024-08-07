@@ -21,14 +21,14 @@ const updateWalletStatus = async (): Promise<void> => {
   const signer = provider.getSigner();
 
   const { chainId } = await provider.getNetwork();
-  if(!isPossibleNetwork(chainId.toString())){
-    window.alert("Invalid chain!:"+chainId);
+  if (!isPossibleNetwork(chainId.toString())) {
+    window.alert("Invalid chain!:" + chainId);
     return;
   }
   etherStore.setNetworkName(possibleChains[chainId]);
 
   const mockTokenContract = new ethers.Contract(
-    getTokenAddress(),
+    getTokenAddress(etherStore.selectedToken),
     mockToken.abi,
     signer
   );
@@ -43,7 +43,8 @@ const updateWalletStatus = async (): Promise<void> => {
 const listValidDepositTransactionsByWalletAddress = async (
   walletAddress: string
 ): Promise<ValidDeposit[]> => {
-  const walletDeposits = await getValidDeposits(getTokenAddress());
+  const etherStore = useEtherStore();
+  const walletDeposits = await getValidDeposits(getTokenAddress(etherStore.selectedToken));
 
   if (walletDeposits) {
     return walletDeposits

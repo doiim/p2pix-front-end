@@ -3,3 +3,8 @@ export enum NetworkEnum {
   polygon = "Polygon",
   rootstock = "Rootstock",
 }
+
+export enum TokenEnum {
+  BRZ = 'BRZ',
+  BRX = 'BRX'
+}

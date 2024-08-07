@@ -7,13 +7,16 @@ import { pixFormatValidation, postProcessKey } from "@/utils/pixKeyFormat";
 import { useEtherStore } from "@/store/ether";
 import { storeToRefs } from "pinia";
 import { connectProvider } from "@/blockchain/provider";
+import { TokenEnum } from "@/model/NetworkEnum";
+import { getTokenImage } from "@/utils/imagesPath";
 
 // Reactive state
 const etherStore = useEtherStore();
-const { walletAddress } = storeToRefs(etherStore);
+const { walletAddress, selectedToken } = storeToRefs(etherStore);
 
 const offer = ref<string>("");
 const pixKey = ref<string>("");
+const selectTokenToggle = ref<boolean>(false);
 
 const enableSelectButton = ref<boolean>(false);
 const hasLiquidity = ref<boolean>(true);
@@ -50,6 +53,15 @@ const handlePixKeyInputEvent = (event: any): void => {
 
   enableSelectButton.value = false;
   validPixFormat.value = false;
+};
+
+const openTokenSelection = (): void => {
+  selectTokenToggle.value = true;
+};
+
+const handleSelectedToken = (token: TokenEnum): void => {
+  etherStore.setSelectedToken(token);
+  selectTokenToggle.value = false;
 };
 
 const handleButtonClick = async (
@@ -94,15 +106,47 @@ const handleButtonClick = async (
             placeholder="Digite sua oferta"
             step=".01"
           />
-          <div
-            class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
-          >
-            <img
-              alt="Token image"
-              class="sm:w-fit w-4"
-              src="@/assets/brz.svg"
-            />
-            <span class="text-gray-900 w-fit" id="brz"> BRZ </span>
+          <div class="relative">
+            <button
+              class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
+              @click="openTokenSelection()"
+            >
+              <img
+                alt="Token image"
+                class="sm:w-fit w-4"
+                :src="getTokenImage(selectedToken)"
+              />
+              <span class="text-gray-900 sm:text-lg text-md w-fit" id="token">{{
+                selectedToken
+              }}</span>
+            </button>
+            <div
+              v-if="selectTokenToggle"
+              class="mt-2 w-[100px] text-gray-900 lg-view absolute"
+            >
+              <div class="bg-white rounded-md z-10">
+                <div
+                  v-for="token in TokenEnum"
+                  class="flex menu-button gap-2 px-4 rounded-md cursor-pointer hover:bg-gray-300"
+                  @click="handleSelectedToken(token)"
+                >
+                  <img
+                    :alt="token + ' logo'"
+                    width="20"
+                    height="20"
+                    :src="getTokenImage(token)"
+                  />
+                  <span
+                    class="text-gray-900 py-4 text-end font-semibold text-sm"
+                  >
+                    {{ token }}
+                  </span>
+                </div>
+                <div class="w-full flex justify-center">
+                  <hr class="w-4/5" />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

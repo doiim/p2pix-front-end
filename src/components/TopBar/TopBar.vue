@@ -5,9 +5,7 @@ import { ref } from "vue";
 import { onClickOutside } from "@vueuse/core";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import { connectProvider, requestNetworkChange } from "@/blockchain/provider";
-
-const images = import.meta.glob<string>('@/assets/*.{png,svg}', { eager:true, query:'?url', import: 'default'} );
-
+import { getNetworkImage } from "@/utils/imagesPath";
 // Store reference
 const etherStore = useEtherStore();
 
@@ -52,11 +50,6 @@ const networkChange = async (network: NetworkEnum): Promise<void> => {
   currencyMenuOpenToggle.value = false;
   const change = await requestNetworkChange(network);
   if (change) etherStore.setNetworkName(network);
-};
-
-const getNetworkImage = (networkName: NetworkEnum): string => {
-  const path = Object.keys(images).find(key => key.endsWith(`${networkName.toLowerCase()}.svg`));
-  return path ? images[path] : '';
 };
 
 onClickOutside(walletAddressRef, () => {
@@ -273,7 +266,7 @@ onClickOutside(infoMenuRef, () => {
         >
           <div class="mt-2">
             <div class="bg-white rounded-md z-10">
-              <div 
+              <div
                 v-for="network in NetworkEnum"
                 class="menu-button gap-2 px-4 rounded-md cursor-pointer"
                 @click="networkChange(network)"
@@ -471,8 +464,7 @@ onClickOutside(infoMenuRef, () => {
               width="20"
               height="20"
               :src="getNetworkImage(network)"
-
-          />
+            />
             <span class="text-gray-900 py-4 text-end font-bold text-sm">
               {{ network }}
             </span>
