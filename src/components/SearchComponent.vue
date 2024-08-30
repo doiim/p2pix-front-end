@@ -170,6 +170,11 @@ watch(walletAddress, (): void => {
               @click="openTokenSelection()"
             >
               <img
+                class="text-gray-900"
+                alt="Chevron Down"
+                src="@/assets/chevronDownBlack.svg"
+              />
+              <img
                 alt="Token image"
                 class="sm:w-fit w-4"
                 :src="getTokenImage(selectedToken)"
