@@ -45,6 +45,15 @@ describe("addresses.ts functions", () => {
     );
   });
 
+  it("getTokenAddress Rootstock", () => {
+    const etherStore = useEtherStore();
+    etherStore.setNetworkName(NetworkEnum.rootstock);
+    expect(getTokenAddress(TokenEnum.BRZ)).toBe(
+      "0xfE841c74250e57640390f46d914C88d22C51e82e"
+    );
+  });
+
+
   it("getTokenAddress Default", () => {
     expect(getTokenAddress(TokenEnum.BRZ)).toBe(
       "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00"
@@ -67,6 +76,14 @@ describe("addresses.ts functions", () => {
     );
   });
 
+  it("getP2PixAddress Rootstock", () => {
+    const etherStore = useEtherStore();
+    etherStore.setNetworkName(NetworkEnum.rootstock);
+    expect(getP2PixAddress()).toBe(
+      "0x98ba35eb14b38D6Aa709338283af3e922476dE34"
+    );
+  });
+
   it("getP2PixAddress Default", () => {
     expect(getP2PixAddress()).toBe(
       "0x2414817FF64A114d91eCFA16a834d3fCf69103d4"
@@ -83,6 +100,12 @@ describe("addresses.ts functions", () => {
     const etherStore = useEtherStore();
     etherStore.setNetworkName(NetworkEnum.polygon);
     expect(getProviderUrl()).toBe(import.meta.env.VITE_MUMBAI_API_URL);
+  });
+
+  it("getProviderUrl Rootstock", () => {
+    const etherStore = useEtherStore();
+    etherStore.setNetworkName(NetworkEnum.rootstock);
+    expect(getProviderUrl()).toBe(import.meta.env.VITE_ROOTSTOCK_API_URL);
   });
 
   it("getProviderUrl Default", () => {
