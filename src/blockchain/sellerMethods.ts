@@ -32,11 +32,11 @@ const addDeposit = async (tokenQty: string, pixKey: string): Promise<any> => {
   const etherStore = useEtherStore();
 
   const deposit = await p2pContract.deposit(
+    pixKey,
+    ethers.utils.formatBytes32String(""),
     getTokenAddress(etherStore.selectedToken),
     parseEther(tokenQty),
-    pixKey,
-    true,
-    ethers.utils.formatBytes32String("")
+    true
   );
 
   await deposit.wait();

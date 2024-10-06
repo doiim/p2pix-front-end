@@ -201,7 +201,7 @@ const checkUnreleasedLock = async (
 
     const pixTarget = lock.pixTarget;
     const amount = formatEther(lock?.amount);
-    pixData.pixKey = String(Number(pixTarget));
+    pixData.pixKey = pixTarget;
     pixData.value = Number(amount);
 
     return {

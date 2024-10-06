@@ -21,9 +21,6 @@ const addLock = async (
   const lock = await p2pContract.lock(
     seller,
     token,
-    etherStore.walletAddress, // String "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" (Example)
-    ethers.constants.AddressZero, // String "0x0000000000000000000000000000000000000000"
-    0,
     parseEther(String(amount)), // BigNumber
     [],
     []
@@ -36,7 +33,7 @@ const addLock = async (
 };
 
 const releaseLock = async (
-  pixKey: number,
+  pixKey: string,
   amount: number,
   e2eId: string,
   lockId: string
@@ -46,7 +43,7 @@ const releaseLock = async (
   );
 
   const messageToSign = ethers.utils.solidityKeccak256(
-    ["uint160", "uint256", "bytes32"],
+    ["bytes32", "uint256", "bytes32"],
     [
       pixKey,
       parseEther(String(amount)),
@@ -65,11 +62,8 @@ const releaseLock = async (
 
   const release = await p2pContract.release(
     BigNumber.from(lockId),
-    ethers.constants.AddressZero,
     ethers.utils.formatBytes32String(e2eId),
-    sig.r,
-    sig.s,
-    sig.v
+    flatSig
   );
   await release.wait();
 
