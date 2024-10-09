@@ -25,7 +25,7 @@ etherStore.setSellerView(false);
 // States
 const { loadingLock, walletAddress, networkName } = storeToRefs(etherStore);
 const flowStep = ref<Step>(Step.Search);
-const pixTarget = ref<number>();
+const pixTarget = ref<string>();
 const tokenAmount = ref<number>();
 const lockID = ref<string>("");
 const loadingRelease = ref<boolean>(false);
