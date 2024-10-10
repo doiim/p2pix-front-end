@@ -73,15 +73,20 @@ const listenToNetworkChange = (connection: any) => {
 const requestNetworkChange = async (network: NetworkEnum): Promise<boolean> => {
   const etherStore = useEtherStore();
   if (!etherStore.walletAddress) return true;
+  const window_ = window as any;
 
   try {
-    const window_ = window as any;
     await window_.ethereum.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: Networks[network].chainId }], // chainId must be in hexadecimal numbers
     });
-  } catch {
-    return false;
+  } catch (e:any){
+    if (e.code == 4902){ // Unrecognized chain ID
+        await window_.ethereum.request({
+         "method": "wallet_addEthereumChain",
+         "params": [ Networks[network] ],
+        });
+    }
   }
 
   return true;
