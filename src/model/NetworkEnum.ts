@@ -1,7 +1,7 @@
 export enum NetworkEnum {
-  ethereum = "Ethereum",
-  polygon = "Polygon",
-  rootstock = "Rootstock",
+  ethereum = 11155111,
+  polygon = 80001,
+  rootstock = 31,
 }
 
 export enum TokenEnum {

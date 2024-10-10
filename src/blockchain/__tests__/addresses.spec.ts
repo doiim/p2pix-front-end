@@ -4,8 +4,6 @@ import {
   getP2PixAddress,
   getProviderUrl,
   isPossibleNetwork,
-  possibleChains,
-  network2Chain,
 } from "../addresses";
 
 import { setActivePinia, createPinia } from "pinia";
@@ -18,9 +16,6 @@ describe("addresses.ts types", () => {
     expectTypeOf(getP2PixAddress).toBeFunction();
     expectTypeOf(getProviderUrl).toBeFunction();
     expectTypeOf(isPossibleNetwork).toBeFunction();
-
-    expectTypeOf(possibleChains).toBeObject();
-    expectTypeOf(network2Chain).toBeObject();
   });
 });
 
@@ -115,13 +110,12 @@ describe("addresses.ts functions", () => {
   it("isPossibleNetwork Returns", () => {
     const etherStore = useEtherStore();
     etherStore.setNetworkName(NetworkEnum.ethereum);
-    expect(isPossibleNetwork("0x5")).toBe(true);
-    expect(isPossibleNetwork("5")).toBe(true);
-    expect(isPossibleNetwork("0x13881")).toBe(true);
-    expect(isPossibleNetwork("80001")).toBe(true);
+    expect(isPossibleNetwork(0x5)).toBe(true);
+    expect(isPossibleNetwork(5)).toBe(true);
+    expect(isPossibleNetwork(0x13881)).toBe(true);
+    expect(isPossibleNetwork(80001)).toBe(true);
 
-    expect(isPossibleNetwork("")).toBe(false);
-    expect(isPossibleNetwork(" ")).toBe(false);
-    expect(isPossibleNetwork("0x55")).toBe(false);
+    expect(isPossibleNetwork(NaN)).toBe(false);
+    expect(isPossibleNetwork(0x55)).toBe(false);
   });
 });

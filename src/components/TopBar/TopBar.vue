@@ -6,6 +6,7 @@ import { onClickOutside } from "@vueuse/core";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import { connectProvider, requestNetworkChange } from "@/blockchain/provider";
 import { getNetworkImage } from "@/utils/imagesPath";
+import { Networks } from "@/model/Networks";
 // Store reference
 const etherStore = useEtherStore();
 
@@ -227,7 +228,7 @@ onClickOutside(infoMenuRef, () => {
         >
           <img
             alt="Choosed network image"
-            :src="getNetworkImage(etherStore.networkName)"
+            :src="getNetworkImage(NetworkEnum[etherStore.networkName])"
             height="24"
             width="24"
           />
@@ -241,7 +242,7 @@ onClickOutside(infoMenuRef, () => {
                 : 'rgb(249 250 251)',
             }"
           >
-            {{ etherStore.networkName }}
+            {{ Networks[etherStore.networkName].chainName }}
           </span>
           <img
             class="text-gray-900"
@@ -267,18 +268,18 @@ onClickOutside(infoMenuRef, () => {
           <div class="mt-2">
             <div class="bg-white rounded-md z-10">
               <div
-                v-for="network in NetworkEnum"
+                v-for="(chainData, network) in Networks"
                 class="menu-button gap-2 px-4 rounded-md cursor-pointer"
                 @click="networkChange(network)"
               >
                 <img
-                  :alt="network + ' image'"
+                  :alt="chainData.chainName + ' image'"
                   width="20"
                   height="20"
-                  :src="getNetworkImage(network)"
+                  :src="getNetworkImage(NetworkEnum[network])"
                 />
                 <span class="text-gray-900 py-4 text-end font-semibold text-sm">
-                  {{ network }}
+                  {{ chainData.chainName }}
                 </span>
               </div>
               <div class="w-full flex justify-center">
@@ -455,18 +456,18 @@ onClickOutside(infoMenuRef, () => {
       <div class="pl-4 mt-2 h-full">
         <div class="bg-white rounded-md z-10 h-full">
           <div
-            v-for="network in NetworkEnum"
+            v-for="(chainData, network) in Networks"
             class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2"
             @click="networkChange(network)"
           >
             <img
-              :alt="network + 'image'"
+              :alt="chainData.chainName + 'image'"
               width="20"
               height="20"
-              :src="getNetworkImage(network)"
+              :src="getNetworkImage(NetworkEnum[network])"
             />
             <span class="text-gray-900 py-4 text-end font-bold text-sm">
-              {{ network }}
+              {{ chainData.chainName }}
             </span>
           </div>
         </div>
