@@ -172,10 +172,7 @@ const listLockTransactionBySellerAddress = async (
   const eventsReleasedLocks = await p2pContract.queryFilter(filterAddedLocks);
 
   return eventsReleasedLocks.filter((lock) =>
-    lock.args?.seller
-      .toHexString()
-      .substring(3)
-      .includes(sellerAddress.substring(2).toLowerCase())
+    lock.args?.seller.toLowerCase() == sellerAddress.toLowerCase()
   );
 };
 
