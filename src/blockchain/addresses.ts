@@ -17,9 +17,9 @@ const Tokens: { [key in NetworkEnum]: {[key in TokenEnum] :string} } = {
 };
 
 export const getTokenByAddress = (address: string) => {
-  for ( let network in NetworkEnum ) {
-    for (const token of Object.keys(Tokens[network])) {
-      if (address === Tokens[network][token as TokenEnum]) {
+  for ( const [, network] of Object.entries(NetworkEnum) ) {
+    for (const token of Object.keys(Tokens[network as NetworkEnum])) {
+      if (address === Tokens[network as NetworkEnum][token as TokenEnum]) {
         return token as TokenEnum;
       }
     }
