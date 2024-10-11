@@ -213,7 +213,10 @@ onClickOutside(infoMenuRef, () => {
       <div class="flex flex-col" v-if="walletAddress">
         <div
           ref="currencyRef"
-          class="group top-bar-info cursor-pointer hover:bg-white h-10"
+          class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
+          :class="{'bg-gray-50': currencyMenuOpenToggle}"
+          @mouseover="currencyMenuHoverToggle = true"
+          @mouseout="currencyMenuHoverToggle = false"
           @click="
             [
               (currencyMenuOpenToggle = !currencyMenuOpenToggle),
@@ -221,15 +224,6 @@ onClickOutside(infoMenuRef, () => {
               (infoMenuOpenToggle = false),
             ]
           "
-          @mouseover="currencyMenuHoverToggle = true"
-          @mouseout="currencyMenuHoverToggle = false"
-          :style="{
-            backgroundColor: currencyMenuOpenToggle
-              ? '#F9F9F9'
-              : currencyMenuHoverToggle
-              ? '#F9F9F9'
-              : 'transparent',
-          }"
         >
           <img
             alt="Choosed network image"
@@ -238,33 +232,19 @@ onClickOutside(infoMenuRef, () => {
             width="24"
           />
           <span
-            class="default-text group-hover:text-gray-900 lg-view"
-            :style="{
-              color: currencyMenuOpenToggle
-                ? '#000000'
-                : currencyMenuHoverToggle
-                ? '#000000'
-                : 'rgb(249 250 251)',
-            }"
+            class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out"
+            :class="{'!text-gray-900': currencyMenuOpenToggle}"
           >
             {{ Networks[etherStore.networkName].chainName }}
           </span>
-          <img
-            class="text-gray-900"
-            v-if="!currencyMenuHoverToggle && !currencyMenuOpenToggle"
-            alt="Chevron Down"
-            src="@/assets/chevronDown.svg"
-          />
-          <img
-            v-if="currencyMenuOpenToggle"
-            alt="Chevron Up"
-            src="@/assets/chevronUp.svg"
-          />
-          <img
-            v-if="currencyMenuHoverToggle && !currencyMenuOpenToggle"
-            alt="Chevron Down Black"
-            src="@/assets/chevronDownBlack.svg"
-          />
+          <div
+            class="transition-all duration-500 ease-in-out mt-1"
+            :class="{'scale-y-[-1]': currencyMenuOpenToggle}"
+          >
+            <svg viewBox="0 0 16 16" class="h-4 w-4 text-white group-hover:text-gray-900" :class="{'!text-gray-900': currencyMenuOpenToggle}">
+              <use href="@/assets/chevron.svg#chevronDown"></use>
+            </svg>
+          </div>
         </div>
         <div
           v-show="currencyMenuOpenToggle"
