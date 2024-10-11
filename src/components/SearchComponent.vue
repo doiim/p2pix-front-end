@@ -163,7 +163,7 @@ watch(walletAddress, (): void => {
         <div class="flex justify-between sm:w-full items-center">
           <input
             type="number"
-            class="border-none outline-none text-lg text-gray-900 w-3/4"
+            class="border-none outline-none text-lg text-gray-900"
             v-bind:class="{
               'font-semibold': tokenValue != undefined,
               'text-xl': tokenValue != undefined,
@@ -174,23 +174,23 @@ watch(walletAddress, (): void => {
           />
           <div class="relative">
             <button
-              class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
               ref="tokenDropdownRef"
+              class="flex flex-row items-center p-2 bg-gray-300 rounded-3xl min-w-fit gap-2"
               @click="openTokenSelection()"
             >
-              <img
-                class="text-gray-900"
-                alt="Chevron Down"
-                src="@/assets/chevronDownBlack.svg"
-              />
               <img
                 alt="Token image"
                 class="sm:w-fit w-4"
                 :src="getTokenImage(selectedToken)"
               />
-              <span class="text-gray-900 sm:text-lg text-md w-fit" id="token">{{
+              <span class="text-gray-900 sm:text-lg text-md font-medium" id="token">{{
                 selectedToken
-              }}</span>
+              }}</span>              
+              <img
+                class="text-gray-900"
+                alt="Chevron Down"
+                src="@/assets/chevronDownBlack.svg"
+              />
             </button>
             <div
               v-if="selectTokenToggle"

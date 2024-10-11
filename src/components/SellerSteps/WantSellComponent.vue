@@ -117,7 +117,7 @@ const handleButtonClick = async (
           <div class="relative">
             <button
               ref="tokenDropdownRef"
-              class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
+              class="flex flex-row items-center p-2 bg-gray-300 rounded-3xl min-w-fit gap-2"
               @click="openTokenSelection()"
             >
               <img
@@ -125,9 +125,14 @@ const handleButtonClick = async (
                 class="sm:w-fit w-4"
                 :src="getTokenImage(selectedToken)"
               />
-              <span class="text-gray-900 sm:text-lg text-md w-fit" id="token">{{
+              <span class="text-gray-900 sm:text-lg text-md font-medium" id="token">{{
                 selectedToken
               }}</span>
+              <img
+                class="text-gray-900 pr-4 sm:pr-0"
+                alt="Chevron Down"
+                src="@/assets/chevronDownBlack.svg"
+              />
             </button>
             <div
               v-if="selectTokenToggle"
