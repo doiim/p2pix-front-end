@@ -210,7 +210,7 @@ onClickOutside(infoMenuRef, () => {
       </div>
        
       </RouterLink>
-      <div class="flex flex-col" v-if="walletAddress">
+      <div class="flex flex-col relative" v-if="walletAddress">
         <div
           ref="currencyRef"
           class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
@@ -248,28 +248,28 @@ onClickOutside(infoMenuRef, () => {
         </div>
         <div
           v-show="currencyMenuOpenToggle"
-          class="mt-10 pl-3 absolute w-full text-gray-900 lg-view"
+          class="mt-10 absolute text-gray-900 lg-view min-w-max left-0"
         >
-          <div class="mt-2">
-            <div class="bg-white rounded-md z-10">
-              <div
-                v-for="(chainData, network) in Networks"
-                class="menu-button gap-2 px-4 rounded-md cursor-pointer"
-                @click="networkChange(network)"
-              >
-                <img
-                  :alt="chainData.chainName + ' image'"
-                  width="20"
-                  height="20"
-                  :src="getNetworkImage(NetworkEnum[network])"
-                />
-                <span class="text-gray-900 py-4 text-end font-semibold text-sm">
-                  {{ chainData.chainName }}
-                </span>
-              </div>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
-              </div>
+          <div class="mt-2 bg-white rounded-md shadow-lg ">
+            <div
+              v-for="(chainData, network) in Networks"
+              class="menu-button p-4 gap-2 cursor-pointer hover:bg-gray-200 flex items-center !justify-start whitespace-nowrap transition-colors duration-150 ease-in-out"
+              @click="networkChange(network)"
+            >
+              <img
+                :alt="chainData.chainName + ' image'"
+                width="20"
+                height="20"
+                :src="getNetworkImage(NetworkEnum[network])"
+                class="mr-2 ml-1"
+              />
+              <span class="text-gray-900 font-semibold text-sm">
+                {{ chainData.chainName }}
+              </span>
+
+            </div>
+            <div class="w-full flex justify-center">
+              <hr class="w-4/5" />
             </div>
           </div>
         </div>
