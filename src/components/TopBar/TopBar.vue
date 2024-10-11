@@ -89,12 +89,34 @@ onClickOutside(infoMenuRef, () => {
 
     <div class="flex sm:gap-4 gap-2 items-center">
       <div class="flex flex-col">
+        <button
+          ref="infoMenuRef"
+          class="default-button lg-view cursor-pointer"
+          @click="
+            [
+              (infoMenuOpenToggle = !infoMenuOpenToggle),
+              (menuOpenToggle = false),
+              (currencyMenuOpenToggle = false),
+            ]
+          "
+        >
+          <h1
+            class="topbar-text topbar-link"
+            :style="{
+              'border-bottom': infoMenuOpenToggle
+                ? '2px solid white'
+                : '2px solid transparent',
+            }"
+          >
+            Menu
+          </h1>
+        </button>
         <div
           v-show="infoMenuOpenToggle"
           class="mt-10 absolute w-full text-gray-900 lg-view"
         >
           <div class="mt-2">
-            <div class="bg-white rounded-md z-10 -left-32 w-52">
+            <div class="bg-white rounded-md z-10 -left-36 w-52">
               <div class="menu-button gap-2 px-4 rounded-md cursor-pointer">
                 <span class="text-gray-900 py-4 text-end font-semibold text-sm">
                   Documentação
@@ -162,28 +184,6 @@ onClickOutside(infoMenuRef, () => {
             </div>
           </div>
         </div>
-        <div
-          ref="infoMenuRef"
-          class="default-button lg-view cursor-pointer"
-          @click="
-            [
-              (infoMenuOpenToggle = !infoMenuOpenToggle),
-              (menuOpenToggle = false),
-              (currencyMenuOpenToggle = false),
-            ]
-          "
-        >
-          <h1
-            class="text-gray-50 font-semibold sm:text-base"
-            :style="{
-              'border-bottom': infoMenuOpenToggle
-                ? '2px solid white'
-                : 'transparent',
-            }"
-          >
-            Menu
-          </h1>
-        </div>
       </div>
       <RouterLink
         :to="'/faq'"
@@ -194,16 +194,21 @@ onClickOutside(infoMenuRef, () => {
       </RouterLink>
       <RouterLink
         :to="sellerView ? '/' : '/seller'"
-        class="default-button sm:whitespace-normal whitespace-nowrap lg-view"
+        class="default-button sm:whitespace-normal whitespace-nowrap lg-view w-40 sm:w-44 md:w-36"
       >
+      <div class="topbar-text topbar-link text-center mx-auto inline-block">
         {{ sellerView ? "Quero comprar" : "Quero vender" }}
+      </div>
       </RouterLink>
       <RouterLink
         :to="sellerView ? '/' : '/seller'"
         v-if="!walletAddress"
-        class="default-button sm:whitespace-normal whitespace-nowrap sm-view"
+        class="default-button sm:whitespace-normal whitespace-nowrap sm-view w-40 sm:w-44 md:w-36"
       >
+      <div class="topbar-text topbar-link text-center mx-auto inline-block">
         {{ sellerView ? "Quero comprar" : "Quero vender" }}
+      </div>
+       
       </RouterLink>
       <div class="flex flex-col" v-if="walletAddress">
         <div
@@ -485,6 +490,13 @@ header {
   @apply sm:px-4 px-3 py-2 rounded text-gray-50 font-semibold sm:text-base text-xs hover:bg-transparent;
 }
 
+.topbar-text {
+  @apply text-gray-50 font-semibold sm:text-base mt-0.5 transition-all duration-500;
+}
+.topbar-link {
+  @apply mt-0.5 hover:border-b-2 border-b-2 border-transparent hover:!border-white ;
+}
+
 .account-info {
   @apply flex items-center gap-6;
 }
@@ -512,7 +524,6 @@ a:hover {
 .lg-view {
   display: inline-block;
 }
-
 .sm-view {
   display: none;
 }
