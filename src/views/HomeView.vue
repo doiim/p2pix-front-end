@@ -25,7 +25,7 @@ etherStore.setSellerView(false);
 // States
 const { loadingLock, walletAddress, networkName } = storeToRefs(etherStore);
 const flowStep = ref<Step>(Step.Search);
-const pixTarget = ref<number>();
+const pixTarget = ref<string>();
 const tokenAmount = ref<number>();
 const lockID = ref<string>("");
 const loadingRelease = ref<boolean>(false);
@@ -83,7 +83,7 @@ const checkForUnreleasedLocks = async (): Promise<void> => {
   if (walletLocks) {
     lockID.value = walletLocks.lockID;
     tokenAmount.value = walletLocks.pix.value;
-    pixTarget.value = Number(walletLocks.pix.pixKey);
+    pixTarget.value = walletLocks.pix.pixKey;
     showModal.value = true;
   } else {
     flowStep.value = Step.Search;
@@ -96,7 +96,7 @@ if (paramLockID) {
   if (lockToRedirect) {
     lockID.value = lockToRedirect.lockID;
     tokenAmount.value = lockToRedirect.pix.value;
-    pixTarget.value = Number(lockToRedirect.pix.pixKey);
+    pixTarget.value = lockToRedirect.pix.pixKey;
     flowStep.value = Step.Buy;
   } else {
     flowStep.value = Step.Search;

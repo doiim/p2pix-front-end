@@ -3,6 +3,6 @@ export type ValidDeposit = {
   blockNumber: number;
   remaining: number;
   seller: string;
-  pixKey: number;
+  pixKey: string;
   open?: boolean;
 };

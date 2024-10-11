@@ -103,7 +103,7 @@ const getValidDeposits = async (
           blockNumber: deposit.blockNumber,
           remaining: Number(formatEther(mappedBalance._hex)),
           seller: deposit.args?.seller,
-          pixKey: Number(mappedPixTarget._hex),
+          pixKey: mappedPixTarget,
         };
       }
 
@@ -127,7 +127,7 @@ const getUnreleasedLockById = async (
 
   const pixTarget = lock.pixTarget;
   const amount = formatEther(lock?.amount);
-  pixData.pixKey = String(Number(pixTarget));
+  pixData.pixKey = pixTarget;
   pixData.value = Number(amount);
 
   return {

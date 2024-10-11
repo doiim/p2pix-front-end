@@ -1,7 +1,7 @@
 import { useEtherStore } from "@/store/ether";
 
 import { getContract, getProvider } from "./provider";
-import { getTokenAddress, possibleChains, isPossibleNetwork } from "./addresses";
+import { getTokenAddress, isPossibleNetwork } from "./addresses";
 
 import mockToken from "@/utils/smart_contract_files/MockToken.json";
 
@@ -21,11 +21,11 @@ const updateWalletStatus = async (): Promise<void> => {
   const signer = provider.getSigner();
 
   const { chainId } = await provider.getNetwork();
-  if (!isPossibleNetwork(chainId.toString())) {
+  if (!isPossibleNetwork(chainId)) {
     window.alert("Invalid chain!:" + chainId);
     return;
   }
-  etherStore.setNetworkName(possibleChains[chainId]);
+  etherStore.setNetworkName(chainId);
 
   const mockTokenContract = new ethers.Contract(
     getTokenAddress(etherStore.selectedToken),
@@ -172,10 +172,7 @@ const listLockTransactionBySellerAddress = async (
   const eventsReleasedLocks = await p2pContract.queryFilter(filterAddedLocks);
 
   return eventsReleasedLocks.filter((lock) =>
-    lock.args?.seller
-      .toHexString()
-      .substring(3)
-      .includes(sellerAddress.substring(2).toLowerCase())
+    lock.args?.seller.toLowerCase() == sellerAddress.toLowerCase()
   );
 };
 
@@ -201,7 +198,7 @@ const checkUnreleasedLock = async (
 
     const pixTarget = lock.pixTarget;
     const amount = formatEther(lock?.amount);
-    pixData.pixKey = String(Number(pixTarget));
+    pixData.pixKey = pixTarget;
     pixData.value = Number(amount);
 
     return {

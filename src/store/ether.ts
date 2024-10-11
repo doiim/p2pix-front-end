@@ -33,7 +33,7 @@ export const useEtherStore = defineStore("ether", {
       this.selectedToken = token;
     },
     setNetworkName(networkName: NetworkEnum) {
-      this.networkName = networkName;
+      this.networkName = Number(networkName);
     },
     setLoadingLock(isLoadingLock: boolean) {
       this.loadingLock = isLoadingLock;

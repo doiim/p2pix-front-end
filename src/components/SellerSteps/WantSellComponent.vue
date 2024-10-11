@@ -9,6 +9,10 @@ import { storeToRefs } from "pinia";
 import { connectProvider } from "@/blockchain/provider";
 import { TokenEnum } from "@/model/NetworkEnum";
 import { getTokenImage } from "@/utils/imagesPath";
+import { onClickOutside } from "@vueuse/core";
+
+// html references
+const tokenDropdownRef = ref<any>(null);
 
 // Reactive state
 const etherStore = useEtherStore();
@@ -59,6 +63,10 @@ const openTokenSelection = (): void => {
   selectTokenToggle.value = true;
 };
 
+onClickOutside(tokenDropdownRef, () => {
+  selectTokenToggle.value = false;
+});
+
 const handleSelectedToken = (token: TokenEnum): void => {
   etherStore.setSelectedToken(token);
   selectTokenToggle.value = false;
@@ -108,7 +116,8 @@ const handleButtonClick = async (
           />
           <div class="relative">
             <button
-              class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
+              ref="tokenDropdownRef"
+              class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
               @click="openTokenSelection()"
             >
               <img
@@ -116,18 +125,24 @@ const handleButtonClick = async (
                 class="sm:w-fit w-4"
                 :src="getTokenImage(selectedToken)"
               />
-              <span class="text-gray-900 sm:text-lg text-md w-fit" id="token">{{
+              <span class="text-gray-900 sm:text-lg text-md font-medium" id="token">{{
                 selectedToken
               }}</span>
+              <img
+                class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
+                :class="{'scale-y-[-1]': selectTokenToggle}"
+                alt="Chevron Down"
+                src="@/assets/chevronDownBlack.svg"
+              />
             </button>
             <div
               v-if="selectTokenToggle"
-              class="mt-2 w-[100px] text-gray-900 lg-view absolute"
+              class="mt-2 w-[100px] text-gray-900 absolute"
             >
-              <div class="bg-white rounded-md z-10">
+              <div class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
                 <div
                   v-for="token in TokenEnum"
-                  class="flex menu-button gap-2 px-4 rounded-md cursor-pointer hover:bg-gray-300"
+                  class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
                   @click="handleSelectedToken(token)"
                 >
                   <img

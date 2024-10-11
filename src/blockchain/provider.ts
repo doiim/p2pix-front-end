@@ -6,10 +6,11 @@ import { updateWalletStatus } from "./wallet";
 import {
   getProviderUrl,
   isPossibleNetwork,
-  possibleChains,
-  network2Chain,
   getP2PixAddress,
 } from "./addresses";
+
+import type { NetworkEnum } from "@/model/NetworkEnum";
+import { Networks } from "@/model/Networks";
 
 import { ethers } from "ethers";
 
@@ -57,11 +58,11 @@ const listenToWalletChange = (connection: any): void => {
 const listenToNetworkChange = (connection: any) => {
   const etherStore = useEtherStore();
 
-  connection.on("chainChanged", (networkChain: string) => {
+  connection.on("chainChanged", (networkChain: NetworkEnum) => {
     console.log("Changed network!");
 
     if (isPossibleNetwork(networkChain)) {
-      etherStore.setNetworkName(possibleChains[networkChain]);
+      etherStore.setNetworkName(networkChain);
       updateWalletStatus();
     } else {
       window.alert("Invalid chain!");
@@ -69,18 +70,23 @@ const listenToNetworkChange = (connection: any) => {
   });
 };
 
-const requestNetworkChange = async (network: string): Promise<boolean> => {
+const requestNetworkChange = async (network: NetworkEnum): Promise<boolean> => {
   const etherStore = useEtherStore();
   if (!etherStore.walletAddress) return true;
+  const window_ = window as any;
 
   try {
-    const window_ = window as any;
     await window_.ethereum.request({
       method: "wallet_switchEthereumChain",
-      params: [{ chainId: network2Chain[network] }], // chainId must be in hexadecimal numbers
+      params: [{ chainId: Networks[network].chainId }], // chainId must be in hexadecimal numbers
     });
-  } catch {
-    return false;
+  } catch (e:any){
+    if (e.code == 4902){ // Unrecognized chain ID
+        await window_.ethereum.request({
+         "method": "wallet_addEthereumChain",
+         "params": [ Networks[network] ],
+        });
+    }
   }
 
   return true;
