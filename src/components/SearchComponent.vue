@@ -175,7 +175,7 @@ watch(walletAddress, (): void => {
           <div class="relative">
             <button
               ref="tokenDropdownRef"
-              class="flex flex-row items-center p-2 bg-gray-300 rounded-3xl min-w-fit gap-2"
+              class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
               @click="openTokenSelection()"
             >
               <img
@@ -187,7 +187,8 @@ watch(walletAddress, (): void => {
                 selectedToken
               }}</span>              
               <img
-                class="text-gray-900"
+                class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
+                :class="{'scale-y-[-1]': selectTokenToggle}"
                 alt="Chevron Down"
                 src="@/assets/chevronDownBlack.svg"
               />
