@@ -314,7 +314,10 @@ onClickOutside(infoMenuRef, () => {
         <div class="flex flex-col">
           <div
             ref="walletAddressRef"
-            class="top-bar-info cursor-pointer h-10"
+            class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
+            :class="{'bg-gray-50': menuOpenToggle}"
+            @mouseover="menuHoverToggle = true"
+            @mouseout="menuHoverToggle = false"
             @click="
               [
                 (menuOpenToggle = !menuOpenToggle),
@@ -322,45 +325,22 @@ onClickOutside(infoMenuRef, () => {
                 (infoMenuOpenToggle = false),
               ]
             "
-            @mouseover="menuHoverToggle = true"
-            @mouseout="menuHoverToggle = false"
-            :style="{
-              backgroundColor: menuOpenToggle
-                ? '#F9F9F9'
-                : menuHoverToggle
-                ? '#F9F9F9'
-                : 'transparent',
-            }"
           >
             <img alt="Account image" src="@/assets/account.svg" />
             <span
-              class="default-text"
-              :style="{
-                color: menuOpenToggle
-                  ? '#000000'
-                  : menuHoverToggle
-                  ? '#000000'
-                  : 'rgb(249 250 251)',
-              }"
+              class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out"
+              :class="{'!text-gray-900': menuOpenToggle}"
             >
               {{ formatWalletAddress() }}
             </span>
-            <img
-              class="text-gray-900"
-              v-if="!menuHoverToggle && !menuOpenToggle"
-              alt="Chevron Down"
-              src="@/assets/chevronDown.svg"
-            />
-            <img
-              v-if="menuOpenToggle"
-              alt="Chevron Up"
-              src="@/assets/chevronUp.svg"
-            />
-            <img
-              v-if="menuHoverToggle && !menuOpenToggle"
-              alt="Chevron Down Black"
-              src="@/assets/chevronDownBlack.svg"
-            />
+            <div
+              class="transition-all duration-500 ease-in-out mt-1"
+              :class="{'scale-y-[-1]': menuOpenToggle}"
+            >
+              <svg viewBox="0 0 16 16" class="h-4 w-4 text-white group-hover:text-gray-900" :class="{'!text-gray-900': menuOpenToggle}">
+                <use href="@/assets/chevron.svg#chevronDown"></use>
+              </svg>
+            </div>
           </div>
           <div
             v-show="menuOpenToggle"
@@ -506,7 +486,7 @@ header {
 }
 
 .top-bar-info {
-  @apply flex justify-between gap-2 px-4 py-2 border-amber-500 border-2 sm:rounded rounded-lg items-center;
+  @apply flex justify-between gap-2 px-4 py-2 border-amber-500 border-2 sm:rounded rounded-lg;
 }
 
 .redirect_button {
