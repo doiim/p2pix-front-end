@@ -137,12 +137,12 @@ const handleButtonClick = async (
             </button>
             <div
               v-if="selectTokenToggle"
-              class="mt-2 w-[100px] text-gray-900 lg-view absolute"
+              class="mt-2 w-[100px] text-gray-900 absolute"
             >
-              <div class="bg-white rounded-md z-10">
+              <div class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
                 <div
                   v-for="token in TokenEnum"
-                  class="flex menu-button gap-2 px-4 rounded-md cursor-pointer hover:bg-gray-300"
+                  class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
                   @click="handleSelectedToken(token)"
                 >
                   <img
