@@ -9,6 +9,10 @@ import { storeToRefs } from "pinia";
 import { connectProvider } from "@/blockchain/provider";
 import { TokenEnum } from "@/model/NetworkEnum";
 import { getTokenImage } from "@/utils/imagesPath";
+import { onClickOutside } from "@vueuse/core";
+
+// html references
+const tokenDropdownRef = ref<any>(null);
 
 // Reactive state
 const etherStore = useEtherStore();
@@ -59,6 +63,10 @@ const openTokenSelection = (): void => {
   selectTokenToggle.value = true;
 };
 
+onClickOutside(tokenDropdownRef, () => {
+  selectTokenToggle.value = false;
+});
+
 const handleSelectedToken = (token: TokenEnum): void => {
   etherStore.setSelectedToken(token);
   selectTokenToggle.value = false;
@@ -108,6 +116,7 @@ const handleButtonClick = async (
           />
           <div class="relative">
             <button
+              ref="tokenDropdownRef"
               class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
               @click="openTokenSelection()"
             >

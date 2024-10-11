@@ -11,6 +11,7 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import { decimalCount } from "@/utils/decimalCount";
 import SpinnerComponent from "./SpinnerComponent.vue";
 import { getTokenImage } from "@/utils/imagesPath";
+import { onClickOutside } from "@vueuse/core";
 
 import { TokenEnum } from "@/model/NetworkEnum";
 
@@ -26,6 +27,9 @@ const {
   depositsValidListMumbai,
   loadingNetworkLiquidity,
 } = storeToRefs(etherStore);
+
+// html references
+const tokenDropdownRef = ref<any>(null);
 
 // Reactive state
 const tokenValue = ref<number>(0);
@@ -74,6 +78,10 @@ const handleInputEvent = (event: any): void => {
 const openTokenSelection = (): void => {
   selectTokenToggle.value = true;
 };
+
+onClickOutside(tokenDropdownRef, () => {
+  selectTokenToggle.value = false;
+});
 
 const handleSelectedToken = (token: TokenEnum): void => {
   etherStore.setSelectedToken(token);
@@ -167,6 +175,7 @@ watch(walletAddress, (): void => {
           <div class="relative">
             <button
               class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
+              ref="tokenDropdownRef"
               @click="openTokenSelection()"
             >
               <img
