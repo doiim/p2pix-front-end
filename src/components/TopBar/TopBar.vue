@@ -111,79 +111,81 @@ onClickOutside(infoMenuRef, () => {
             Menu
           </h1>
         </button>
-        <div
-          v-show="infoMenuOpenToggle"
-          class="mt-10 absolute w-full text-gray-900 lg-view"
-        >
-          <div class="mt-2">
-            <div class="bg-white rounded-md z-10 -left-36 w-52">
-              <div class="menu-button gap-2 px-4 rounded-md cursor-pointer">
-                <span class="text-gray-900 py-4 text-end font-semibold text-sm">
-                  Documentação
-                </span>
-              </div>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
-              </div>
-              <RouterLink
-                :to="'/faq'"
-                class="menu-button gap-2 px-4 rounded-md cursor-pointer"
-              >
-                <span
-                  class="text-gray-900 py-4 text-end font-semibold text-sm whitespace-nowrap"
+        <transition name="dropdown">
+          <div
+            v-show="infoMenuOpenToggle"
+            class="mt-10 absolute w-full text-gray-900 lg-view"
+          >
+            <div class="mt-2">
+              <div class="bg-white rounded-md z-10 -left-36 w-52">
+                <div class="menu-button gap-2 px-4 rounded-md cursor-pointer">
+                  <span class="text-gray-900 py-4 text-end font-semibold text-sm">
+                    Documentação
+                  </span>
+                </div>
+                <div class="w-full flex justify-center">
+                  <hr class="w-4/5" />
+                </div>
+                <RouterLink
+                  :to="'/faq'"
+                  class="menu-button gap-2 px-4 rounded-md cursor-pointer"
                 >
-                  Perguntas frequentes
-                </span>
-              </RouterLink>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
-              </div>
-              <div
-                class="sm:text-center sm:justify-center ml-8 sm:ml-0 gap-2 px-4 rounded-md float-right"
-              >
-                <div class="redirect_button flex mr-4">
-                  <div class="mr-6">
-                    <a href="https://www.twitter.com/doiim">
-                      <img
-                        alt="Twitter"
-                        width="20"
-                        height="20"
-                        src="@/assets/twitterIcon.svg"
-                        class="cursor-pointer"
-                      />
-                    </a>
-                  </div>
-                  <div class="mr-6">
-                    <a href="https://www.linkedin.com/company/doiim/">
-                      <img
-                        alt="LinkedIn"
-                        width="20"
-                        height="20"
-                        src="@/assets/linkedinIcon.svg"
-                        class="cursor-pointer"
-                        href="https://www.linkedin.com/company/doiim/"
-                      />
-                    </a>
-                  </div>
-                  <div class="mr-6">
-                    <a href="https://www.github.com/doiim">
-                      <img
-                        alt="Github"
-                        width="20"
-                        height="20"
-                        src="@/assets/githubIcon.svg"
-                        class="cursor-pointer"
-                      />
-                    </a>
+                  <span
+                    class="text-gray-900 py-4 text-end font-semibold text-sm whitespace-nowrap"
+                  >
+                    Perguntas frequentes
+                  </span>
+                </RouterLink>
+                <div class="w-full flex justify-center">
+                  <hr class="w-4/5" />
+                </div>
+                <div
+                  class="sm:text-center sm:justify-center ml-8 sm:ml-0 gap-2 px-4 rounded-md float-right"
+                >
+                  <div class="redirect_button flex mr-4">
+                    <div class="mr-6">
+                      <a href="https://www.twitter.com/doiim">
+                        <img
+                          alt="Twitter"
+                          width="20"
+                          height="20"
+                          src="@/assets/twitterIcon.svg"
+                          class="cursor-pointer"
+                        />
+                      </a>
+                    </div>
+                    <div class="mr-6">
+                      <a href="https://www.linkedin.com/company/doiim/">
+                        <img
+                          alt="LinkedIn"
+                          width="20"
+                          height="20"
+                          src="@/assets/linkedinIcon.svg"
+                          class="cursor-pointer"
+                          href="https://www.linkedin.com/company/doiim/"
+                        />
+                      </a>
+                    </div>
+                    <div class="mr-6">
+                      <a href="https://www.github.com/doiim">
+                        <img
+                          alt="Github"
+                          width="20"
+                          height="20"
+                          src="@/assets/githubIcon.svg"
+                          class="cursor-pointer"
+                        />
+                      </a>
+                    </div>
                   </div>
                 </div>
-              </div>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
+                <div class="w-full flex justify-center">
+                  <hr class="w-4/5" />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        </transition>
       </div>
       <RouterLink
         :to="'/faq'"
@@ -246,33 +248,35 @@ onClickOutside(infoMenuRef, () => {
             </svg>
           </div>
         </div>
-        <div
-          v-show="currencyMenuOpenToggle"
-          class="mt-10 absolute text-gray-900 lg-view min-w-max left-0"
-        >
-          <div class="mt-2 bg-white rounded-md border border-gray-300 drop-shadow-md shadow-md overflow-clip">
-            <div
-              v-for="(chainData, network) in Networks"
-              class="menu-button p-4 gap-2 cursor-pointer hover:bg-gray-200 flex items-center !justify-start whitespace-nowrap transition-colors duration-150 ease-in-out"
-              @click="networkChange(network)"
-            >
-              <img
-                :alt="chainData.chainName + ' image'"
-                width="20"
-                height="20"
-                :src="getNetworkImage(NetworkEnum[network])"
-                class="mr-2 ml-1"
-              />
-              <span class="text-gray-900 font-semibold text-sm">
-                {{ chainData.chainName }}
-              </span>
+        <transition name="dropdown">
+          <div
+            v-show="currencyMenuOpenToggle"
+            class="mt-10 absolute text-gray-900 lg-view min-w-max left-0"
+          >
+            <div class="mt-2 bg-white rounded-md border border-gray-300 drop-shadow-md shadow-md overflow-clip">
+              <div
+                v-for="(chainData, network) in Networks"
+                class="menu-button p-4 gap-2 cursor-pointer hover:bg-gray-200 flex items-center !justify-start whitespace-nowrap transition-colors duration-150 ease-in-out"
+                @click="networkChange(network)"
+              >
+                <img
+                  :alt="chainData.chainName + ' image'"
+                  width="20"
+                  height="20"
+                  :src="getNetworkImage(NetworkEnum[network])"
+                  class="mr-2 ml-1"
+                />
+                <span class="text-gray-900 font-semibold text-sm">
+                  {{ chainData.chainName }}
+                </span>
 
-            </div>
-            <div class="w-full flex justify-center">
-              <hr class="w-4/5" />
+              </div>
+              <div class="w-full flex justify-center">
+                <hr class="w-4/5" />
+              </div>
             </div>
           </div>
-        </div>
+        </transition>
       </div>
       <button
         type="button"
@@ -322,28 +326,30 @@ onClickOutside(infoMenuRef, () => {
               </svg>
             </div>
           </div>
-          <div
-            v-show="menuOpenToggle"
-            class="mt-10 absolute w-full text-gray-900 lg-view"
-          >
-            <div class="pl-4 mt-2">
-              <div class="bg-white rounded-md z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
-                <div class="menu-button" @click="closeMenu()">
-                  <RouterLink to="/manage_bids" class="redirect_button">
-                    Gerenciar Ofertas
-                  </RouterLink>
-                </div>
-                <div class="w-full flex justify-center">
-                  <hr class="w-4/5" />
-                </div>
-                <div class="menu-button" @click="disconnectUser">
-                  <RouterLink to="/" class="redirect_button">
-                    Desconectar
-                  </RouterLink>
+          <transition name="dropdown">
+            <div
+              v-show="menuOpenToggle"
+              class="mt-10 absolute w-full text-gray-900 lg-view"
+            >
+              <div class="pl-4 mt-2">
+                <div class="bg-white rounded-md z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
+                  <div class="menu-button" @click="closeMenu()">
+                    <RouterLink to="/manage_bids" class="redirect_button">
+                      Gerenciar Ofertas
+                    </RouterLink>
+                  </div>
+                  <div class="w-full flex justify-center">
+                    <hr class="w-4/5" />
+                  </div>
+                  <div class="menu-button" @click="disconnectUser">
+                    <RouterLink to="/" class="redirect_button">
+                      Desconectar
+                    </RouterLink>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          </transition>
         </div>
       </div>
     </div>

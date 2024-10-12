@@ -135,33 +135,35 @@ const handleButtonClick = async (
                 src="@/assets/chevronDownBlack.svg"
               />
             </button>
-            <div
-              v-if="selectTokenToggle"
-              class="mt-2 w-[100px] text-gray-900 absolute"
-            >
-              <div class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
-                <div
-                  v-for="token in TokenEnum"
-                  class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
-                  @click="handleSelectedToken(token)"
-                >
-                  <img
-                    :alt="token + ' logo'"
-                    width="20"
-                    height="20"
-                    :src="getTokenImage(token)"
-                  />
-                  <span
-                    class="text-gray-900 py-4 text-end font-semibold text-sm"
+            <transition name="dropdown">
+              <div
+                v-if="selectTokenToggle"
+                class="mt-2 w-[100px] text-gray-900 absolute"
+              >
+                <div class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
+                  <div
+                    v-for="token in TokenEnum"
+                    class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
+                    @click="handleSelectedToken(token)"
                   >
-                    {{ token }}
-                  </span>
-                </div>
-                <div class="w-full flex justify-center">
-                  <hr class="w-4/5" />
+                    <img
+                      :alt="token + ' logo'"
+                      width="20"
+                      height="20"
+                      :src="getTokenImage(token)"
+                    />
+                    <span
+                      class="text-gray-900 py-4 text-end font-semibold text-sm"
+                    >
+                      {{ token }}
+                    </span>
+                  </div>
+                  <div class="w-full flex justify-center">
+                    <hr class="w-4/5" />
+                  </div>
                 </div>
               </div>
-            </div>
+            </transition>
           </div>
         </div>
 
