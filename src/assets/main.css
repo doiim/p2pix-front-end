@@ -25,3 +25,7 @@ a,
     background-color: hsla(160, 100%, 37%, 0.2);
   }
 }
+
+.main-container {
+  @apply flex w-full max-w-xs md:max-w-lg flex-col justify-center items-center px-8 py-6 gap-4 rounded-lg border border-gray-500 backdrop-blur-md drop-shadow-lg shadow-lg mt-10;
+}

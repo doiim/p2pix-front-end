@@ -96,7 +96,7 @@ const handleButtonClick = async (
         envio da transação e confirme sua oferta.</span
       >
     </div>
-    <div class="blur-container">
+    <div class="main-container">
       <div class="backdrop-blur -z-10 w-full h-full"></div>
       <div
         class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg border-y-10"
@@ -223,10 +223,6 @@ const handleButtonClick = async (
 
 .text {
   @apply text-white text-center;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 mt-10 w-auto;
 }
 
 input[type="number"] {

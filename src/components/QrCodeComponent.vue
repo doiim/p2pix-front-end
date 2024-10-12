@@ -97,7 +97,7 @@ onUnmounted(() => {
         autenticação para enviar a transação para a rede.
       </span>
     </div>
-    <div class="blur-container sm:max-w-[28rem] max-w-[20rem] text-black">
+    <div class="main-container sm:max-w-[28rem] max-w-[20rem] text-black">
       <div
         class="flex-col items-center justify-center flex w-full bg-white sm:p-8 p-4 rounded-lg break-normal"
       >
@@ -219,10 +219,6 @@ h2 {
 
 .text {
   @apply text-white text-center;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-6;
 }
 
 input[type="number"] {
