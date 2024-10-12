@@ -106,9 +106,9 @@ const handleButtonClick = async (
             type="number"
             v-model="offer"
             class="border-none outline-none text-gray-900 sm:w-fit w-3/4"
-            v-bind:class="{
-              'font-semibold': offer != undefined,
-              'text-xl': offer != undefined,
+            :class="{
+              '!font-medium': offer !== undefined && offer !== '',
+              'text-xl': offer !== undefined && offer !== '',
             }"
             @input="debounce(handleInputEvent, 500)($event)"
             placeholder="Digite sua oferta"
@@ -184,6 +184,10 @@ const handleButtonClick = async (
             type="text"
             v-model="pixKey"
             class="border-none outline-none sm:text-lg text-sm text-gray-900 w-fit"
+            :class="{
+              '!font-medium': pixKey !== undefined && pixKey !== '',
+              'text-xl': pixKey !== undefined && pixKey !== '',
+            }"
             placeholder="Digite a chave Pix"
           />
         </div>
