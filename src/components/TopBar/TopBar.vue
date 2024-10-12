@@ -288,7 +288,7 @@ onClickOutside(infoMenuRef, () => {
         Conectar
       </button>
       <div v-if="walletAddress" class="account-info">
-        <div class="flex flex-col">
+        <div class="flex flex-col relative">
           <div
             ref="walletAddressRef"
             class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
@@ -463,7 +463,7 @@ header {
 }
 
 .top-bar-info {
-  @apply flex justify-between gap-2 px-4 py-2 border-amber-500 border-2 sm:rounded rounded-lg;
+  @apply flex justify-between items-center gap-2 px-4 py-2 border-amber-500 border-2 sm:rounded rounded-lg;
 }
 
 .redirect_button {
