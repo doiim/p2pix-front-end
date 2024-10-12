@@ -13,11 +13,8 @@ const etherStore = useEtherStore();
 const { walletAddress, sellerView } = storeToRefs(etherStore);
 
 const menuOpenToggle = ref<boolean>(false);
-const menuHoverToggle = ref<boolean>(false);
-
 const infoMenuOpenToggle = ref<boolean>(false);
 const currencyMenuOpenToggle = ref<boolean>(false);
-const currencyMenuHoverToggle = ref<boolean>(false);
 const infoMenuRef = ref<any>(null);
 const walletAddressRef = ref<any>(null);
 const currencyRef = ref<any>(null);
@@ -54,13 +51,11 @@ const networkChange = async (network: NetworkEnum): Promise<void> => {
 };
 
 onClickOutside(walletAddressRef, () => {
-  menuHoverToggle.value = false;
   menuOpenToggle.value = false;
 });
 
 onClickOutside(currencyRef, () => {
   currencyMenuOpenToggle.value = false;
-  currencyMenuHoverToggle.value = false;
 });
 
 onClickOutside(infoMenuRef, () => {
@@ -217,8 +212,6 @@ onClickOutside(infoMenuRef, () => {
           ref="currencyRef"
           class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
           :class="{'bg-gray-50': currencyMenuOpenToggle}"
-          @mouseover="currencyMenuHoverToggle = true"
-          @mouseout="currencyMenuHoverToggle = false"
           @click="
             [
               (currencyMenuOpenToggle = !currencyMenuOpenToggle),
@@ -300,8 +293,6 @@ onClickOutside(infoMenuRef, () => {
             ref="walletAddressRef"
             class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
             :class="{'bg-gray-50': menuOpenToggle}"
-            @mouseover="menuHoverToggle = true"
-            @mouseout="menuHoverToggle = false"
             @click="
               [
                 (menuOpenToggle = !menuOpenToggle),
