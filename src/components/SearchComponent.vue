@@ -172,7 +172,7 @@ watch(walletAddress, (): void => {
             placeholder="0  "
             step=".01"
           />
-          <div class="relative">
+          <div class="relative overflow-visible">
             <button
               ref="tokenDropdownRef"
               class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
@@ -196,7 +196,7 @@ watch(walletAddress, (): void => {
             <transition name="dropdown">
               <div
                 v-if="selectTokenToggle"
-                class="mt-2 w-[100px] text-gray-900 absolute"
+                class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
               >
                 <div class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
                   <div

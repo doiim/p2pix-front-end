@@ -114,7 +114,7 @@ const handleButtonClick = async (
             placeholder="Digite sua oferta"
             step=".01"
           />
-          <div class="relative">
+          <div class="relative overflow-visible">
             <button
               ref="tokenDropdownRef"
               class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
@@ -125,9 +125,9 @@ const handleButtonClick = async (
                 class="sm:w-fit w-4"
                 :src="getTokenImage(selectedToken)"
               />
-              <span class="text-gray-900 sm:text-lg text-md font-medium" id="token">{{
-                selectedToken
-              }}</span>
+              <span class="text-gray-900 sm:text-lg text-md font-medium" id="token">
+                {{ selectedToken }}
+              </span>
               <img
                 class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
                 :class="{'scale-y-[-1]': selectTokenToggle}"
@@ -138,7 +138,7 @@ const handleButtonClick = async (
             <transition name="dropdown">
               <div
                 v-if="selectTokenToggle"
-                class="mt-2 w-[100px] text-gray-900 absolute"
+                class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
               >
                 <div class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
                   <div
@@ -157,9 +157,6 @@ const handleButtonClick = async (
                     >
                       {{ token }}
                     </span>
-                  </div>
-                  <div class="w-full flex justify-center">
-                    <hr class="w-4/5" />
                   </div>
                 </div>
               </div>
