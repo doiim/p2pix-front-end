@@ -250,7 +250,7 @@ onClickOutside(infoMenuRef, () => {
           v-show="currencyMenuOpenToggle"
           class="mt-10 absolute text-gray-900 lg-view min-w-max left-0"
         >
-          <div class="mt-2 bg-white rounded-md shadow-lg ">
+          <div class="mt-2 bg-white rounded-md border border-gray-300 drop-shadow-md shadow-md overflow-clip">
             <div
               v-for="(chainData, network) in Networks"
               class="menu-button p-4 gap-2 cursor-pointer hover:bg-gray-200 flex items-center !justify-start whitespace-nowrap transition-colors duration-150 ease-in-out"
@@ -327,7 +327,7 @@ onClickOutside(infoMenuRef, () => {
             class="mt-10 absolute w-full text-gray-900 lg-view"
           >
             <div class="pl-4 mt-2">
-              <div class="bg-white rounded-md z-10">
+              <div class="bg-white rounded-md z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
                 <div class="menu-button" @click="closeMenu()">
                   <RouterLink to="/manage_bids" class="redirect_button">
                     Gerenciar Ofertas
