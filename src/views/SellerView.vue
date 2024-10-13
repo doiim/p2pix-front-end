@@ -61,29 +61,31 @@ const sendNetwork = async () => {
 </script>
 
 <template>
-  <div v-if="flowStep == Step.Sell">
-    <WantSellComponent v-if="!loading" @approve-tokens="approveOffer" />
-    <LoadingComponent
-      v-if="loading"
-      :message="'A transação está sendo enviada para a rede.'"
+  <div>
+    <div v-if="flowStep == Step.Sell">
+      <WantSellComponent v-if="!loading" @approve-tokens="approveOffer" />
+      <LoadingComponent
+        v-if="loading"
+        :message="'A transação está sendo enviada para a rede.'"
+      />
+    </div>
+    <CustomAlert
+      v-if="flowStep == Step.Sell && showAlert"
+      :type="'sell'"
+      @close-alert="showAlert = false"
     />
-  </div>
-  <CustomAlert
-    v-if="flowStep == Step.Sell && showAlert"
-    :type="'sell'"
-    @close-alert="showAlert = false"
-  />
-  <div v-if="flowStep == Step.Network">
-    <SendNetwork
-      :pixKey="pixKeyBuyer"
-      :offer="Number(offerValue)"
-      :selected-token="etherStore.selectedToken"
-      v-if="!loading"
-      @send-network="sendNetwork"
-    />
-    <LoadingComponent
-      v-if="loading"
-      :message="'A transação está sendo enviada para a rede.'"
-    />
+    <div v-if="flowStep == Step.Network">
+      <SendNetwork
+        :pixKey="pixKeyBuyer"
+        :offer="Number(offerValue)"
+        :selected-token="etherStore.selectedToken"
+        v-if="!loading"
+        @send-network="sendNetwork"
+      />
+      <LoadingComponent
+        v-if="loading"
+        :message="'A transação está sendo enviada para a rede.'"
+      />
+    </div>
   </div>
 </template>
