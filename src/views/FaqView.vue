@@ -34,7 +34,7 @@ const openItem = (index: number) => {
       <span class="text font-extrabold text-5xl max-w-[50rem]"
         >Perguntas Frequentes
       </span>
-      <span class="text text-xl font-medium text-base max-w-[40rem]"
+      <span class="text font-medium text-base max-w-[40rem]"
         >Não conseguiu uma resposta para sua dúvida? Acesse a comunidade do
         Discord para falar diretamente conosco.</span
       >

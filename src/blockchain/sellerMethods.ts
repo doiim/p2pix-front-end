@@ -1,18 +1,17 @@
 import { getContract, getProvider } from "./provider";
 import { getTokenAddress, getP2PixAddress } from "./addresses";
-import { parseEther } from "ethers/lib/utils";
 
-import { ethers } from "ethers";
+import { encodeBytes32String, Contract, parseEther } from "ethers";
 
 import mockToken from "../utils/smart_contract_files/MockToken.json";
 import { useEtherStore } from "@/store/ether";
 
 const approveTokens = async (tokenQty: string): Promise<any> => {
   const provider = getProvider();
-  const signer = provider.getSigner();
+  const signer = await provider.getSigner();
   const etherStore = useEtherStore();
 
-  const tokenContract = new ethers.Contract(
+  const tokenContract = new Contract(
     getTokenAddress(etherStore.selectedToken),
     mockToken.abi,
     signer
@@ -28,12 +27,12 @@ const approveTokens = async (tokenQty: string): Promise<any> => {
 };
 
 const addDeposit = async (tokenQty: string, pixKey: string): Promise<any> => {
-  const p2pContract = getContract();
+  const p2pContract = await getContract();
   const etherStore = useEtherStore();
 
   const deposit = await p2pContract.deposit(
     pixKey,
-    ethers.utils.formatBytes32String(""),
+    encodeBytes32String(""),
     getTokenAddress(etherStore.selectedToken),
     parseEther(tokenQty),
     true

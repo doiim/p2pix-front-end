@@ -1,8 +1,7 @@
 import { useEtherStore } from "@/store/ether";
-import { Contract, ethers } from "ethers";
+import { Contract, formatEther, Interface, JsonRpcProvider } from "ethers";
 
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
-import { formatEther } from "ethers/lib/utils";
 import { getContract } from "./provider";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getP2PixAddress, getTokenAddress } from "./addresses";
@@ -12,30 +11,21 @@ import type { Pix } from "@/model/Pix";
 
 const getNetworksLiquidity = async (): Promise<void> => {
   const etherStore = useEtherStore();
-  const sepoliaProvider = new ethers.providers.JsonRpcProvider(
+  const sepoliaProvider = new JsonRpcProvider(
     import.meta.env.VITE_SEPOLIA_API_URL,
     11155111
   ); // sepolia provider
-  const mumbaiProvider = new ethers.providers.JsonRpcProvider(
-    import.meta.env.VITE_MUMBAI_API_URL,
-    80001
-  ); // mumbai provider
-  const rootstockProvider = new ethers.providers.JsonRpcProvider(
+  const rootstockProvider = new JsonRpcProvider(
     import.meta.env.VITE_RSK_API_URL,
     31
   ); // rootstock provider
 
-  const p2pContractSepolia = new ethers.Contract(
+  const p2pContractSepolia = new Contract(
     getP2PixAddress(NetworkEnum.ethereum),
     p2pix.abi,
     sepoliaProvider
   );
-  const p2pContractMumbai = new ethers.Contract(
-    getP2PixAddress(NetworkEnum.polygon),
-    p2pix.abi,
-    mumbaiProvider
-  );
-  const p2pContractRootstock = new ethers.Contract(
+  const p2pContractRootstock = new Contract(
     getP2PixAddress(NetworkEnum.rootstock),
     p2pix.abi,
     rootstockProvider
@@ -71,46 +61,47 @@ const getValidDeposits = async (
   if (contract) {
     p2pContract = contract;
   } else {
-    p2pContract = getContract(true);
+    p2pContract = await getContract(true);
   }
 
   const filterDeposits = p2pContract.filters.DepositAdded(null);
   const eventsDeposits = await p2pContract.queryFilter(filterDeposits);
 
-  if (!contract) p2pContract = getContract(); // get metamask provider contract
+  if (!contract) p2pContract = await getContract(); // get metamask provider contract
   const depositList: { [key: string]: ValidDeposit } = {};
 
-  await Promise.all(
-    eventsDeposits.map(async (deposit) => {
-      // Get liquidity only for the selected token
-      if (deposit.args?.token != token) return null;
+  for (const deposit of eventsDeposits) {
+    const IPix2Pix = new Interface(p2pix.abi);
+    const decoded = IPix2Pix.parseLog({
+      topics: deposit.topics,
+      data: deposit.data,
+    });
+    // Get liquidity only for the selected token
+    if (decoded?.args.token != token) continue;
 
-      const mappedBalance = await p2pContract.getBalance(
-        deposit.args?.seller,
-        token
-      );
+    const mappedBalance = await p2pContract.getBalance(
+      decoded.args.seller,
+      token
+    );
+    const mappedPixTarget = await p2pContract.getPixTarget(
+      decoded.args.seller,
+      token
+    );
 
-      const mappedPixTarget = await p2pContract.getPixTarget(
-        deposit.args?.seller,
-        token
-      );
+    let validDeposit: ValidDeposit | null = null;
 
-      let validDeposit: ValidDeposit | null = null;
+    if (mappedBalance._hex) {
+      validDeposit = {
+        token: token,
+        blockNumber: deposit.blockNumber,
+        remaining: Number(formatEther(mappedBalance._hex)),
+        seller: decoded.args.seller,
+        pixKey: mappedPixTarget,
+      };
+    }
 
-      if (mappedBalance._hex) {
-        validDeposit = {
-          token: token,
-          blockNumber: deposit.blockNumber,
-          remaining: Number(formatEther(mappedBalance._hex)),
-          seller: deposit.args?.seller,
-          pixKey: mappedPixTarget,
-        };
-      }
-
-      if (validDeposit)
-        depositList[deposit.args?.seller + token] = validDeposit;
-    })
-  );
+    if (validDeposit) depositList[decoded.args.seller + token] = validDeposit;
+  }
 
   return Object.values(depositList);
 };
@@ -118,7 +109,7 @@ const getValidDeposits = async (
 const getUnreleasedLockById = async (
   lockID: string
 ): Promise<UnreleasedLock> => {
-  const p2pContract = getContract();
+  const p2pContract = await getContract();
   const pixData: Pix = {
     pixKey: "",
   };

@@ -1,5 +1,4 @@
 import { useEtherStore } from "@/store/ether";
-
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 
 import { updateWalletStatus } from "./wallet";
@@ -12,32 +11,27 @@ import {
 import type { NetworkEnum } from "@/model/NetworkEnum";
 import { Networks } from "@/model/Networks";
 
-import { ethers } from "ethers";
+import { BrowserProvider, JsonRpcProvider, Contract } from "ethers";
 
 const getProvider = (
   onlyAlchemyProvider: boolean = false
-): ethers.providers.Web3Provider | ethers.providers.JsonRpcProvider => {
-  const window_ = window as any;
-  const connection = window_.ethereum;
-
-  if (!connection || onlyAlchemyProvider)
-    return new ethers.providers.JsonRpcProvider(getProviderUrl()); // alchemy provider
-
-  return new ethers.providers.Web3Provider(connection); // metamask provider
+): BrowserProvider | JsonRpcProvider => {
+  if (onlyAlchemyProvider) return new JsonRpcProvider(getProviderUrl()); // alchemy provider
+  return (window as any).ethereum as BrowserProvider;
 };
 
-const getContract = (onlyAlchemyProvider: boolean = false) => {
+const getContract = async (onlyAlchemyProvider: boolean = false) => {
   const provider = getProvider(onlyAlchemyProvider);
-  const signer = provider.getSigner();
-  return new ethers.Contract(getP2PixAddress(), p2pix.abi, signer);
+  const signer = await provider.getSigner();
+  return new Contract(getP2PixAddress(), p2pix.abi, signer);
 };
 
 const connectProvider = async (): Promise<void> => {
   const window_ = window as any;
   const connection = window_.ethereum;
   const provider = getProvider();
-
-  if (!(provider instanceof ethers.providers.Web3Provider)) {
+  await (provider as any).enable();
+  if (!(provider instanceof BrowserProvider)) {
     window.alert("Please, connect to metamask extension");
     return;
   }
@@ -80,12 +74,13 @@ const requestNetworkChange = async (network: NetworkEnum): Promise<boolean> => {
       method: "wallet_switchEthereumChain",
       params: [{ chainId: Networks[network].chainId }], // chainId must be in hexadecimal numbers
     });
-  } catch (e:any){
-    if (e.code == 4902){ // Unrecognized chain ID
-        await window_.ethereum.request({
-         "method": "wallet_addEthereumChain",
-         "params": [ Networks[network] ],
-        });
+  } catch (e: any) {
+    if (e.code == 4902) {
+      // Unrecognized chain ID
+      await window_.ethereum.request({
+        method: "wallet_addEthereumChain",
+        params: [Networks[network]],
+      });
     }
   }
 

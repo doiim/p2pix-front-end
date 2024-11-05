@@ -23,4 +23,10 @@ export default defineConfig({
       "@": fileURLToPath(new URL("./src", import.meta.url)),
     },
   },
+  build: {
+    target: "esnext", // Or a recent target that supports BigInt literals
+    rollupOptions: {
+      external: ["@coinbase/wallet-sdk"], // Exclude from the bundle if needed
+    },
+  },
 });

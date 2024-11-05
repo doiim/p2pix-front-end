@@ -7,6 +7,7 @@ import { NetworkEnum } from "@/model/NetworkEnum";
 import { connectProvider, requestNetworkChange } from "@/blockchain/provider";
 import { getNetworkImage } from "@/utils/imagesPath";
 import { Networks } from "@/model/Networks";
+
 // Store reference
 const etherStore = useEtherStore();
 
@@ -23,7 +24,7 @@ const walletAddressRef = ref<any>(null);
 const currencyRef = ref<any>(null);
 
 //Methods
-const connectMetaMask = async (): Promise<void> => {
+const connnectWallet = async (): Promise<void> => {
   await connectProvider();
 };
 
@@ -269,6 +270,7 @@ onClickOutside(infoMenuRef, () => {
             <div class="bg-white rounded-md z-10">
               <div
                 v-for="(chainData, network) in Networks"
+                :key="network"
                 class="menu-button gap-2 px-4 rounded-md cursor-pointer"
                 @click="networkChange(network)"
               >
@@ -293,7 +295,7 @@ onClickOutside(infoMenuRef, () => {
         type="button"
         v-if="!walletAddress"
         class="border-amber-500 border-2 rounded default-button lg-view"
-        @click="connectMetaMask()"
+        @click="connnectWallet()"
       >
         Conectar carteira
       </button>
@@ -301,7 +303,7 @@ onClickOutside(infoMenuRef, () => {
         type="button"
         v-if="!walletAddress"
         class="border-amber-500 border-2 rounded default-button sm-view"
-        @click="connectMetaMask()"
+        @click="connnectWallet()"
       >
         Conectar
       </button>

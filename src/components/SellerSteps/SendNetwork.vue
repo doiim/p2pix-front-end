@@ -20,7 +20,7 @@ const props = defineProps({
         >Envie sua oferta para a rede
       </span>
       <span
-        class="text text-xl font-normal sm:text-base text-xs sm:max-w-[30rem] max-w-[22rem]"
+        class="text font-normal sm:text-base text-xs sm:max-w-[30rem] max-w-[22rem]"
         >Após a confirmação sua oferta estará disponível para outros usuários.
         Caso deseje retirar a oferta, será necessário aguardar 24h para receber
         os tokens de volta.</span

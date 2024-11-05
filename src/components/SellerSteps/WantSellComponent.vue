@@ -125,12 +125,14 @@ const handleButtonClick = async (
                 class="sm:w-fit w-4"
                 :src="getTokenImage(selectedToken)"
               />
-              <span class="text-gray-900 sm:text-lg text-md font-medium" id="token">{{
-                selectedToken
-              }}</span>
+              <span
+                class="text-gray-900 sm:text-lg text-md font-medium"
+                id="token"
+                >{{ selectedToken }}</span
+              >
               <img
                 class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
-                :class="{'scale-y-[-1]': selectTokenToggle}"
+                :class="{ 'scale-y-[-1]': selectTokenToggle }"
                 alt="Chevron Down"
                 src="@/assets/chevronDownBlack.svg"
               />
@@ -139,9 +141,12 @@ const handleButtonClick = async (
               v-if="selectTokenToggle"
               class="mt-2 w-[100px] text-gray-900 absolute"
             >
-              <div class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
+              <div
+                class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
+              >
                 <div
                   v-for="token in TokenEnum"
+                  :key="token"
                   class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
                   @click="handleSelectedToken(token)"
                 >
@@ -232,6 +237,7 @@ const handleButtonClick = async (
 
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 input[type="number"]::-webkit-inner-spin-button,
