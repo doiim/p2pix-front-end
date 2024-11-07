@@ -79,6 +79,7 @@ const releaseTransaction = async (e2eId: string) => {
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
+  console.log("Checking for unreleased locks");
   const walletLocks = await checkUnreleasedLock(walletAddress.value);
   if (walletLocks) {
     lockID.value = walletLocks.lockID;
@@ -107,7 +108,6 @@ if (paramLockID) {
   });
 
   watch(networkName, async () => {
-    console.log(walletAddress.value);
     if (walletAddress.value) await checkForUnreleasedLocks();
   });
 }

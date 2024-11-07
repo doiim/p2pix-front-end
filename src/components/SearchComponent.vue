@@ -22,8 +22,7 @@ const {
   walletAddress,
   networkName,
   selectedToken,
-  depositsValidListSepolia,
-  depositsValidListMumbai,
+  depositsValidList,
   loadingNetworkLiquidity,
 } = storeToRefs(etherStore);
 
@@ -33,14 +32,13 @@ const tokenDropdownRef = ref<any>(null);
 // Reactive state
 const tokenValue = ref<number>(0);
 const enableConfirmButton = ref<boolean>(false);
-const enableWalletButton = ref<boolean>(false);
 const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
-const selectedSepoliaDeposit = ref<ValidDeposit>();
-const selectedRootstockDeposit = ref<ValidDeposit>();
+const selectedDeposits = ref<ValidDeposit[]>();
 
 import ChevronDown from "@/assets/chevronDown.svg";
 import { useOnboard } from "@web3-onboard/vue";
+import { getPixKey } from "@/blockchain/events";
 
 // Emits
 const emit = defineEmits(["tokenBuy"]);
@@ -51,12 +49,13 @@ const connectAccount = async (): Promise<void> => {
   await connectWallet();
 };
 
-const emitConfirmButton = (): void => {
-  const selectedDeposit =
-    networkName.value == NetworkEnum.sepolia
-      ? selectedSepoliaDeposit.value
-      : selectedRootstockDeposit.value;
-  emit("tokenBuy", selectedDeposit, tokenValue.value);
+const emitConfirmButton = async (): Promise<void> => {
+  const deposit = selectedDeposits.value?.find(
+    (d) => d.network === networkName.value
+  );
+  if (!deposit) return;
+  deposit.pixKey = await getPixKey(deposit.seller, deposit.token);
+  emit("tokenBuy", deposit, tokenValue.value);
 };
 
 // Debounce methods
@@ -91,45 +90,23 @@ const handleSelectedToken = (token: TokenEnum): void => {
 // Verify if there is a valid deposit to buy
 const verifyLiquidity = (): void => {
   enableConfirmButton.value = false;
-  selectedSepoliaDeposit.value = undefined;
-  selectedRootstockDeposit.value = undefined;
-  selectedRootstockDeposit.value = undefined;
-
-  if (tokenValue.value <= 0) {
-    enableWalletButton.value = false;
-    return;
-  }
-
-  selectedSepoliaDeposit.value = verifyNetworkLiquidity(
+  const selDeposits = verifyNetworkLiquidity(
     tokenValue.value,
     walletAddress.value,
-    depositsValidListSepolia.value
-  );
-  selectedRootstockDeposit.value = verifyNetworkLiquidity(
-    tokenValue.value,
-    walletAddress.value,
-    depositsValidListMumbai.value
+    depositsValidList.value
   );
 
+  selectedDeposits.value = selDeposits;
+  hasLiquidity.value = !!selDeposits.find(
+    (d) => d.network === networkName.value
+  );
   enableOrDisableConfirmButton();
-  if (selectedSepoliaDeposit.value || selectedRootstockDeposit.value) {
-    hasLiquidity.value = true;
-    enableWalletButton.value = true;
-  } else {
-    hasLiquidity.value = false;
-    enableWalletButton.value = true;
-  }
 };
 
 const enableOrDisableConfirmButton = (): void => {
-  if (selectedSepoliaDeposit.value && networkName.value == NetworkEnum.sepolia)
-    enableConfirmButton.value = true;
-  else if (
-    selectedRootstockDeposit.value &&
-    networkName.value != NetworkEnum.rootstock
-  )
-    enableConfirmButton.value = true;
-  else enableConfirmButton.value = false;
+  enableConfirmButton.value =
+    !!selectedDeposits.value &&
+    !!selectedDeposits.value.find((d) => d.network === networkName.value);
 };
 
 watch(networkName, (): void => {
@@ -204,6 +181,7 @@ watch(walletAddress, (): void => {
                 >
                   <div
                     v-for="token in TokenEnum"
+                    :key="token"
                     class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
                     @click="handleSelectedToken(token)"
                   >
@@ -228,27 +206,30 @@ watch(walletAddress, (): void => {
           </div>
         </div>
         <div class="custom-divide py-2 mb-2"></div>
-        <div
-          class="flex justify-between"
-          v-if="hasLiquidity && !loadingNetworkLiquidity"
-        >
+        <div class="flex justify-between" v-if="!loadingNetworkLiquidity">
           <p class="text-gray-500 font-normal text-sm w-auto">
             ~ R$ {{ tokenValue.toFixed(2) }}
           </p>
           <div class="flex gap-2">
             <img
-              alt="Polygon image"
-              src="@/assets/polygon.svg?svg"
+              alt="Rootstock image"
+              src="@/assets/rootstock.svg?url"
               width="24"
               height="24"
-              v-if="selectedRootstockDeposit"
+              v-if="
+                selectedDeposits &&
+                selectedDeposits.find((d) => d.network == NetworkEnum.rootstock)
+              "
             />
             <img
               alt="Ethereum image"
-              src="@/assets/ethereum.svg"
+              src="@/assets/ethereum.svg?url"
               width="24"
               height="24"
-              v-if="selectedSepoliaDeposit"
+              v-if="
+                selectedDeposits &&
+                selectedDeposits.find((d) => d.network == NetworkEnum.sepolia)
+              "
             />
           </div>
         </div>
@@ -274,14 +255,14 @@ watch(walletAddress, (): void => {
           v-else-if="!hasLiquidity && !loadingNetworkLiquidity"
         >
           <span class="text-red-500 font-normal text-sm"
-            >Atualmente não há liquidez nas redes para sua demanda</span
+            >Atualmente não há liquidez nas rede selecionada para sua
+            demanda</span
           >
         </div>
       </div>
       <CustomButton
         v-if="!walletAddress"
         :text="'Conectar carteira'"
-        :is-disabled="!enableWalletButton"
         @buttonClicked="connectAccount()"
       />
       <CustomButton

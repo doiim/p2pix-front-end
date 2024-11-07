@@ -26,6 +26,9 @@ const web3Onboard = init({
       rpcUrl: import.meta.env.VITE_ROOTSTOCK_API_URL,
     },
   ],
+  connect: {
+    autoConnectLastWallet: true,
+  },
 });
 
 const { connectedWallet } = useOnboard();

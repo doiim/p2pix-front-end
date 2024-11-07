@@ -1,59 +1,64 @@
 import { useEtherStore } from "@/store/ether";
-import { Contract, formatEther, Interface, JsonRpcProvider } from "ethers";
+import { Contract, formatEther, Interface } from "ethers";
 
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 import { getContract } from "./provider";
 import type { ValidDeposit } from "@/model/ValidDeposit";
-import { getP2PixAddress, getTokenAddress } from "./addresses";
+import {
+  getP2PixAddress,
+  getProviderByNetwork,
+  getTokenAddress,
+} from "./addresses";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
 import type { Pix } from "@/model/Pix";
 
 const getNetworksLiquidity = async (): Promise<void> => {
   const etherStore = useEtherStore();
-  const sepoliaProvider = new JsonRpcProvider(
-    import.meta.env.VITE_SEPOLIA_API_URL,
-    11155111
-  ); // sepolia provider
-  const rootstockProvider = new JsonRpcProvider(
-    import.meta.env.VITE_RSK_API_URL,
-    31
-  ); // rootstock provider
-
-  const p2pContractSepolia = new Contract(
-    getP2PixAddress(NetworkEnum.sepolia),
-    p2pix.abi,
-    sepoliaProvider
-  );
-  const p2pContractRootstock = new Contract(
-    getP2PixAddress(NetworkEnum.rootstock),
-    p2pix.abi,
-    rootstockProvider
-  );
-
   etherStore.setLoadingNetworkLiquidity(true);
 
-  const depositListSepolia = await getValidDeposits(
-    getTokenAddress(etherStore.selectedToken, NetworkEnum.sepolia),
-    p2pContractSepolia
-  );
-  // const depositListMumbai = await getValidDeposits(
-  //   getTokenAddress(etherStore.selectedToken, NetworkEnum.polygon),
-  //   p2pContractMumbai
-  // );
-  const depositListRootstock = await getValidDeposits(
-    getTokenAddress(etherStore.selectedToken, NetworkEnum.rootstock),
-    p2pContractRootstock
-  );
+  const depositLists: ValidDeposit[][] = [];
 
-  etherStore.setDepositsValidListSepolia(depositListSepolia);
-  // etherStore.setDepositsValidListMumbai(depositListMumbai);
-  etherStore.setDepositsValidListRootstock(depositListRootstock);
+  for (const network of Object.values(NetworkEnum).filter(
+    (v) => !isNaN(Number(v))
+  )) {
+    console.log("getNetworksLiquidity", network);
+    const p2pContract = new Contract(
+      getP2PixAddress(network as NetworkEnum),
+      p2pix.abi,
+      getProviderByNetwork(network as NetworkEnum)
+    );
+
+    depositLists.push(
+      await getValidDeposits(
+        getTokenAddress(etherStore.selectedToken, network as NetworkEnum),
+        network as NetworkEnum,
+        p2pContract
+      )
+    );
+  }
+
+  etherStore.setDepositsValidList(depositLists.flat());
   etherStore.setLoadingNetworkLiquidity(false);
+};
+
+const getPixKey = async (seller: string, token: string): Promise<string> => {
+  const p2pContract = await getContract();
+  const pixKeyHex = await p2pContract.getPixTarget(seller, token);
+  // Remove '0x' prefix and convert hex to UTF-8 string
+  const bytes = new Uint8Array(
+    pixKeyHex
+      .slice(2)
+      .match(/.{1,2}/g)
+      .map((byte: string) => parseInt(byte, 16))
+  );
+  // Remove null bytes from the end of the string
+  return new TextDecoder().decode(bytes).replace(/\0/g, "");
 };
 
 const getValidDeposits = async (
   token: string,
+  network: NetworkEnum,
   contract?: Contract
 ): Promise<ValidDeposit[]> => {
   let p2pContract: Contract;
@@ -65,8 +70,11 @@ const getValidDeposits = async (
   }
 
   const filterDeposits = p2pContract.filters.DepositAdded(null);
-  const eventsDeposits = await p2pContract.queryFilter(filterDeposits);
-
+  const eventsDeposits = await p2pContract.queryFilter(
+    filterDeposits
+    // 0,
+    // "latest"
+  );
   if (!contract) p2pContract = await getContract(); // get metamask provider contract
   const depositList: { [key: string]: ValidDeposit } = {};
 
@@ -78,28 +86,22 @@ const getValidDeposits = async (
     });
     // Get liquidity only for the selected token
     if (decoded?.args.token != token) continue;
-
     const mappedBalance = await p2pContract.getBalance(
       decoded.args.seller,
       token
     );
-    const mappedPixTarget = await p2pContract.getPixTarget(
-      decoded.args.seller,
-      token
-    );
-
     let validDeposit: ValidDeposit | null = null;
 
-    if (mappedBalance._hex) {
+    if (mappedBalance) {
       validDeposit = {
         token: token,
         blockNumber: deposit.blockNumber,
-        remaining: Number(formatEther(mappedBalance._hex)),
+        remaining: Number(formatEther(mappedBalance)),
         seller: decoded.args.seller,
-        pixKey: mappedPixTarget,
+        network,
+        pixKey: "",
       };
     }
-
     if (validDeposit) depositList[decoded.args.seller + token] = validDeposit;
   }
 
@@ -127,4 +129,9 @@ const getUnreleasedLockById = async (
   };
 };
 
-export { getValidDeposits, getNetworksLiquidity, getUnreleasedLockById };
+export {
+  getValidDeposits,
+  getNetworksLiquidity,
+  getUnreleasedLockById,
+  getPixKey,
+};

@@ -10,12 +10,7 @@ export const useEtherStore = defineStore("ether", {
     selectedToken: TokenEnum.BRZ,
     loadingLock: false,
     sellerView: false,
-    // Depósitos válidos para compra SEPOLIA
-    depositsValidListSepolia: [] as ValidDeposit[],
-    // Depósitos válidos para compra MUMBAI
-    depositsValidListMumbai: [] as ValidDeposit[],
-    // Depósitos válidos para compra ROOTSTOCK
-    depositsValidListRootstock: [] as ValidDeposit[],
+    depositsValidList: [] as ValidDeposit[],
     loadingWalletTransactions: false,
     loadingNetworkLiquidity: false,
   }),
@@ -38,14 +33,8 @@ export const useEtherStore = defineStore("ether", {
     setSellerView(sellerView: boolean) {
       this.sellerView = sellerView;
     },
-    setDepositsValidListSepolia(depositsValidList: ValidDeposit[]) {
-      this.depositsValidListSepolia = depositsValidList;
-    },
-    setDepositsValidListMumbai(depositsValidList: ValidDeposit[]) {
-      this.depositsValidListMumbai = depositsValidList;
-    },
-    setDepositsValidListRootstock(depositsValidList: ValidDeposit[]) {
-      this.depositsValidListRootstock = depositsValidList;
+    setDepositsValidList(depositsValidList: ValidDeposit[]) {
+      this.depositsValidList = depositsValidList;
     },
     setLoadingWalletTransactions(isLoadingWalletTransactions: boolean) {
       this.loadingWalletTransactions = isLoadingWalletTransactions;
@@ -54,11 +43,10 @@ export const useEtherStore = defineStore("ether", {
       this.loadingNetworkLiquidity = isLoadingNetworkLiquidity;
     },
   },
-  // Alterar para integrar com mumbai
   getters: {
     getValidDepositByWalletAddress: (state) => {
       return (walletAddress: string) =>
-        state.depositsValidListSepolia
+        state.depositsValidList
           .filter((deposit) => deposit.seller == walletAddress)
           .sort((a, b) => {
             return b.blockNumber - a.blockNumber;

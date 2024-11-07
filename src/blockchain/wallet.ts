@@ -25,9 +25,9 @@ export const updateWalletStatus = async (): Promise<void> => {
   const etherStore = useEtherStore();
 
   const provider = await getProvider();
-  const signer = await provider.getSigner();
+  const signer = await provider?.getSigner();
 
-  const { chainId } = await provider.getNetwork();
+  const { chainId } = await provider?.getNetwork();
   if (!isPossibleNetwork(Number(chainId))) {
     window.alert("Invalid chain!:" + chainId);
     return;
@@ -40,7 +40,7 @@ export const updateWalletStatus = async (): Promise<void> => {
     signer
   );
 
-  const walletAddress = await provider.send("eth_requestAccounts", []);
+  const walletAddress = await provider?.send("eth_requestAccounts", []);
   const balance = await mockTokenContract.balanceOf(walletAddress[0]);
 
   etherStore.setBalance(formatEther(balance));
@@ -52,9 +52,9 @@ export const listValidDepositTransactionsByWalletAddress = async (
 ): Promise<ValidDeposit[]> => {
   const etherStore = useEtherStore();
   const walletDeposits = await getValidDeposits(
-    getTokenAddress(etherStore.selectedToken)
+    getTokenAddress(etherStore.selectedToken),
+    etherStore.networkName
   );
-
   if (walletDeposits) {
     return walletDeposits
       .filter((deposit) => deposit.seller == walletAddress)
@@ -69,7 +69,6 @@ export const listValidDepositTransactionsByWalletAddress = async (
 const getLockStatus = async (id: [BigInt]): Promise<number> => {
   const p2pContract = await getContract();
   const res = await p2pContract.getLocksStatus([id]);
-
   return res[1][0];
 };
 
@@ -113,33 +112,41 @@ export const listAllTransactionByWalletAddress = async (
 ): Promise<WalletTransaction[]> => {
   const p2pContract = await getContract(true);
 
+  // Get deposits
   const filterDeposits = p2pContract.filters.DepositAdded([walletAddress]);
   const eventsDeposits = await p2pContract.queryFilter(
     filterDeposits,
     0,
     "latest"
   );
+  console.log("Fetched all wallet deposits");
 
+  // Get locks
   const filterAddedLocks = p2pContract.filters.LockAdded([walletAddress]);
   const eventsAddedLocks = await p2pContract.queryFilter(
     filterAddedLocks,
     0,
     "latest"
   );
+  console.log("Fetched all wallet locks");
 
+  // Get released locks
   const filterReleasedLocks = p2pContract.filters.LockReleased([walletAddress]);
   const eventsReleasedLocks = await p2pContract.queryFilter(
     filterReleasedLocks,
     0,
     "latest"
   );
+  console.log("Fetched all wallet released locks");
 
+  // Get withdrawn deposits
   const filterWithdrawnDeposits = p2pContract.filters.DepositWithdrawn([
     walletAddress,
   ]);
   const eventsWithdrawnDeposits = await p2pContract.queryFilter(
     filterWithdrawnDeposits
   );
+  console.log("Fetched all wallet withdrawn deposits");
 
   const lockStatusFiltered = await filterLockStatus(
     [
@@ -210,10 +217,13 @@ const listLockTransactionBySellerAddress = async (
   sellerAddress: string
 ): Promise<LogDescription[]> => {
   const p2pContract = await getContract(true);
-
+  console.log("Will get locks as seller", sellerAddress);
   const filterAddedLocks = p2pContract.filters.LockAdded();
-  const eventsReleasedLocks = await p2pContract.queryFilter(filterAddedLocks);
-
+  const eventsReleasedLocks = await p2pContract.queryFilter(
+    filterAddedLocks
+    // 0,
+    // "latest"
+  );
   return eventsReleasedLocks
     .map((lock) => {
       const IPix2Pix = new Interface(p2pix.abi);
@@ -264,7 +274,7 @@ export const checkUnreleasedLock = async (
 export const getActiveLockAmount = async (
   walletAddress: string
 ): Promise<number> => {
-  const p2pContract = await getContract();
+  const p2pContract = await getContract(true);
   const lockSeller = await listLockTransactionBySellerAddress(walletAddress);
 
   const lockStatus = await p2pContract.getLocksStatus(

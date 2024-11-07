@@ -250,7 +250,7 @@ onClickOutside(infoMenuRef, () => {
             width="24"
           />
           <span
-            class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap text-ellipsis overflow-hidden"
+            class="default-text hidden sm:inline-block text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap text-ellipsis overflow-hidden"
             :class="{ '!text-gray-900': currencyMenuOpenToggle }"
           >
             {{ Networks[etherStore.networkName].chainName }}
@@ -330,7 +330,7 @@ onClickOutside(infoMenuRef, () => {
           >
             <img alt="Account image" src="@/assets/account.svg?url" />
             <span
-              class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out"
+              class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out truncate text-ellipsis"
               :class="{ '!text-gray-900': menuOpenToggle }"
             >
               {{ formatWalletAddress() }}
