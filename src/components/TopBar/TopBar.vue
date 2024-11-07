@@ -279,6 +279,7 @@ onClickOutside(infoMenuRef, () => {
             >
               <div
                 v-for="(chainData, network) in Networks"
+                :key="network"
                 class="menu-button p-4 gap-2 cursor-pointer hover:bg-gray-200 flex items-center !justify-start whitespace-nowrap transition-colors duration-150 ease-in-out"
                 @click="networkChange(network)"
               >
@@ -359,19 +360,23 @@ onClickOutside(infoMenuRef, () => {
                 <div
                   class="bg-white rounded-md z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
                 >
-                  <div class="menu-button" @click="closeMenu()">
-                    <RouterLink to="/manage_bids" class="redirect_button">
-                      Gerenciar Ofertas
-                    </RouterLink>
-                  </div>
+                  <RouterLink
+                    to="/manage_bids"
+                    class="redirect_button menu-button"
+                    @click="closeMenu()"
+                  >
+                    Gerenciar Ofertas
+                  </RouterLink>
                   <div class="w-full flex justify-center">
                     <hr class="w-4/5" />
                   </div>
-                  <div class="menu-button" @click="disconnectUser">
-                    <RouterLink to="/" class="redirect_button">
-                      Desconectar
-                    </RouterLink>
-                  </div>
+                  <RouterLink
+                    to="/"
+                    class="redirect_button menu-button"
+                    @click="disconnectUser"
+                  >
+                    Desconectar
+                  </RouterLink>
                 </div>
               </div>
             </div>
@@ -447,7 +452,7 @@ onClickOutside(infoMenuRef, () => {
           <div
             v-for="(chainData, network) in Networks"
             :key="network"
-            class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2"
+            class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2 px-4"
             @click="networkChange(network)"
           >
             <img
