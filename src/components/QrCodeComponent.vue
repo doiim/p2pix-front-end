@@ -115,7 +115,7 @@ onUnmounted(() => {
           height="16"
           class="pt-2 lg:mb-5 cursor-pointer"
         />
-        <span class="text-xs text-start hidden md:inline-block">
+        <span class="text-xs text-start hidden sm:inline-block">
           <strong>ATENÇÃO!</strong> A transação só será processada após inserir
           o código de autenticação. Caso contrário não conseguiremos comprovar o
           seu depósito e não será possível transferir os tokens para sua

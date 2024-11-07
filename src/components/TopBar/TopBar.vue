@@ -10,7 +10,6 @@ import { Networks } from "@/model/Networks";
 import { useOnboard } from "@web3-onboard/vue";
 
 import ChevronDown from "@/assets/chevronDown.svg";
-import Account from "@/assets/account.svg";
 import TwitterIcon from "@/assets/twitterIcon.svg";
 import LinkedinIcon from "@/assets/linkedinIcon.svg";
 import GithubIcon from "@/assets/githubIcon.svg";
@@ -138,7 +137,7 @@ onClickOutside(infoMenuRef, () => {
         <transition name="dropdown">
           <div
             v-show="infoMenuOpenToggle"
-            class="mt-10 absolute w-full text-gray-900 lg-view"
+            class="mt-10 absolute w-full text-gray-900 hidden lg:inline-block"
           >
             <div class="mt-2">
               <div class="bg-white rounded-md z-10 -left-36 w-52">
@@ -216,7 +215,7 @@ onClickOutside(infoMenuRef, () => {
       </RouterLink>
       <RouterLink
         :to="sellerView ? '/' : '/seller'"
-        class="default-button sm:whitespace-normal whitespace-nowrap lg-view w-40 sm:w-44 md:w-36"
+        class="default-button sm:whitespace-normal whitespace-nowrap w-40 sm:w-44 md:w-36 hidden md:inline-block"
       >
         <div class="topbar-text topbar-link text-center mx-auto inline-block">
           {{ sellerView ? "Quero comprar" : "Quero vender" }}
@@ -225,7 +224,7 @@ onClickOutside(infoMenuRef, () => {
       <RouterLink
         :to="sellerView ? '/' : '/seller'"
         v-if="!walletAddress"
-        class="default-button sm:whitespace-normal whitespace-nowrap sm-view w-40 sm:w-44 md:w-36"
+        class="default-button sm:whitespace-normal whitespace-nowrap inline-block md:hidden w-40 sm:w-44 md:w-36"
       >
         <div class="topbar-text topbar-link text-center mx-auto inline-block">
           {{ sellerView ? "Quero comprar" : "Quero vender" }}
@@ -260,19 +259,17 @@ onClickOutside(infoMenuRef, () => {
             class="transition-all duration-500 ease-in-out mt-1"
             :class="{ 'scale-y-[-1]': currencyMenuOpenToggle }"
           >
-            <svg
+            <ChevronDown
               viewBox="0 0 16 16"
               class="h-4 w-4 text-white group-hover:text-gray-900"
               :class="{ '!text-gray-900': currencyMenuOpenToggle }"
-            >
-              <use href="@/assets/chevron.svg#chevronDown"></use>
-            </svg>
+            />
           </div>
         </div>
         <transition name="dropdown">
           <div
             v-show="currencyMenuOpenToggle"
-            class="mt-10 absolute text-gray-900 lg-view min-w-max left-0"
+            class="mt-10 absolute text-gray-900 min-w-max left-0 hidden md:inline-block"
           >
             <div
               class="mt-2 bg-white rounded-md border border-gray-300 drop-shadow-md shadow-md overflow-clip"
@@ -342,19 +339,17 @@ onClickOutside(infoMenuRef, () => {
               class="transition-all duration-500 ease-in-out mt-1"
               :class="{ 'scale-y-[-1]': menuOpenToggle }"
             >
-              <svg
+              <ChevronDown
                 viewBox="0 0 16 16"
                 class="h-4 w-4 text-white group-hover:text-gray-900"
                 :class="{ '!text-gray-900': menuOpenToggle }"
-              >
-                <use href="@/assets/chevron.svg#chevronDown"></use>
-              </svg>
+              />
             </div>
           </div>
           <transition name="dropdown">
             <div
               v-show="menuOpenToggle"
-              class="mt-10 absolute w-full text-gray-900 lg-view"
+              class="mt-10 absolute w-full text-gray-900 hidden md:inline-block"
             >
               <div class="pl-4 mt-2">
                 <div
@@ -445,7 +440,7 @@ onClickOutside(infoMenuRef, () => {
     </div>
     <div
       v-show="currencyMenuOpenToggle"
-      class="mobile-menu fixed w-4/5 text-gray-900 inline-block sm:hidden"
+      class="mobile-menu fixed w-4/5 text-gray-900 inline-block md:hidden"
     >
       <div class="pl-4 mt-2 h-full">
         <div class="bg-white rounded-md z-10 h-full">
@@ -511,26 +506,9 @@ a:hover {
   @apply bg-gray-200 rounded;
 }
 
-.lg-view {
-  display: inline-block;
-}
-.sm-view {
-  display: none;
-}
-
 .mobile-menu {
   margin-top: 1400px;
   bottom: 0px;
   height: auto;
-}
-
-@media screen and (max-width: 500px) {
-  .lg-view {
-    display: none;
-  }
-
-  .sm-view {
-    display: inline-block;
-  }
 }
 </style>
