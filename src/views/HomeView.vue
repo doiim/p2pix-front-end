@@ -120,46 +120,48 @@ onMounted(async () => {
 </script>
 
 <template>
-  <SearchComponent
-    v-if="flowStep == Step.Search"
-    @token-buy="confirmBuyClick"
-  />
-  <CustomAlert
-    v-if="flowStep == Step.Search && showModal"
-    :type="'redirect'"
-    @close-alert="showModal = false"
-    @go-to-lock="flowStep = Step.Buy"
-  />
-  <CustomAlert
-    v-if="
-      flowStep == Step.List && showBuyAlert && !loadingLock && !loadingRelease
-    "
-    :type="'buy'"
-    @close-alert="showBuyAlert = false"
-  />
-  <div v-if="flowStep == Step.Buy">
-    <QrCodeComponent
-      :pixTarget="String(pixTarget)"
-      :tokenValue="tokenAmount"
-      @pix-validated="releaseTransaction"
-      v-if="!loadingLock"
+  <div>
+    <SearchComponent
+      v-if="flowStep == Step.Search"
+      @token-buy="confirmBuyClick"
     />
-    <LoadingComponent
-      v-if="loadingLock"
-      :message="'A transação está sendo enviada para a rede'"
+    <CustomAlert
+      v-if="flowStep == Step.Search && showModal"
+      :type="'redirect'"
+      @close-alert="showModal = false"
+      @go-to-lock="flowStep = Step.Buy"
     />
-  </div>
-  <div v-if="flowStep == Step.List">
-    <div class="flex flex-col gap-10" v-if="!loadingRelease">
-      <BuyConfirmedComponent
-        :tokenAmount="tokenAmount"
-        :is-current-step="flowStep == Step.List"
-        @make-another-transaction="flowStep = Step.Search"
+    <CustomAlert
+      v-if="
+        flowStep == Step.List && showBuyAlert && !loadingLock && !loadingRelease
+      "
+      :type="'buy'"
+      @close-alert="showBuyAlert = false"
+    />
+    <div v-if="flowStep == Step.Buy">
+      <QrCodeComponent
+        :pixTarget="String(pixTarget)"
+        :tokenValue="tokenAmount"
+        @pix-validated="releaseTransaction"
+        v-if="!loadingLock"
+      />
+      <LoadingComponent
+        v-if="loadingLock"
+        :message="'A transação está sendo enviada para a rede'"
       />
     </div>
-    <LoadingComponent
-      v-if="loadingRelease"
-      :message="'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'"
-    />
+    <div v-if="flowStep == Step.List">
+      <div class="flex flex-col gap-10" v-if="!loadingRelease">
+        <BuyConfirmedComponent
+          :tokenAmount="tokenAmount"
+          :is-current-step="flowStep == Step.List"
+          @make-another-transaction="flowStep = Step.Search"
+        />
+      </div>
+      <LoadingComponent
+        v-if="loadingRelease"
+        :message="'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'"
+      />
+    </div>
   </div>
 </template>

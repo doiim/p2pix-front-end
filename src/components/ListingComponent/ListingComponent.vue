@@ -162,10 +162,10 @@ showInitialItems();
 </script>
 
 <template>
-  <div class="blur-container" v-if="loadingWalletTransactions">
+  <div class="main-container !w-full !max-w-full" v-if="loadingWalletTransactions">
     <SpinnerComponent width="8" height="8"></SpinnerComponent>
   </div>
-  <div class="blur-container" v-if="!loadingWalletTransactions">
+  <div class="main-container !w-full !max-w-full" v-if="!loadingWalletTransactions">
     <div
       class="w-full bg-white p-4 sm:p-6 rounded-lg"
       v-if="props.validDeposits.length > 0"
@@ -387,10 +387,6 @@ p {
 }
 .text {
   @apply text-white text-center;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-4 py-3 sm:px-8 sm:py-6 gap-4 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md w-auto;
 }
 
 .grid-container {

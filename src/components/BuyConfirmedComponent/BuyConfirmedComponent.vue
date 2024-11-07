@@ -86,7 +86,7 @@ onMounted(async () => {
         para a sua carteira!
       </span>
     </div>
-    <div class="blur-container">
+    <div class="main-container">
       <div
         class="flex flex-col w-full bg-white px-10 py-5 rounded-lg border-y-10"
       >
@@ -144,13 +144,6 @@ p {
 
 .text {
   @apply text-white text-center;
-}
-.blur-container-row {
-  @apply flex flex-row justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 max-w-screen-sm;
-}
-
-.blur-container {
-  @apply flex w-full max-w-xs md:max-w-lg flex-col justify-center items-center px-8 py-6 gap-4 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-10;
 }
 
 .last-release-info {

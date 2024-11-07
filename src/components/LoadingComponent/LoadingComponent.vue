@@ -15,7 +15,7 @@ const props = defineProps({
         {{ props.title ? props.title : "Confirme em sua carteira" }}
       </span>
     </div>
-    <div class="blur-container sm:w-[26rem] w-[20rem]">
+    <div class="main-container !sm:w-[26rem] !w-[20rem]">
       <div
         class="flex flex-col w-full bg-white sm:px-10 px-4 py-5 rounded-lg border-y-10"
       >
@@ -58,10 +58,6 @@ const props = defineProps({
 
 .text {
   @apply text-white text-center;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center sm:px-8 px-6 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-10;
 }
 
 input[type="number"] {

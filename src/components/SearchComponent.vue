@@ -126,7 +126,7 @@ const enableOrDisableConfirmButton = (): void => {
     enableConfirmButton.value = true;
   else if (
     selectedRootstockDeposit.value &&
-    networkName.value == NetworkEnum.polygon
+    networkName.value != NetworkEnum.rootstock
   )
     enableConfirmButton.value = true;
   else enableConfirmButton.value = false;
@@ -155,7 +155,7 @@ watch(walletAddress, (): void => {
         tokens após realizar o Pix</span
       >
     </div>
-    <div class="blur-container">
+    <div class="main-container">
       <div class="backdrop-blur -z-10 w-full h-full"></div>
       <div
         class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg border-y-10"
@@ -172,7 +172,7 @@ watch(walletAddress, (): void => {
             placeholder="0  "
             step=".01"
           />
-          <div class="relative">
+          <div class="relative overflow-visible">
             <button
               ref="tokenDropdownRef"
               class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
@@ -194,35 +194,37 @@ watch(walletAddress, (): void => {
                 alt="Chevron Down"
               />
             </button>
-            <div
-              v-if="selectTokenToggle"
-              class="mt-2 w-[100px] text-gray-900 absolute"
-            >
+            <transition name="dropdown">
               <div
-                class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
+                v-if="selectTokenToggle"
+                class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
               >
                 <div
-                  v-for="token in TokenEnum"
-                  class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
-                  @click="handleSelectedToken(token)"
+                  class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
                 >
-                  <img
-                    :alt="token + ' logo'"
-                    width="20"
-                    height="20"
-                    :src="getTokenImage(token)"
-                  />
-                  <span
-                    class="text-gray-900 py-4 text-end font-semibold text-sm"
+                  <div
+                    v-for="token in TokenEnum"
+                    class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
+                    @click="handleSelectedToken(token)"
                   >
-                    {{ token }}
-                  </span>
-                </div>
-                <div class="w-full flex justify-center">
-                  <hr class="w-4/5" />
+                    <img
+                      :alt="token + ' logo'"
+                      width="20"
+                      height="20"
+                      :src="getTokenImage(token)"
+                    />
+                    <span
+                      class="text-gray-900 py-4 text-end font-semibold text-sm"
+                    >
+                      {{ token }}
+                    </span>
+                  </div>
+                  <div class="w-full flex justify-center">
+                    <hr class="w-4/5" />
+                  </div>
                 </div>
               </div>
-            </div>
+            </transition>
           </div>
         </div>
         <div class="custom-divide py-2 mb-2"></div>
@@ -313,10 +315,6 @@ watch(walletAddress, (): void => {
 
 .text {
   @apply text-white text-center;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 mt-10 max-w-screen-sm;
 }
 
 input[type="number"] {

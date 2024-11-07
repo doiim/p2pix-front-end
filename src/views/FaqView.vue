@@ -134,11 +134,4 @@ h4 {
 .text {
   @apply text-white text-center;
 }
-.blur-container-row {
-  @apply flex flex-row justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 max-w-screen-sm;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 max-w-screen-sm;
-}
 </style>

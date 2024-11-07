@@ -101,7 +101,7 @@ const handleSellClick = async (
         envio da transação e confirme sua oferta.</span
       >
     </div>
-    <div class="blur-container">
+    <div class="main-container">
       <div class="backdrop-blur -z-10 w-full h-full"></div>
       <div
         class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg border-y-10"
@@ -111,15 +111,15 @@ const handleSellClick = async (
             type="number"
             v-model="offer"
             class="border-none outline-none text-gray-900 sm:w-fit w-3/4"
-            v-bind:class="{
-              'font-semibold': offer != undefined,
-              'text-xl': offer != undefined,
+            :class="{
+              '!font-medium': offer !== undefined && offer !== '',
+              'text-xl': offer !== undefined && offer !== '',
             }"
             @input="debounce(handleInputEvent, 500)($event)"
             placeholder="Digite sua oferta"
             step=".01"
           />
-          <div class="relative">
+          <div class="relative overflow-visible">
             <button
               ref="tokenDropdownRef"
               class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
@@ -133,44 +133,44 @@ const handleSellClick = async (
               <span
                 class="text-gray-900 sm:text-lg text-md font-medium"
                 id="token"
-                >{{ selectedToken }}</span
               >
-              <ChevronDown
-                class="pr-4 sm:pr-0 transition-all duration-500 ease-in-out invert"
+                {{ selectedToken }}
+              </span>
+              <img
+                class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
                 :class="{ 'scale-y-[-1]': selectTokenToggle }"
                 alt="Chevron Down"
               />
             </button>
-            <div
-              v-if="selectTokenToggle"
-              class="mt-2 w-[100px] text-gray-900 absolute"
-            >
+            <transition name="dropdown">
               <div
-                class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
+                v-if="selectTokenToggle"
+                class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
               >
                 <div
-                  v-for="token in TokenEnum"
-                  :key="token"
-                  class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
-                  @click="handleSelectedToken(token)"
+                  class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
                 >
-                  <img
-                    :alt="token + ' logo'"
-                    width="20"
-                    height="20"
-                    :src="getTokenImage(token)"
-                  />
-                  <span
-                    class="text-gray-900 py-4 text-end font-semibold text-sm"
+                  <div
+                    v-for="token in TokenEnum"
+                    :key="token"
+                    class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
+                    @click="handleSelectedToken(token)"
                   >
-                    {{ token }}
-                  </span>
-                </div>
-                <div class="w-full flex justify-center">
-                  <hr class="w-4/5" />
+                    <img
+                      :alt="token + ' logo'"
+                      width="20"
+                      height="20"
+                      :src="getTokenImage(token)"
+                    />
+                    <span
+                      class="text-gray-900 py-4 text-end font-semibold text-sm"
+                    >
+                      {{ token }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </transition>
           </div>
         </div>
 
@@ -194,6 +194,10 @@ const handleSellClick = async (
             type="text"
             v-model="pixKey"
             class="border-none outline-none sm:text-lg text-sm text-gray-900 w-fit"
+            :class="{
+              '!font-medium': pixKey !== undefined && pixKey !== '',
+              'text-xl': pixKey !== undefined && pixKey !== '',
+            }"
             placeholder="Digite a chave Pix"
           />
         </div>
@@ -239,10 +243,6 @@ const handleSellClick = async (
 
 .text {
   @apply text-white text-center;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 mt-10 max-w-screen-sm;
 }
 
 input[type="number"] {
