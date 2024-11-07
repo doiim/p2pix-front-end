@@ -32,7 +32,7 @@ export const updateWalletStatus = async (): Promise<void> => {
     window.alert("Invalid chain!:" + chainId);
     return;
   }
-  etherStore.setNetworkName(Number(chainId));
+  etherStore.setNetworkId(Number(chainId));
 
   const mockTokenContract = new Contract(
     getTokenAddress(etherStore.selectedToken),

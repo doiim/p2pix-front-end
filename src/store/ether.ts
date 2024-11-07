@@ -1,15 +1,12 @@
-
 import { NetworkEnum, TokenEnum } from "../model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { defineStore } from "pinia";
-
-
 
 export const useEtherStore = defineStore("ether", {
   state: () => ({
     walletAddress: "",
     balance: "",
-    networkName: NetworkEnum.ethereum,
+    networkName: NetworkEnum.sepolia,
     selectedToken: TokenEnum.BRZ,
     loadingLock: false,
     sellerView: false,
@@ -32,7 +29,7 @@ export const useEtherStore = defineStore("ether", {
     setSelectedToken(token: TokenEnum) {
       this.selectedToken = token;
     },
-    setNetworkName(networkName: NetworkEnum) {
+    setNetworkId(networkName: NetworkEnum) {
       this.networkName = Number(networkName);
     },
     setLoadingLock(isLoadingLock: boolean) {

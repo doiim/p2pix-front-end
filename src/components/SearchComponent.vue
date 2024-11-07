@@ -4,7 +4,6 @@ import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { useEtherStore } from "@/store/ether";
 import { storeToRefs } from "pinia";
-import { connectProvider } from "@/blockchain/provider";
 import { verifyNetworkLiquidity } from "@/utils/networkLiquidity";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
@@ -38,24 +37,25 @@ const enableWalletButton = ref<boolean>(false);
 const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
 const selectedSepoliaDeposit = ref<ValidDeposit>();
-const selectedMumbaiDeposit = ref<ValidDeposit>();
 const selectedRootstockDeposit = ref<ValidDeposit>();
+
+import ChevronDown from "@/assets/chevronDown.svg";
+import { useOnboard } from "@web3-onboard/vue";
 
 // Emits
 const emit = defineEmits(["tokenBuy"]);
 
 // Blockchain methods
 const connectAccount = async (): Promise<void> => {
-  await connectProvider();
-
-  enableOrDisableConfirmButton();
+  const { connectWallet } = useOnboard();
+  await connectWallet();
 };
 
 const emitConfirmButton = (): void => {
   const selectedDeposit =
-    networkName.value == NetworkEnum.ethereum
+    networkName.value == NetworkEnum.sepolia
       ? selectedSepoliaDeposit.value
-      : selectedMumbaiDeposit.value;
+      : selectedRootstockDeposit.value;
   emit("tokenBuy", selectedDeposit, tokenValue.value);
 };
 
@@ -92,7 +92,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
 const verifyLiquidity = (): void => {
   enableConfirmButton.value = false;
   selectedSepoliaDeposit.value = undefined;
-  selectedMumbaiDeposit.value = undefined;
+  selectedRootstockDeposit.value = undefined;
   selectedRootstockDeposit.value = undefined;
 
   if (tokenValue.value <= 0) {
@@ -105,14 +105,14 @@ const verifyLiquidity = (): void => {
     walletAddress.value,
     depositsValidListSepolia.value
   );
-  selectedMumbaiDeposit.value = verifyNetworkLiquidity(
+  selectedRootstockDeposit.value = verifyNetworkLiquidity(
     tokenValue.value,
     walletAddress.value,
     depositsValidListMumbai.value
   );
 
   enableOrDisableConfirmButton();
-  if (selectedSepoliaDeposit.value || selectedMumbaiDeposit.value) {
+  if (selectedSepoliaDeposit.value || selectedRootstockDeposit.value) {
     hasLiquidity.value = true;
     enableWalletButton.value = true;
   } else {
@@ -122,10 +122,10 @@ const verifyLiquidity = (): void => {
 };
 
 const enableOrDisableConfirmButton = (): void => {
-  if (selectedSepoliaDeposit.value && networkName.value == NetworkEnum.ethereum)
+  if (selectedSepoliaDeposit.value && networkName.value == NetworkEnum.sepolia)
     enableConfirmButton.value = true;
   else if (
-    selectedMumbaiDeposit.value &&
+    selectedRootstockDeposit.value &&
     networkName.value == NetworkEnum.polygon
   )
     enableConfirmButton.value = true;
@@ -183,21 +183,24 @@ watch(walletAddress, (): void => {
                 class="sm:w-fit w-4"
                 :src="getTokenImage(selectedToken)"
               />
-              <span class="text-gray-900 sm:text-lg text-md font-medium" id="token">{{
-                selectedToken
-              }}</span>              
-              <img
-                class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
-                :class="{'scale-y-[-1]': selectTokenToggle}"
+              <span
+                class="text-gray-900 sm:text-lg text-md font-medium"
+                id="token"
+                >{{ selectedToken }}</span
+              >
+              <ChevronDown
+                class="pr-4 sm:pr-0 transition-all duration-500 ease-in-out invert"
+                :class="{ 'scale-y-[-1]': selectTokenToggle }"
                 alt="Chevron Down"
-                src="@/assets/chevronDownBlack.svg"
               />
             </button>
             <div
               v-if="selectTokenToggle"
               class="mt-2 w-[100px] text-gray-900 absolute"
             >
-              <div class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip">
+              <div
+                class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
+              >
                 <div
                   v-for="token in TokenEnum"
                   class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
@@ -233,10 +236,10 @@ watch(walletAddress, (): void => {
           <div class="flex gap-2">
             <img
               alt="Polygon image"
-              src="@/assets/polygon.svg"
+              src="@/assets/polygon.svg?svg"
               width="24"
               height="24"
-              v-if="selectedMumbaiDeposit"
+              v-if="selectedRootstockDeposit"
             />
             <img
               alt="Ethereum image"
@@ -313,7 +316,7 @@ watch(walletAddress, (): void => {
 }
 
 .blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 mt-10;
+  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 mt-10 max-w-screen-sm;
 }
 
 input[type="number"] {

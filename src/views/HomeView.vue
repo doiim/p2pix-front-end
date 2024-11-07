@@ -107,6 +107,7 @@ if (paramLockID) {
   });
 
   watch(networkName, async () => {
+    console.log(walletAddress.value);
     if (walletAddress.value) await checkForUnreleasedLocks();
   });
 }

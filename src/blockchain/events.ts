@@ -21,7 +21,7 @@ const getNetworksLiquidity = async (): Promise<void> => {
   ); // rootstock provider
 
   const p2pContractSepolia = new Contract(
-    getP2PixAddress(NetworkEnum.ethereum),
+    getP2PixAddress(NetworkEnum.sepolia),
     p2pix.abi,
     sepoliaProvider
   );
@@ -34,7 +34,7 @@ const getNetworksLiquidity = async (): Promise<void> => {
   etherStore.setLoadingNetworkLiquidity(true);
 
   const depositListSepolia = await getValidDeposits(
-    getTokenAddress(etherStore.selectedToken, NetworkEnum.ethereum),
+    getTokenAddress(etherStore.selectedToken, NetworkEnum.sepolia),
     p2pContractSepolia
   );
   // const depositListMumbai = await getValidDeposits(

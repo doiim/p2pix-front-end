@@ -24,7 +24,7 @@ const props = defineProps({
         >
           <img
             alt="Polygon image"
-            src="@/assets/validating.svg"
+            src="@/assets/validating.svg?url"
             width="96"
             height="48"
           />

@@ -3,9 +3,21 @@ import { fileURLToPath, URL } from "node:url";
 import { defineConfig } from "vitest/config";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
+import svgLoader from "vite-svg-loader";
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  optimizeDeps: {
+    esbuildOptions: {
+      target: "esnext",
+      define: {
+        global: "globalThis",
+      },
+      supported: {
+        bigint: true,
+      },
+    },
+  },
   test: {
     globals: true,
     environment: "jsdom",
@@ -17,16 +29,10 @@ export default defineConfig({
       reporter: ["text", "lcov", "html"],
     },
   },
-  plugins: [vue(), vueJsx()],
+  plugins: [vue(), vueJsx(), svgLoader()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
-    },
-  },
-  build: {
-    target: "esnext", // Or a recent target that supports BigInt literals
-    rollupOptions: {
-      external: ["@coinbase/wallet-sdk"], // Exclude from the bundle if needed
     },
   },
 });

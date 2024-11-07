@@ -1,8 +1,8 @@
 import { useEtherStore } from "@/store/ether";
 import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
 
-const Tokens: { [key in NetworkEnum]: {[key in TokenEnum] :string} } = {
-  [NetworkEnum.ethereum]: {
+const Tokens: { [key in NetworkEnum]: { [key in TokenEnum]: string } } = {
+  [NetworkEnum.sepolia]: {
     BRZ: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
     BRX: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
   },
@@ -17,7 +17,7 @@ const Tokens: { [key in NetworkEnum]: {[key in TokenEnum] :string} } = {
 };
 
 export const getTokenByAddress = (address: string) => {
-  for ( const [, network] of Object.entries(NetworkEnum) ) {
+  for (const [, network] of Object.entries(NetworkEnum)) {
     for (const token of Object.keys(Tokens[network as NetworkEnum])) {
       if (address === Tokens[network as NetworkEnum][token as TokenEnum]) {
         return token as TokenEnum;
@@ -36,7 +36,7 @@ const getTokenAddress = (token: TokenEnum, network?: NetworkEnum): string => {
 const getP2PixAddress = (network?: NetworkEnum): string => {
   const etherStore = useEtherStore();
   const possibleP2PixAddresses: { [key in NetworkEnum]: string } = {
-    [NetworkEnum.ethereum]: "0xb7cD135F5eFD9760981e02E2a898790b688939fe",
+    [NetworkEnum.sepolia]: "0xb7cD135F5eFD9760981e02E2a898790b688939fe",
     [NetworkEnum.polygon]: "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00",
     [NetworkEnum.rootstock]: "0x98ba35eb14b38D6Aa709338283af3e922476dE34",
   };
@@ -47,7 +47,7 @@ const getP2PixAddress = (network?: NetworkEnum): string => {
 const getProviderUrl = (): string => {
   const etherStore = useEtherStore();
   const possibleProvidersUrls: { [key in NetworkEnum]: string } = {
-    [NetworkEnum.ethereum]: import.meta.env.VITE_SEPOLIA_API_URL,
+    [NetworkEnum.sepolia]: import.meta.env.VITE_SEPOLIA_API_URL,
     [NetworkEnum.polygon]: import.meta.env.VITE_MUMBAI_API_URL,
     [NetworkEnum.rootstock]: import.meta.env.VITE_RSK_API_URL,
   };

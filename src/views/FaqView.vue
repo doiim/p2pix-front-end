@@ -61,13 +61,13 @@ const openItem = (index: number) => {
           <div class="flex cursor-pointer" @click="openItem(index)">
             <img
               alt="plus"
-              src="@/assets/plus.svg"
+              src="@/assets/plus.svg?url"
               class="mr-3"
               v-if="!item.isOpen"
             />
             <img
               alt="plus"
-              src="@/assets/minus.svg"
+              src="@/assets/minus.svg?url"
               class="mr-3"
               v-if="item.isOpen"
             />
@@ -135,10 +135,10 @@ h4 {
   @apply text-white text-center;
 }
 .blur-container-row {
-  @apply flex flex-row justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 w-1/3;
+  @apply flex flex-row justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 max-w-screen-sm;
 }
 
 .blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 w-1/3;
+  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 max-w-screen-sm;
 }
 </style>

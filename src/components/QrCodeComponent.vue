@@ -110,12 +110,12 @@ onUnmounted(() => {
         </div>
         <img
           alt="Copy PIX code"
-          src="@/assets/copyPix.svg"
+          src="@/assets/copyPix.svg?url"
           width="16"
           height="16"
           class="pt-2 lg:mb-5 cursor-pointer"
         />
-        <span class="text-xs text-start lg-view">
+        <span class="text-xs text-start hidden md:inline-block">
           <strong>ATENÇÃO!</strong> A transação só será processada após inserir
           o código de autenticação. Caso contrário não conseguiremos comprovar o
           seu depósito e não será possível transferir os tokens para sua
@@ -139,7 +139,7 @@ onUnmounted(() => {
           <div class="flex items-center h-8">
             <img
               alt="Invalid Icon"
-              src="@/assets/invalidIcon.svg"
+              src="@/assets/invalidIcon.svg?url"
               width="14"
               class="cursor-pointer align-middle inline-block"
             />
@@ -152,7 +152,7 @@ onUnmounted(() => {
           <div class="flex items-center h-8">
             <img
               alt="Valid Icon"
-              src="@/assets/validIcon.svg"
+              src="@/assets/validIcon.svg?url"
               width="14"
               class="cursor-pointer align-middle inline-block"
             />
@@ -222,7 +222,7 @@ h2 {
 }
 
 .blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-6;
+  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-6 max-w-screen-sm;
 }
 
 input[type="number"] {
@@ -232,23 +232,5 @@ input[type="number"] {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
-}
-
-.lg-view {
-  display: inline-block;
-}
-
-.sm-view {
-  display: none;
-}
-
-@media screen and (max-width: 500px) {
-  .lg-view {
-    display: none;
-  }
-
-  .sm-view {
-    display: inline-block;
-  }
 }
 </style>

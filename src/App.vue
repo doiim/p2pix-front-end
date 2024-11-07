@@ -1,44 +1,45 @@
 <script setup lang="ts">
 import TopBar from "@/components/TopBar/TopBar.vue";
 import SpinnerComponent from "@/components/SpinnerComponent.vue";
+import { init, useOnboard } from "@web3-onboard/vue";
+import injectedModule from "@web3-onboard/injected-wallets";
+import { Networks } from "./model/Networks";
+import { NetworkEnum } from "./model/NetworkEnum";
 
-// import { createAppKit, useAppKit } from "@reown/appkit/vue";
-// import { EthersAdapter } from "@reown/appkit-adapter-ethers";
-// import { sepolia, rootstockTestnet } from "@reown/appkit/networks";
+const injected = injectedModule();
 
-// // 1. Get projectId from https://cloud.reown.com
-// const projectId = "8149aee0a01eeaf7daaf2d326d074b30";
+const web3Onboard = init({
+  wallets: [injected],
+  chains: [
+    {
+      id: Networks[NetworkEnum.sepolia].chainId,
+      token: "ETH",
+      label: "Sepolia",
+      rpcUrl: import.meta.env.VITE_SEPOLIA_API_URL,
+    },
+    {
+      id: Networks[NetworkEnum.rootstock].chainId,
+      token: "tRBTC",
+      label: "Rootstock Testnet",
+      rpcUrl: import.meta.env.VITE_ROOTSTOCK_API_URL,
+    },
+  ],
+});
 
-// // 2. Create your application's metadata object
-// const metadata = {
-//   name: "p2pix",
-//   description:
-//     "Uma plataforma descentralizada para transações de criptomoedas ponto-a-ponto usando PIX",
-//   url: "https://p2pix.doiim.com", // origin must match your domain & subdomain
-//   icons: ["https://assets.reown.com/reown-profile-pic.png"],
-// };
-
-// // 3. Create a AppKit instance
-// createAppKit({
-//   adapters: [new EthersAdapter()],
-//   networks: [sepolia, rootstockTestnet],
-//   metadata,
-//   projectId,
-//   features: {
-//     analytics: true, // Optional - defaults to your Cloud configuration
-//   },
-// });
-// // 4. Use modal composable
-// const modal = useAppKit();
+const { connectedWallet } = useOnboard();
+if (!connectedWallet) {
+  web3Onboard.connectWallet();
+}
 </script>
 
 <template>
-  <TopBar :modal="modal" />
+  <TopBar />
   <RouterView v-slot="{ Component }">
     <template v-if="Component">
       <Suspense>
         <component :is="Component"></component>
         <template #fallback>
+          <appkit-button />
           <div class="flex w-full h-full justify-center items-center">
             <SpinnerComponent :width="'16'" :height="'16'"></SpinnerComponent>
           </div>

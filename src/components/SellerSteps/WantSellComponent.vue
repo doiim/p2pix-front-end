@@ -10,6 +10,7 @@ import { connectProvider } from "@/blockchain/provider";
 import { TokenEnum } from "@/model/NetworkEnum";
 import { getTokenImage } from "@/utils/imagesPath";
 import { onClickOutside } from "@vueuse/core";
+import { useOnboard } from "@web3-onboard/vue";
 
 // html references
 const tokenDropdownRef = ref<any>(null);
@@ -29,6 +30,12 @@ const validPixFormat = ref<boolean>(true);
 
 // Emits
 const emit = defineEmits(["approveTokens"]);
+
+// Blockchain methods
+const connectAccount = async (): Promise<void> => {
+  const { connectWallet } = useOnboard();
+  await connectWallet();
+};
 
 // Debounce methods
 const handleInputEvent = (event: any): void => {
@@ -72,14 +79,12 @@ const handleSelectedToken = (token: TokenEnum): void => {
   selectTokenToggle.value = false;
 };
 
-const handleButtonClick = async (
+const handleSellClick = async (
   offer: string,
   pixKey: string
 ): Promise<void> => {
   const postProcessedPixKey = postProcessKey(pixKey);
-  if (walletAddress.value)
-    emit("approveTokens", { offer, postProcessedPixKey });
-  else await connectProvider();
+  emit("approveTokens", { offer, postProcessedPixKey });
 };
 </script>
 
@@ -130,11 +135,10 @@ const handleButtonClick = async (
                 id="token"
                 >{{ selectedToken }}</span
               >
-              <img
-                class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
+              <ChevronDown
+                class="pr-4 sm:pr-0 transition-all duration-500 ease-in-out invert"
                 :class="{ 'scale-y-[-1]': selectTokenToggle }"
                 alt="Chevron Down"
-                src="@/assets/chevronDownBlack.svg"
               />
             </button>
             <div
@@ -200,9 +204,15 @@ const handleButtonClick = async (
         </div>
       </div>
       <CustomButton
-        :text="walletAddress ? 'Aprovar tokens' : 'Conectar Carteira'"
+        v-if="walletAddress"
+        :text="'Aprovar tokens'"
         :isDisabled="!validDecimals || !validPixFormat"
-        @buttonClicked="handleButtonClick(offer, pixKey)"
+        @buttonClicked="handleSellClick(offer, pixKey)"
+      />
+      <CustomButton
+        v-if="!walletAddress"
+        :text="'Conectar carteira'"
+        @buttonClicked="connectAccount()"
       />
     </div>
   </div>
@@ -232,7 +242,7 @@ const handleButtonClick = async (
 }
 
 .blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 mt-10 w-auto;
+  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 mt-10 max-w-screen-sm;
 }
 
 input[type="number"] {

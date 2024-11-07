@@ -8,7 +8,7 @@ import { useEtherStore } from "@/store/ether";
 
 const approveTokens = async (tokenQty: string): Promise<any> => {
   const provider = getProvider();
-  const signer = await provider.getSigner();
+  const signer = await provider?.getSigner();
   const etherStore = useEtherStore();
 
   const tokenContract = new Contract(
@@ -17,13 +17,21 @@ const approveTokens = async (tokenQty: string): Promise<any> => {
     signer
   );
 
-  const apprv = await tokenContract.approve(
-    getP2PixAddress(),
-    parseEther(tokenQty)
+  // Check if the token is already approved
+  const approved = await tokenContract.allowance(
+    await signer?.getAddress(),
+    getP2PixAddress()
   );
-
-  await apprv.wait();
-  return apprv;
+  if (approved < parseEther(tokenQty)) {
+    // Approve tokens
+    const apprv = await tokenContract.approve(
+      getP2PixAddress(),
+      parseEther(tokenQty)
+    );
+    await apprv.wait();
+    return true;
+  }
+  return true;
 };
 
 const addDeposit = async (tokenQty: string, pixKey: string): Promise<any> => {
