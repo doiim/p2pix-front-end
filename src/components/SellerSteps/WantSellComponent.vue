@@ -12,6 +12,8 @@ import { getTokenImage } from "@/utils/imagesPath";
 import { onClickOutside } from "@vueuse/core";
 import { useOnboard } from "@web3-onboard/vue";
 
+import ChevronDown from "@/assets/chevron.svg";
+
 // html references
 const tokenDropdownRef = ref<any>(null);
 
@@ -136,7 +138,7 @@ const handleSellClick = async (
               >
                 {{ selectedToken }}
               </span>
-              <img
+              <ChevronDown
                 class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
                 :class="{ 'scale-y-[-1]': selectTokenToggle }"
                 alt="Chevron Down"

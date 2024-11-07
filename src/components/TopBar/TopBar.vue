@@ -166,43 +166,37 @@ onClickOutside(infoMenuRef, () => {
                   <hr class="w-4/5" />
                 </div>
                 <div
-                  class="sm:text-center sm:justify-center ml-8 sm:ml-0 gap-2 px-4 rounded-md float-right"
+                  class="sm:text-center sm:justify-center ml-8 sm:ml-0 gap-2 px-4 rounded-md"
                 >
-                  <div class="redirect_button flex mr-4">
-                    <div class="mr-6">
-                      <a href="https://www.twitter.com/doiim">
-                        <img
-                          alt="Twitter"
-                          width="20"
-                          height="20"
-                          src="@/assets/twitterIcon.svg"
-                          class="cursor-pointer"
-                        />
-                      </a>
-                    </div>
-                    <div class="mr-6">
-                      <a href="https://www.linkedin.com/company/doiim/">
-                        <img
-                          alt="LinkedIn"
-                          width="20"
-                          height="20"
-                          src="@/assets/linkedinIcon.svg"
-                          class="cursor-pointer"
-                          href="https://www.linkedin.com/company/doiim/"
-                        />
-                      </a>
-                    </div>
-                    <div class="mr-6">
-                      <a href="https://www.github.com/doiim">
-                        <img
-                          alt="Github"
-                          width="20"
-                          height="20"
-                          src="@/assets/githubIcon.svg"
-                          class="cursor-pointer"
-                        />
-                      </a>
-                    </div>
+                  <div class="redirect_button flex justify-around">
+                    <a href="https://www.twitter.com/doiim">
+                      <img
+                        alt="Twitter"
+                        width="20"
+                        height="20"
+                        src="@/assets/twitterIcon.svg?url"
+                        class="cursor-pointer"
+                      />
+                    </a>
+                    <a href="https://www.linkedin.com/company/doiim/">
+                      <img
+                        alt="LinkedIn"
+                        width="20"
+                        height="20"
+                        src="@/assets/linkedinIcon.svg?url"
+                        class="cursor-pointer"
+                        href="https://www.linkedin.com/company/doiim/"
+                      />
+                    </a>
+                    <a href="https://www.github.com/doiim">
+                      <img
+                        alt="Github"
+                        width="20"
+                        height="20"
+                        src="@/assets/githubIcon.svg?url"
+                        class="cursor-pointer"
+                      />
+                    </a>
                   </div>
                 </div>
                 <div class="w-full flex justify-center">
@@ -257,7 +251,7 @@ onClickOutside(infoMenuRef, () => {
             width="24"
           />
           <span
-            class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out"
+            class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap"
             :class="{ '!text-gray-900': currencyMenuOpenToggle }"
           >
             {{ Networks[etherStore.networkName].chainName }}
@@ -336,7 +330,7 @@ onClickOutside(infoMenuRef, () => {
               ]
             "
           >
-            <img alt="Account image" src="@/assets/account.svg" />
+            <img alt="Account image" src="@/assets/account.svg?url" />
             <span
               class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out"
               :class="{ '!text-gray-900': menuOpenToggle }"
