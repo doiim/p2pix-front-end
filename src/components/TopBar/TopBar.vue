@@ -215,7 +215,7 @@ onClickOutside(infoMenuRef, () => {
       </RouterLink>
       <RouterLink
         :to="sellerView ? '/' : '/seller'"
-        class="default-button sm:whitespace-normal whitespace-nowrap w-40 sm:w-44 md:w-36 hidden md:inline-block"
+        class="default-button whitespace-nowrap w-40 sm:w-44 md:w-36 hidden md:inline-block"
       >
         <div class="topbar-text topbar-link text-center mx-auto inline-block">
           {{ sellerView ? "Quero comprar" : "Quero vender" }}
@@ -250,7 +250,7 @@ onClickOutside(infoMenuRef, () => {
             width="24"
           />
           <span
-            class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap"
+            class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap text-ellipsis overflow-hidden"
             :class="{ '!text-gray-900': currencyMenuOpenToggle }"
           >
             {{ Networks[etherStore.networkName].chainName }}
