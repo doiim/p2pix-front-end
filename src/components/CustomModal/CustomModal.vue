@@ -27,8 +27,8 @@ if (props.isRedirectModal) {
           class="text-black tracking-tighter leading-tight my-6 mx-2 text-justify"
         >
           <strong>ATENÇÃO!</strong>
-          A transação só será processada após inserir o código de autenticação.
-          Caso contrário não conseguiremos comprovar o seu depósito e não será
+          A transação só será processada após efetuado o pagamento do Pix. Caso
+          contrário não conseguiremos comprovar o seu depósito e não será
           possível transferir os tokens para sua carteira.
         </p>
         <button

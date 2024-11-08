@@ -33,11 +33,6 @@ const verifyNetworkLiquidity = (
     },
     []
   );
-
-  console.log(
-    "uniqueNetworkDeposits",
-    JSON.stringify(uniqueNetworkDeposits, null, 2)
-  );
   return uniqueNetworkDeposits;
 };
 

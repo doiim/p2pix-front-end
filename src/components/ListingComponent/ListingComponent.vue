@@ -162,10 +162,10 @@ showInitialItems();
 </script>
 
 <template>
-  <div class="main-container !w-full !max-w-full" v-if="loadingWalletTransactions">
+  <div class="main-container max-w-md" v-if="loadingWalletTransactions">
     <SpinnerComponent width="8" height="8"></SpinnerComponent>
   </div>
-  <div class="main-container !w-full !max-w-full" v-if="!loadingWalletTransactions">
+  <div class="main-container max-w-md" v-if="!loadingWalletTransactions">
     <div
       class="w-full bg-white p-4 sm:p-6 rounded-lg"
       v-if="props.validDeposits.length > 0"

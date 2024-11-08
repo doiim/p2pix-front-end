@@ -15,7 +15,7 @@ const props = defineProps({
         {{ props.title ? props.title : "Confirme em sua carteira" }}
       </span>
     </div>
-    <div class="main-container !sm:w-[26rem] !w-[20rem]">
+    <div class="main-container max-w-md">
       <div
         class="flex flex-col w-full bg-white sm:px-10 px-4 py-5 rounded-lg border-y-10"
       >

@@ -103,7 +103,7 @@ watch(networkName, async () => {
       <div class="header" v-if="!loadingWithdraw && walletAddress">
         Gerenciar Ofertas
       </div>
-      <div class="w-full max-w-4xl">
+      <div class="w-full max-w-4xl flex justify-center">
         <ListingComponent
           v-if="!loadingWithdraw && walletAddress"
           :valid-deposits="depositList"
