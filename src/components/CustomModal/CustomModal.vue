@@ -17,50 +17,52 @@ if (props.isRedirectModal) {
 </script>
 
 <template>
-  <div
-    class="modal-overlay inset-0 fixed justify-center backdrop-blur-sm sm:backdrop-blur-none"
-    v-if="!isRedirectModal"
-  >
-    <div class="modal px-5 text-center">
-      <p
-        class="text-black tracking-tighter leading-tight my-6 mx-2 text-justify"
-      >
-        <strong>ATENÇÃO!</strong>
-        A transação só será processada após inserir o código de autenticação.
-        Caso contrário não conseguiremos comprovar o seu depósito e não será
-        possível transferir os tokens para sua carteira.
-      </p>
-      <button
-        @click="$emit('close-modal')"
-        class="border-2 border-solid border-amber-400 mt-2"
-      >
-        Entendi
-      </button>
-    </div>
-  </div>
-  <div
-    class="modal-overlay inset-0 fixed justify-center backdrop-blur-sm"
-    v-if="isRedirectModal"
-  >
-    <div class="modal px-5 text-center">
-      <p
-        class="text-black text-lg tracking-tighter leading-tight my-6 mx-2 text-justify font-semibold"
-      >
-        Retomar a última compra?
-      </p>
-      <div class="flex justify-around items-center px-2">
+  <div>
+    <div
+      class="modal-overlay inset-0 fixed justify-center backdrop-blur-sm sm:backdrop-blur-none"
+      v-if="!isRedirectModal"
+    >
+      <div class="modal px-5 text-center">
+        <p
+          class="text-black tracking-tighter leading-tight my-6 mx-2 text-justify"
+        >
+          <strong>ATENÇÃO!</strong>
+          A transação só será processada após efetuado o pagamento do Pix. Caso
+          contrário não conseguiremos comprovar o seu depósito e não será
+          possível transferir os tokens para sua carteira.
+        </p>
         <button
           @click="$emit('close-modal')"
-          class="border-2 border-solid border-white-400 mt-2 font-semibold"
+          class="border-2 border-solid border-amber-400 mt-2"
         >
-          Não
+          Entendi
         </button>
-        <button
-          @click="$emit('go-to-lock')"
-          class="border-2 border-solid border-white-400 mt-2 font-semibold"
+      </div>
+    </div>
+    <div
+      class="modal-overlay inset-0 fixed justify-center backdrop-blur-sm"
+      v-if="isRedirectModal"
+    >
+      <div class="modal px-5 text-center">
+        <p
+          class="text-black text-lg tracking-tighter leading-tight my-6 mx-2 text-justify font-semibold"
         >
-          Sim
-        </button>
+          Retomar a última compra?
+        </p>
+        <div class="flex justify-around items-center px-2">
+          <button
+            @click="$emit('close-modal')"
+            class="border-2 border-solid border-white-400 mt-2 font-semibold"
+          >
+            Não
+          </button>
+          <button
+            @click="$emit('go-to-lock')"
+            class="border-2 border-solid border-white-400 mt-2 font-semibold"
+          >
+            Sim
+          </button>
+        </div>
       </div>
     </div>
   </div>

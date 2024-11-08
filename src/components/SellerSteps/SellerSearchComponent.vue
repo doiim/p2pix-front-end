@@ -4,12 +4,14 @@ import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { decimalCount } from "@/utils/decimalCount";
 
-import { TokenEnum } from "@/model/NetworkEnum";
 import { useEtherStore } from "@/store/ether";
 import { getTokenImage } from "@/utils/imagesPath";
+import { storeToRefs } from "pinia";
+import { useOnboard } from "@web3-onboard/vue";
 
 // Store
 const etherStore = useEtherStore();
+const { walletAddress } = storeToRefs(etherStore);
 
 // Reactive state
 const tokenValue = ref<number>(0);
@@ -19,6 +21,12 @@ const validDecimals = ref<boolean>(true);
 
 // Emits
 const emit = defineEmits(["tokenBuy"]);
+
+// Blockchain methods
+const connectAccount = async (): Promise<void> => {
+  const { connectWallet } = useOnboard();
+  await connectWallet();
+};
 
 // Debounce methods
 const handleInputEvent = (event: any): void => {
@@ -46,7 +54,7 @@ const handleInputEvent = (event: any): void => {
         tokens após realizar o Pix</span
       >
     </div>
-    <div class="blur-container">
+    <div class="main-container">
       <div
         class="flex flex-col w-full bg-white px-10 py-5 rounded-lg border-y-10"
       >
@@ -84,13 +92,13 @@ const handleInputEvent = (event: any): void => {
           <div class="flex gap-2">
             <img
               alt="Polygon image"
-              src="@/assets/polygon.svg"
+              src="@/assets/polygon.svg?url"
               width="24"
               height="24"
             />
             <img
               alt="Ethereum image"
-              src="@/assets/ethereum.svg"
+              src="@/assets/ethereum.svg?url"
               width="24"
               height="24"
             />
@@ -109,8 +117,14 @@ const handleInputEvent = (event: any): void => {
       </div>
 
       <CustomButton
+        v-if="walletAddress"
         :text="'Conectar carteira'"
         @buttonClicked="emit('tokenBuy')"
+      />
+      <CustomButton
+        v-if="!walletAddress"
+        :text="'Conectar carteira'"
+        @buttonClicked="connectAccount()"
       />
     </div>
   </div>
@@ -137,10 +151,6 @@ const handleInputEvent = (event: any): void => {
 
 .text {
   @apply text-white text-center;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-10;
 }
 
 input[type="number"] {

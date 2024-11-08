@@ -49,15 +49,19 @@ const callWithdraw = async (amount: string) => {
 const getWalletTransactions = async () => {
   etherStore.setLoadingWalletTransactions(true);
   if (walletAddress.value) {
+    console.log("Will fetch all required data...");
     const walletDeposits = await listValidDepositTransactionsByWalletAddress(
       walletAddress.value
     );
+    console.log("Fetched deposits");
 
     const allUserTransactions = await listAllTransactionByWalletAddress(
       walletAddress.value
     );
+    console.log("Fetched all transactions");
 
     activeLockAmount.value = await getActiveLockAmount(walletAddress.value);
+    console.log("Fetched active lock amount");
 
     if (walletDeposits) {
       depositList.value = walletDeposits;
@@ -86,30 +90,32 @@ watch(networkName, async () => {
 </script>
 
 <template>
-  <CustomAlert
-    v-if="showAlert"
-    :type="'withdraw'"
-    @close-alert="showAlert = false"
-  />
-  <div class="page">
-    <div class="header" v-if="!loadingWithdraw && !walletAddress">
-      Por Favor Conecte Sua Carteira
-    </div>
-    <div class="header" v-if="!loadingWithdraw && walletAddress">
-      Gerenciar Ofertas
-    </div>
-    <div class="w-full max-w-4xl">
-      <ListingComponent
-        v-if="!loadingWithdraw && walletAddress"
-        :valid-deposits="depositList"
-        :wallet-transactions="transactionsList"
-        :active-lock-amount="activeLockAmount"
-        @deposit-withdrawn="callWithdraw"
-      ></ListingComponent>
-      <LoadingComponent
-        v-if="loadingWithdraw"
-        :message="'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'"
-      />
+  <div>
+    <CustomAlert
+      v-if="showAlert"
+      :type="'withdraw'"
+      @close-alert="showAlert = false"
+    />
+    <div class="page">
+      <div class="header" v-if="!loadingWithdraw && !walletAddress">
+        Por Favor Conecte Sua Carteira
+      </div>
+      <div class="header" v-if="!loadingWithdraw && walletAddress">
+        Gerenciar Ofertas
+      </div>
+      <div class="w-full max-w-4xl flex justify-center">
+        <ListingComponent
+          v-if="!loadingWithdraw && walletAddress"
+          :valid-deposits="depositList"
+          :wallet-transactions="transactionsList"
+          :active-lock-amount="activeLockAmount"
+          @deposit-withdrawn="callWithdraw"
+        ></ListingComponent>
+        <LoadingComponent
+          v-if="loadingWithdraw"
+          :message="'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'"
+        />
+      </div>
     </div>
   </div>
 </template>

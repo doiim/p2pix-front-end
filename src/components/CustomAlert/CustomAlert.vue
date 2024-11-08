@@ -38,9 +38,9 @@ switch (props.type) {
   <div
     class="modal-overlay sm:h-12 h-full inset-0 absolute backdrop-blur-sm sm:backdrop-blur-none"
   >
-    <div class="modal px-12 pl-72 text-center sm:flex justify-between hidden">
+    <div class="modal px-12 text-center sm:flex justify-between hidden">
       <div class="flex items-center">
-        <p class="text-black tracking-tighter leading-tight my-2">
+        <p class="text-black tracking-tighter leading-tight py-2">
           {{ alertText }}
         </p>
         <button v-if="props.type === 'redirect'" @click="$emit('go-to-lock')">
@@ -110,7 +110,6 @@ switch (props.type) {
   border-radius: 10px;
   align-items: center;
   white-space: nowrap;
-  padding-left: v-bind(alertPaddingLeft);
 }
 
 .modal-mobile {

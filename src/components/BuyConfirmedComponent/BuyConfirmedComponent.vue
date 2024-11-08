@@ -86,7 +86,7 @@ onMounted(async () => {
         para a sua carteira!
       </span>
     </div>
-    <div class="blur-container">
+    <div class="main-container">
       <div
         class="flex flex-col w-full bg-white px-10 py-5 rounded-lg border-y-10"
       >
@@ -145,13 +145,6 @@ p {
 .text {
   @apply text-white text-center;
 }
-.blur-container-row {
-  @apply flex flex-row justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 w-1/3;
-}
-
-.blur-container {
-  @apply flex w-full max-w-xs md:max-w-lg flex-col justify-center items-center px-8 py-6 gap-4 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-10;
-}
 
 .last-release-info {
   @apply font-medium text-base text-gray-900;
@@ -164,23 +157,5 @@ input[type="number"] {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
-}
-
-.lg-view {
-  display: inline-block;
-}
-
-.sm-view {
-  display: none;
-}
-
-@media screen and (max-width: 500px) {
-  .lg-view {
-    display: none;
-  }
-
-  .sm-view {
-    display: inline-block;
-  }
 }
 </style>

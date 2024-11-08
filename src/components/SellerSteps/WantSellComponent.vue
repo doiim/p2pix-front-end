@@ -9,6 +9,13 @@ import { storeToRefs } from "pinia";
 import { connectProvider } from "@/blockchain/provider";
 import { TokenEnum } from "@/model/NetworkEnum";
 import { getTokenImage } from "@/utils/imagesPath";
+import { onClickOutside } from "@vueuse/core";
+import { useOnboard } from "@web3-onboard/vue";
+
+import ChevronDown from "@/assets/chevron.svg";
+
+// html references
+const tokenDropdownRef = ref<any>(null);
 
 // Reactive state
 const etherStore = useEtherStore();
@@ -25,6 +32,12 @@ const validPixFormat = ref<boolean>(true);
 
 // Emits
 const emit = defineEmits(["approveTokens"]);
+
+// Blockchain methods
+const connectAccount = async (): Promise<void> => {
+  const { connectWallet } = useOnboard();
+  await connectWallet();
+};
 
 // Debounce methods
 const handleInputEvent = (event: any): void => {
@@ -59,19 +72,21 @@ const openTokenSelection = (): void => {
   selectTokenToggle.value = true;
 };
 
+onClickOutside(tokenDropdownRef, () => {
+  selectTokenToggle.value = false;
+});
+
 const handleSelectedToken = (token: TokenEnum): void => {
   etherStore.setSelectedToken(token);
   selectTokenToggle.value = false;
 };
 
-const handleButtonClick = async (
+const handleSellClick = async (
   offer: string,
   pixKey: string
 ): Promise<void> => {
   const postProcessedPixKey = postProcessKey(pixKey);
-  if (walletAddress.value)
-    emit("approveTokens", { offer, postProcessedPixKey });
-  else await connectProvider();
+  emit("approveTokens", { offer, postProcessedPixKey });
 };
 </script>
 
@@ -88,7 +103,7 @@ const handleButtonClick = async (
         envio da transação e confirme sua oferta.</span
       >
     </div>
-    <div class="blur-container">
+    <div class="main-container">
       <div class="backdrop-blur -z-10 w-full h-full"></div>
       <div
         class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg border-y-10"
@@ -98,17 +113,18 @@ const handleButtonClick = async (
             type="number"
             v-model="offer"
             class="border-none outline-none text-gray-900 sm:w-fit w-3/4"
-            v-bind:class="{
-              'font-semibold': offer != undefined,
-              'text-xl': offer != undefined,
+            :class="{
+              '!font-medium': offer !== undefined && offer !== '',
+              'text-xl': offer !== undefined && offer !== '',
             }"
             @input="debounce(handleInputEvent, 500)($event)"
             placeholder="Digite sua oferta"
             step=".01"
           />
-          <div class="relative">
+          <div class="relative overflow-visible">
             <button
-              class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
+              ref="tokenDropdownRef"
+              class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
               @click="openTokenSelection()"
             >
               <img
@@ -116,37 +132,47 @@ const handleButtonClick = async (
                 class="sm:w-fit w-4"
                 :src="getTokenImage(selectedToken)"
               />
-              <span class="text-gray-900 sm:text-lg text-md w-fit" id="token">{{
-                selectedToken
-              }}</span>
+              <span
+                class="text-gray-900 sm:text-lg text-md font-medium"
+                id="token"
+              >
+                {{ selectedToken }}
+              </span>
+              <ChevronDown
+                class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
+                :class="{ 'scale-y-[-1]': selectTokenToggle }"
+                alt="Chevron Down"
+              />
             </button>
-            <div
-              v-if="selectTokenToggle"
-              class="mt-2 w-[100px] text-gray-900 lg-view absolute"
-            >
-              <div class="bg-white rounded-md z-10">
+            <transition name="dropdown">
+              <div
+                v-if="selectTokenToggle"
+                class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
+              >
                 <div
-                  v-for="token in TokenEnum"
-                  class="flex menu-button gap-2 px-4 rounded-md cursor-pointer hover:bg-gray-300"
-                  @click="handleSelectedToken(token)"
+                  class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
                 >
-                  <img
-                    :alt="token + ' logo'"
-                    width="20"
-                    height="20"
-                    :src="getTokenImage(token)"
-                  />
-                  <span
-                    class="text-gray-900 py-4 text-end font-semibold text-sm"
+                  <div
+                    v-for="token in TokenEnum"
+                    :key="token"
+                    class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
+                    @click="handleSelectedToken(token)"
                   >
-                    {{ token }}
-                  </span>
-                </div>
-                <div class="w-full flex justify-center">
-                  <hr class="w-4/5" />
+                    <img
+                      :alt="token + ' logo'"
+                      width="20"
+                      height="20"
+                      :src="getTokenImage(token)"
+                    />
+                    <span
+                      class="text-gray-900 py-4 text-end font-semibold text-sm"
+                    >
+                      {{ token }}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </transition>
           </div>
         </div>
 
@@ -170,6 +196,10 @@ const handleButtonClick = async (
             type="text"
             v-model="pixKey"
             class="border-none outline-none sm:text-lg text-sm text-gray-900 w-fit"
+            :class="{
+              '!font-medium': pixKey !== undefined && pixKey !== '',
+              'text-xl': pixKey !== undefined && pixKey !== '',
+            }"
             placeholder="Digite a chave Pix"
           />
         </div>
@@ -180,9 +210,15 @@ const handleButtonClick = async (
         </div>
       </div>
       <CustomButton
-        :text="walletAddress ? 'Aprovar tokens' : 'Conectar Carteira'"
+        v-if="walletAddress"
+        :text="'Aprovar tokens'"
         :isDisabled="!validDecimals || !validPixFormat"
-        @buttonClicked="handleButtonClick(offer, pixKey)"
+        @buttonClicked="handleSellClick(offer, pixKey)"
+      />
+      <CustomButton
+        v-if="!walletAddress"
+        :text="'Conectar carteira'"
+        @buttonClicked="connectAccount()"
       />
     </div>
   </div>
@@ -211,12 +247,9 @@ const handleButtonClick = async (
   @apply text-white text-center;
 }
 
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 mt-10 w-auto;
-}
-
 input[type="number"] {
   -moz-appearance: textfield;
+  appearance: textfield;
 }
 
 input[type="number"]::-webkit-inner-spin-button,

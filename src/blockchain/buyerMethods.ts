@@ -1,12 +1,17 @@
-import { useEtherStore } from "@/store/ether";
-
 import { getContract, getProvider } from "./provider";
 import { getP2PixAddress, getTokenAddress } from "./addresses";
 
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 
-import { BigNumber, ethers } from "ethers";
-import { parseEther } from "ethers/lib/utils";
+import {
+  solidityPackedKeccak256,
+  encodeBytes32String,
+  Signature,
+  Contract,
+  getBytes,
+  Wallet,
+  parseEther,
+} from "ethers";
 import type { TokenEnum } from "@/model/NetworkEnum";
 
 const addLock = async (
@@ -14,16 +19,11 @@ const addLock = async (
   token: string,
   amount: number
 ): Promise<string> => {
-  const etherStore = useEtherStore();
-
-  const p2pContract = getContract();
+  const p2pContract = await getContract();
 
   const lock = await p2pContract.lock(
     seller,
     token,
-    etherStore.walletAddress, // String "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" (Example)
-    ethers.constants.AddressZero, // String "0x0000000000000000000000000000000000000000"
-    0,
     parseEther(String(amount)), // BigNumber
     [],
     []
@@ -36,48 +36,41 @@ const addLock = async (
 };
 
 const releaseLock = async (
-  pixKey: number,
+  pixKey: string,
   amount: number,
   e2eId: string,
   lockId: string
 ): Promise<any> => {
-  const mockBacenSigner = new ethers.Wallet(
+  const mockBacenSigner = new Wallet(
     "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
   );
 
-  const messageToSign = ethers.utils.solidityKeccak256(
-    ["uint160", "uint256", "bytes32"],
-    [
-      pixKey,
-      parseEther(String(amount)),
-      ethers.utils.formatBytes32String(e2eId),
-    ]
+  const messageToSign = solidityPackedKeccak256(
+    ["bytes32", "uint256", "bytes32"],
+    [pixKey, parseEther(String(amount)), encodeBytes32String(e2eId)]
   );
 
-  const messageHashBytes = ethers.utils.arrayify(messageToSign);
+  const messageHashBytes = getBytes(messageToSign);
   const flatSig = await mockBacenSigner.signMessage(messageHashBytes);
   const provider = getProvider();
 
-  const sig = ethers.utils.splitSignature(flatSig);
-
-  const signer = provider.getSigner();
-  const p2pContract = new ethers.Contract(getP2PixAddress(), p2pix.abi, signer);
+  const sig = Signature.from(flatSig);
+  console.log(sig);
+  const signer = await provider.getSigner();
+  const p2pContract = new Contract(getP2PixAddress(), p2pix.abi, signer);
 
   const release = await p2pContract.release(
-    BigNumber.from(lockId),
-    ethers.constants.AddressZero,
-    ethers.utils.formatBytes32String(e2eId),
-    sig.r,
-    sig.s,
-    sig.v
+    BigInt(lockId),
+    encodeBytes32String(e2eId),
+    flatSig
   );
   await release.wait();
 
   return release;
 };
 
-const cancelDeposit = async (depositId: BigNumber): Promise<any> => {
-  const contract = getContract();
+const cancelDeposit = async (depositId: bigint): Promise<any> => {
+  const contract = await getContract();
 
   const cancel = await contract.cancelDeposit(depositId);
   await cancel.wait();
@@ -85,8 +78,11 @@ const cancelDeposit = async (depositId: BigNumber): Promise<any> => {
   return cancel;
 };
 
-const withdrawDeposit = async (amount: string, token: TokenEnum): Promise<any> => {
-  const contract = getContract();
+const withdrawDeposit = async (
+  amount: string,
+  token: TokenEnum
+): Promise<any> => {
+  const contract = await getContract();
 
   const withdraw = await contract.withdraw(
     getTokenAddress(token),

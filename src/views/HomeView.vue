@@ -25,7 +25,7 @@ etherStore.setSellerView(false);
 // States
 const { loadingLock, walletAddress, networkName } = storeToRefs(etherStore);
 const flowStep = ref<Step>(Step.Search);
-const pixTarget = ref<number>();
+const pixTarget = ref<string>();
 const tokenAmount = ref<number>();
 const lockID = ref<string>("");
 const loadingRelease = ref<boolean>(false);
@@ -79,11 +79,12 @@ const releaseTransaction = async (e2eId: string) => {
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
+  console.log("Checking for unreleased locks");
   const walletLocks = await checkUnreleasedLock(walletAddress.value);
   if (walletLocks) {
     lockID.value = walletLocks.lockID;
     tokenAmount.value = walletLocks.pix.value;
-    pixTarget.value = Number(walletLocks.pix.pixKey);
+    pixTarget.value = walletLocks.pix.pixKey;
     showModal.value = true;
   } else {
     flowStep.value = Step.Search;
@@ -96,7 +97,7 @@ if (paramLockID) {
   if (lockToRedirect) {
     lockID.value = lockToRedirect.lockID;
     tokenAmount.value = lockToRedirect.pix.value;
-    pixTarget.value = Number(lockToRedirect.pix.pixKey);
+    pixTarget.value = lockToRedirect.pix.pixKey;
     flowStep.value = Step.Buy;
   } else {
     flowStep.value = Step.Search;
@@ -119,46 +120,48 @@ onMounted(async () => {
 </script>
 
 <template>
-  <SearchComponent
-    v-if="flowStep == Step.Search"
-    @token-buy="confirmBuyClick"
-  />
-  <CustomAlert
-    v-if="flowStep == Step.Search && showModal"
-    :type="'redirect'"
-    @close-alert="showModal = false"
-    @go-to-lock="flowStep = Step.Buy"
-  />
-  <CustomAlert
-    v-if="
-      flowStep == Step.List && showBuyAlert && !loadingLock && !loadingRelease
-    "
-    :type="'buy'"
-    @close-alert="showBuyAlert = false"
-  />
-  <div v-if="flowStep == Step.Buy">
-    <QrCodeComponent
-      :pixTarget="String(pixTarget)"
-      :tokenValue="tokenAmount"
-      @pix-validated="releaseTransaction"
-      v-if="!loadingLock"
+  <div>
+    <SearchComponent
+      v-if="flowStep == Step.Search"
+      @token-buy="confirmBuyClick"
     />
-    <LoadingComponent
-      v-if="loadingLock"
-      :message="'A transação está sendo enviada para a rede'"
+    <CustomAlert
+      v-if="flowStep == Step.Search && showModal"
+      :type="'redirect'"
+      @close-alert="showModal = false"
+      @go-to-lock="flowStep = Step.Buy"
     />
-  </div>
-  <div v-if="flowStep == Step.List">
-    <div class="flex flex-col gap-10" v-if="!loadingRelease">
-      <BuyConfirmedComponent
-        :tokenAmount="tokenAmount"
-        :is-current-step="flowStep == Step.List"
-        @make-another-transaction="flowStep = Step.Search"
+    <CustomAlert
+      v-if="
+        flowStep == Step.List && showBuyAlert && !loadingLock && !loadingRelease
+      "
+      :type="'buy'"
+      @close-alert="showBuyAlert = false"
+    />
+    <div v-if="flowStep == Step.Buy">
+      <QrCodeComponent
+        :pixTarget="String(pixTarget)"
+        :tokenValue="tokenAmount"
+        @pix-validated="releaseTransaction"
+        v-if="!loadingLock"
+      />
+      <LoadingComponent
+        v-if="loadingLock"
+        :message="'A transação está sendo enviada para a rede'"
       />
     </div>
-    <LoadingComponent
-      v-if="loadingRelease"
-      :message="'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'"
-    />
+    <div v-if="flowStep == Step.List">
+      <div class="flex flex-col gap-10" v-if="!loadingRelease">
+        <BuyConfirmedComponent
+          :tokenAmount="tokenAmount"
+          :is-current-step="flowStep == Step.List"
+          @make-another-transaction="flowStep = Step.Search"
+        />
+      </div>
+      <LoadingComponent
+        v-if="loadingRelease"
+        :message="'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'"
+      />
+    </div>
   </div>
 </template>

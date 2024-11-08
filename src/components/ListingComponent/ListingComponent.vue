@@ -96,7 +96,7 @@ const getRemaining = (): number => {
 };
 
 const getExplorer = (): string => {
-  return etherStore.networkName == NetworkEnum.ethereum
+  return etherStore.networkName == NetworkEnum.sepolia
     ? "Etherscan"
     : "Polygonscan";
 };
@@ -107,7 +107,7 @@ const showInitialItems = (): void => {
 
 const openEtherscanUrl = (transactionHash: string): void => {
   const networkUrl =
-    etherStore.networkName == NetworkEnum.ethereum
+    etherStore.networkName == NetworkEnum.sepolia
       ? "sepolia.etherscan.io"
       : "mumbai.polygonscan.com";
   const url = `https://${networkUrl}/tx/${transactionHash}`;
@@ -162,10 +162,10 @@ showInitialItems();
 </script>
 
 <template>
-  <div class="blur-container" v-if="loadingWalletTransactions">
+  <div class="main-container max-w-md" v-if="loadingWalletTransactions">
     <SpinnerComponent width="8" height="8"></SpinnerComponent>
   </div>
-  <div class="blur-container" v-if="!loadingWalletTransactions">
+  <div class="main-container max-w-md" v-if="!loadingWalletTransactions">
     <div
       class="w-full bg-white p-4 sm:p-6 rounded-lg"
       v-if="props.validDeposits.length > 0"
@@ -190,7 +190,7 @@ showInitialItems();
             >
               <img
                 alt="info image"
-                src="@/assets/info.svg"
+                src="@/assets/info.svg?url"
                 aria-describedby="tooltip"
                 ref="reference"
                 @mouseover="showInfoTooltip = true"
@@ -216,7 +216,7 @@ showInitialItems();
           >
             <img
               alt="Withdraw image"
-              src="@/assets/withdraw.svg"
+              src="@/assets/withdraw.svg?url"
               class="w-3 h-3 sm:w-4 sm:h-4"
             />
             <span class="last-release-info">Sacar</span>
@@ -263,7 +263,7 @@ showInitialItems();
           >
             <img
               alt="Withdraw image"
-              src="@/assets/withdraw.svg"
+              src="@/assets/withdraw.svg?url"
               class="w-3 h-3 sm:w-4 sm:h-4"
             />
             <span class="last-release-info">Sacar</span>
@@ -318,7 +318,7 @@ showInitialItems();
             <span class="last-release-info">{{ getExplorer() }}</span>
             <img
               alt="Redirect image"
-              src="@/assets/redirect.svg"
+              src="@/assets/redirect.svg?url"
               class="w-3 h-3 sm:w-4 sm:h-4"
             />
           </div>
@@ -387,10 +387,6 @@ p {
 }
 .text {
   @apply text-white text-center;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-4 py-3 sm:px-8 sm:py-6 gap-4 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md w-auto;
 }
 
 .grid-container {

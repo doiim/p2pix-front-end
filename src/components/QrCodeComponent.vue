@@ -93,11 +93,11 @@ onUnmounted(() => {
         Utilize o QR Code ou copie o código para realizar o Pix
       </span>
       <span class="text font-medium lg:text-md text-sm max-w-[28rem]">
-        Após realizar o Pix no banco de sua preferência, insira o código de
-        autenticação para enviar a transação para a rede.
+        Após realizar o Pix no banco de sua preferência, clique no botão abaixo
+        para gerar a assinatura para liberação dos tokens.
       </span>
     </div>
-    <div class="blur-container sm:max-w-[28rem] max-w-[20rem] text-black">
+    <div class="main-container max-w-md text-black">
       <div
         class="flex-col items-center justify-center flex w-full bg-white sm:p-8 p-4 rounded-lg break-normal"
       >
@@ -110,57 +110,17 @@ onUnmounted(() => {
         </div>
         <img
           alt="Copy PIX code"
-          src="@/assets/copyPix.svg"
+          src="@/assets/copyPix.svg?url"
           width="16"
           height="16"
           class="pt-2 lg:mb-5 cursor-pointer"
         />
-        <span class="text-xs text-start lg-view">
+        <span class="text-xs text-start hidden sm:inline-block">
           <strong>ATENÇÃO!</strong> A transação só será processada após inserir
           o código de autenticação. Caso contrário não conseguiremos comprovar o
           seu depósito e não será possível transferir os tokens para sua
           carteira. Confira aqui como encontrar o código no comprovante.
         </span>
-      </div>
-      <div
-        class="flex-col items-center justify-center flex w-full bg-white p-5 rounded-lg px-5"
-      >
-        <input
-          type="text"
-          placeholder="Digite o código do comprovante PIX"
-          @input="debounce(handleInputEvent, 500)($event)"
-          class="sm:text-md text-sm w-full box-border p-2 sm:h-6 h-2 mb-2 outline-none"
-        />
-        <div class="custom-divide" v-if="!isCodeInputEmpty"></div>
-        <div
-          class="flex flex-col w-full"
-          v-if="!isPixValid && !isCodeInputEmpty"
-        >
-          <div class="flex items-center h-8">
-            <img
-              alt="Invalid Icon"
-              src="@/assets/invalidIcon.svg"
-              width="14"
-              class="cursor-pointer align-middle inline-block"
-            />
-            <span class="px-1 text-red-500 font-normal text-xs"
-              >Código inválido. Por favor, confira e tente novamente.</span
-            >
-          </div>
-        </div>
-        <div class="flex flex-col w-full" v-else-if="isPixValid == true">
-          <div class="flex items-center h-8">
-            <img
-              alt="Valid Icon"
-              src="@/assets/validIcon.svg"
-              width="14"
-              class="cursor-pointer align-middle inline-block"
-            />
-            <span class="px-1 text-green-500 font-normal text-sm">
-              Código válido.
-            </span>
-          </div>
-        </div>
       </div>
       <CustomButton
         :is-disabled="isPixValid == false"
@@ -222,7 +182,7 @@ h2 {
 }
 
 .blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-6;
+  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-6 max-w-screen-sm;
 }
 
 input[type="number"] {
@@ -232,23 +192,5 @@ input[type="number"] {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
-}
-
-.lg-view {
-  display: inline-block;
-}
-
-.sm-view {
-  display: none;
-}
-
-@media screen and (max-width: 500px) {
-  .lg-view {
-    display: none;
-  }
-
-  .sm-view {
-    display: inline-block;
-  }
 }
 </style>
