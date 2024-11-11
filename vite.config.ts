@@ -7,16 +7,8 @@ import svgLoader from "vite-svg-loader";
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  optimizeDeps: {
-    esbuildOptions: {
-      target: "esnext",
-      define: {
-        global: "globalThis",
-      },
-      supported: {
-        bigint: true,
-      },
-    },
+  build: {
+    target: "esnext",
   },
   test: {
     globals: true,

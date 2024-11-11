@@ -16,11 +16,22 @@
       "jest",
       "node"
     ],
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "target": "esnext",
+    "module": "esnext",
+    "lib": [
+      "esnext",
+      "dom"
+    ],
   },
   "references": [
     {
       "path": "./tsconfig.config.json"
     }
+  ],
+  "exclude": [
+    "node_modules",
+    "./node_modules"
   ]
 }
