@@ -10,6 +10,17 @@ export default defineConfig({
   build: {
     target: "esnext",
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      target: "esnext",
+      define: {
+        global: "globalThis",
+      },
+      supported: {
+        bigint: true,
+      },
+    },
+  },
   test: {
     globals: true,
     environment: "jsdom",

@@ -19,3 +19,14 @@
   opacity: 0;
   transform: translateY(15px);
 }
+
+.resize-enter-active,
+.resize-leave-active {
+  max-height: 100px;
+  transition: all 0.3s ease;
+}
+
+.resize-enter-from,
+.resize-leave-to {
+  max-height: 0px;
+}
