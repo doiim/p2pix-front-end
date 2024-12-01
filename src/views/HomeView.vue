@@ -140,8 +140,8 @@ onMounted(async () => {
     />
     <div v-if="flowStep == Step.Buy">
       <QrCodeComponent
-        :pixTarget="String(pixTarget)"
-        :tokenValue="tokenAmount"
+        :sellerId="String(pixTarget)"
+        :amount="tokenAmount"
         @pix-validated="releaseTransaction"
         v-if="!loadingLock"
       />

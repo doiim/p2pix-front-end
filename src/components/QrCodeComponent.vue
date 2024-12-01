@@ -1,74 +1,23 @@
 <script setup lang="ts">
 import { pix } from "@/utils/QrCodePix";
 import { onMounted, onUnmounted, ref } from "vue";
-import { debounce } from "@/utils/debounce";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import CustomModal from "@/components//CustomModal/CustomModal.vue";
-import api from "@/services/index";
 
 // props and store references
 const props = defineProps({
-  pixTarget: String,
-  tokenValue: Number,
+  sellerId: String,
+  amount: Number,
 });
 
 const windowSize = ref<number>(window.innerWidth);
 const qrCode = ref<string>("");
-const qrCodePayload = ref<string>("");
 const isPixValid = ref<boolean>(false);
-const isCodeInputEmpty = ref<boolean>(true);
 const showWarnModal = ref<boolean>(true);
-const e2eId = ref<string>("");
+const releaseSignature = ref<string>("");
 
 // Emits
 const emit = defineEmits(["pixValidated"]);
-
-const pixQrCode = pix({
-  pixKey: props.pixTarget ?? "",
-  value: props.tokenValue,
-});
-
-pixQrCode.base64QrCode().then((code: string) => {
-  qrCode.value = code;
-});
-
-qrCodePayload.value = pixQrCode.payload();
-
-const handleInputEvent = async (event: any): Promise<void> => {
-  const { value } = event.target;
-  e2eId.value = value;
-  await validatePix();
-};
-
-const validatePix = async (): Promise<void> => {
-  if (e2eId.value == "") {
-    isPixValid.value = false;
-    isCodeInputEmpty.value = true;
-    return;
-  }
-  const sellerPixKey = props.pixTarget;
-  const transactionValue = props.tokenValue;
-
-  if (sellerPixKey && transactionValue) {
-    const body_req = {
-      e2e_id: e2eId.value,
-      pix_key: sellerPixKey,
-      pix_value: transactionValue,
-    };
-
-    isCodeInputEmpty.value = false;
-
-    try {
-      await api.post("validate_pix", body_req);
-      isPixValid.value = true;
-    } catch (error) {
-      isPixValid.value = false;
-    }
-  } else {
-    isCodeInputEmpty.value = false;
-    isPixValid.value = false;
-  }
-};
 
 onMounted(() => {
   window.addEventListener(
@@ -94,7 +43,7 @@ onUnmounted(() => {
       </span>
       <span class="text font-medium lg:text-md text-sm max-w-[28rem]">
         Após realizar o Pix no banco de sua preferência, clique no botão abaixo
-        para gerar a assinatura para liberação dos tokens.
+        para liberação dos tokens.
       </span>
     </div>
     <div class="main-container max-w-md text-black">
@@ -105,7 +54,7 @@ onUnmounted(() => {
         <span class="text-center font-bold">Código pix</span>
         <div class="break-words w-4/5">
           <span class="text-center text-xs">
-            {{ qrCodePayload }}
+            {{ qrCode }}
           </span>
         </div>
         <img
@@ -115,17 +64,11 @@ onUnmounted(() => {
           height="16"
           class="pt-2 lg:mb-5 cursor-pointer"
         />
-        <span class="text-xs text-start hidden sm:inline-block">
-          <strong>ATENÇÃO!</strong> A transação só será processada após inserir
-          o código de autenticação. Caso contrário não conseguiremos comprovar o
-          seu depósito e não será possível transferir os tokens para sua
-          carteira. Confira aqui como encontrar o código no comprovante.
-        </span>
       </div>
       <CustomButton
         :is-disabled="isPixValid == false"
         :text="'Enviar para a rede'"
-        @button-clicked="emit('pixValidated', e2eId)"
+        @button-clicked="emit('pixValidated', releaseSignature)"
       />
     </div>
     <CustomModal

@@ -7,20 +7,12 @@ import { approveTokens, addDeposit } from "@/blockchain/sellerMethods";
 import { ref } from "vue";
 import { useEtherStore } from "@/store/ether";
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
+import { createParticipant, Participant } from "@/utils/bbPay";
 
 enum Step {
   Search,
   Sell,
   Network,
-}
-
-interface SellerData {
-  identification: string;
-  account: string;
-  branch: string;
-  bankIspb: string;
-  accountType: string;
-  savingsVariation: string;
 }
 
 const etherStore = useEtherStore();
@@ -29,17 +21,15 @@ etherStore.setSellerView(true);
 const flowStep = ref<Step>(Step.Sell);
 const loading = ref<boolean>(false);
 
-const offerValue = ref<string>("");
+const seller = ref<Participant>();
+const sellerId = ref<string>();
 const showAlert = ref<boolean>(false);
 
 // Verificar tipagem
-const approveOffer = async (args: {
-  offer: string;
-  postProcessedPixKey: string;
-}) => {
+const approveOffer = async (args: Participant) => {
   loading.value = true;
   try {
-    offerValue.value = args.offer;
+    seller.value = args;
     await approveTokens(args.offer);
     flowStep.value = Step.Network;
     loading.value = false;
@@ -53,8 +43,10 @@ const approveOffer = async (args: {
 const sendNetwork = async () => {
   loading.value = true;
   try {
-    if (offerValue.value) {
-      await addDeposit(String(offerValue.value));
+    if (seller.value) {
+      const participantWithId = await createParticipant(seller.value);
+      sellerId.value = participantWithId.id;
+      await addDeposit(String(seller.value.offer), participantWithId.id);
       flowStep.value = Step.Sell;
       loading.value = false;
       showAlert.value = true;
@@ -83,8 +75,8 @@ const sendNetwork = async () => {
     />
     <div v-if="flowStep == Step.Network">
       <SendNetwork
-        :pixKey="pixKeyBuyer"
-        :offer="Number(offerValue)"
+        :sellerId="sellerId"
+        :offer="Number(seller?.offer)"
         :selected-token="etherStore.selectedToken"
         v-if="!loading"
         @send-network="sendNetwork"

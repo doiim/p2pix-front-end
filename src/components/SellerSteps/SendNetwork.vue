@@ -6,7 +6,7 @@ const emit = defineEmits(["sendNetwork"]);
 
 // props and store references
 const props = defineProps({
-  pixKey: String,
+  sellerId: String,
   offer: Number,
   selectedToken: String,
 });
@@ -39,7 +39,7 @@ const props = defineProps({
         <div class="my-3">
           <p>Chave Pix</p>
           <p class="text-xl text-gray-900 break-words">
-            {{ props.pixKey }}
+            {{ props.sellerId }}
           </p>
         </div>
         <div class="mb-5">
