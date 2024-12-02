@@ -7,7 +7,7 @@ import { approveTokens, addDeposit } from "@/blockchain/sellerMethods";
 import { ref } from "vue";
 import { useEtherStore } from "@/store/ether";
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
-import { createParticipant, Participant } from "@/utils/bbPay";
+import { Participant } from "@/utils/bbPay";
 
 enum Step {
   Search,
@@ -21,16 +21,13 @@ etherStore.setSellerView(true);
 const flowStep = ref<Step>(Step.Sell);
 const loading = ref<boolean>(false);
 
-const seller = ref<Participant>();
-const sellerId = ref<string>();
 const showAlert = ref<boolean>(false);
 
 // Verificar tipagem
 const approveOffer = async (args: Participant) => {
   loading.value = true;
   try {
-    seller.value = args;
-    await approveTokens(args.offer);
+    await approveTokens(args);
     flowStep.value = Step.Network;
     loading.value = false;
   } catch (err) {
@@ -43,10 +40,8 @@ const approveOffer = async (args: Participant) => {
 const sendNetwork = async () => {
   loading.value = true;
   try {
-    if (seller.value) {
-      const participantWithId = await createParticipant(seller.value);
-      sellerId.value = participantWithId.id;
-      await addDeposit(String(seller.value.offer), participantWithId.id);
+    if (etherStore.seller) {
+      await addDeposit();
       flowStep.value = Step.Sell;
       loading.value = false;
       showAlert.value = true;
@@ -75,8 +70,8 @@ const sendNetwork = async () => {
     />
     <div v-if="flowStep == Step.Network">
       <SendNetwork
-        :sellerId="sellerId"
-        :offer="Number(seller?.offer)"
+        :sellerId="etherStore.sellerId"
+        :offer="Number(etherStore.seller.offer)"
         :selected-token="etherStore.selectedToken"
         v-if="!loading"
         @send-network="sendNetwork"

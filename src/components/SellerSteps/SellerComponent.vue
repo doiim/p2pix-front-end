@@ -40,6 +40,7 @@ const selectedBank = ref<Bank | null>(null);
 
 // Import the bank list
 import bankList from "@/utils/files/isbpList.json";
+import { Participant } from "@/utils/bbPay";
 
 const filteredBanks = computed(() => {
   if (!bankSearchQuery.value) return [];
@@ -70,7 +71,7 @@ const handleSubmit = (e: Event): void => {
 
   const processedIdentification = postProcessKey(identification.value);
 
-  const data = {
+  const data: Participant = {
     offer: offer.value,
     fullName: fullName.value,
     identification: processedIdentification,
@@ -78,7 +79,6 @@ const handleSubmit = (e: Event): void => {
     accountType: accountType.value,
     account: account.value,
     branch: branch.value,
-
     savingsVariation: savingsVariation.value || "",
   };
 

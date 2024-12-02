@@ -5,12 +5,14 @@ import { encodeBytes32String, Contract, parseEther } from "ethers";
 
 import mockToken from "../utils/smart_contract_files/MockToken.json";
 import { useEtherStore } from "@/store/ether";
+import { createParticipant, Participant } from "@/utils/bbPay";
 
-const approveTokens = async (tokenQty: string): Promise<any> => {
+const approveTokens = async (participant: Participant): Promise<any> => {
   const provider = getProvider();
   const signer = await provider?.getSigner();
   const etherStore = useEtherStore();
 
+  etherStore.setSeller(participant);
   const tokenContract = new Contract(
     getTokenAddress(etherStore.selectedToken),
     mockToken.abi,
@@ -22,11 +24,11 @@ const approveTokens = async (tokenQty: string): Promise<any> => {
     await signer?.getAddress(),
     getP2PixAddress()
   );
-  if (approved < parseEther(tokenQty)) {
+  if (approved < parseEther(participant.offer)) {
     // Approve tokens
     const apprv = await tokenContract.approve(
       getP2PixAddress(),
-      parseEther(tokenQty)
+      parseEther(participant.offer)
     );
     await apprv.wait();
     return true;
@@ -34,15 +36,18 @@ const approveTokens = async (tokenQty: string): Promise<any> => {
   return true;
 };
 
-const addDeposit = async (tokenQty: string, pixKey: string): Promise<any> => {
+const addDeposit = async (): Promise<any> => {
   const p2pContract = await getContract();
   const etherStore = useEtherStore();
 
+  const sellerId = await createParticipant(etherStore.seller);
+  etherStore.setSellerId(sellerId.id);
+
   const deposit = await p2pContract.deposit(
-    pixKey,
+    sellerId,
     encodeBytes32String(""),
     getTokenAddress(etherStore.selectedToken),
-    parseEther(tokenQty),
+    parseEther(etherStore.seller.offer),
     true
   );
 

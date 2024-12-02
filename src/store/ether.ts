@@ -1,5 +1,6 @@
 import { NetworkEnum, TokenEnum } from "../model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
+import { Participant } from "@/utils/bbPay";
 import { defineStore } from "pinia";
 
 export const useEtherStore = defineStore("ether", {
@@ -13,6 +14,8 @@ export const useEtherStore = defineStore("ether", {
     depositsValidList: [] as ValidDeposit[],
     loadingWalletTransactions: false,
     loadingNetworkLiquidity: false,
+    seller: {} as Participant,
+    sellerId: "",
   }),
   actions: {
     setWalletAddress(walletAddress: string) {
@@ -41,6 +44,12 @@ export const useEtherStore = defineStore("ether", {
     },
     setLoadingNetworkLiquidity(isLoadingNetworkLiquidity: boolean) {
       this.loadingNetworkLiquidity = isLoadingNetworkLiquidity;
+    },
+    setSeller(seller: Participant) {
+      this.seller = seller;
+    },
+    setSellerId(sellerId: string) {
+      this.sellerId = sellerId;
     },
   },
   getters: {
