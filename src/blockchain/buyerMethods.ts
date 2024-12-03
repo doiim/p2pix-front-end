@@ -1,28 +1,22 @@
 import { getContract, getProvider } from "./provider";
 import { getP2PixAddress, getTokenAddress } from "./addresses";
+import { encodeBytes32String, Signature, Contract, parseEther } from "ethers";
 
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 
-import {
-  solidityPackedKeccak256,
-  encodeBytes32String,
-  Signature,
-  Contract,
-  getBytes,
-  Wallet,
-  parseEther,
-} from "ethers";
 import type { TokenEnum } from "@/model/NetworkEnum";
+import { createSolicitation } from "../utils/bbPay";
+import type { Offer } from "../utils/bbPay";
 
 const addLock = async (
-  seller: string,
+  sellerId: string,
   token: string,
   amount: number
 ): Promise<string> => {
   const p2pContract = await getContract();
 
   const lock = await p2pContract.lock(
-    seller,
+    sellerId,
     token,
     parseEther(String(amount)), // BigNumber
     [],
@@ -32,26 +26,29 @@ const addLock = async (
   const lock_rec = await lock.wait();
   const [t] = lock_rec.events;
 
-  return String(t.args.lockID);
+  const offer: Offer = {
+    amount,
+    lockId: String(t.args.lockID),
+    sellerId: sellerId,
+  };
+  const solicitation = await createSolicitation(offer);
+
+  return;
 };
 
-const releaseLock = async (
-  pixKey: string,
-  amount: number,
-  e2eId: string,
-  lockId: string
-): Promise<any> => {
-  const mockBacenSigner = new Wallet(
-    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-  );
+const releaseLock = async (solicitation: any): Promise<any> => {
+  // const mockBacenSigner = new Wallet(
+  //   "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+  // );
 
-  const messageToSign = solidityPackedKeccak256(
-    ["bytes32", "uint256", "bytes32"],
-    [pixKey, parseEther(String(amount)), encodeBytes32String(e2eId)]
-  );
+  // const messageToSign = solidityPackedKeccak256(
+  //   ["bytes32", "uint256", "bytes32"],
+  //   [sellerId, parseEther(String(amount)), encodeBytes32String(signature)]
+  // );
 
-  const messageHashBytes = getBytes(messageToSign);
-  const flatSig = await mockBacenSigner.signMessage(messageHashBytes);
+  // const messageHashBytes = getBytes(messageToSign);
+  // const flatSig = await mockBacenSigner.signMessage(messageHashBytes);
+
   const provider = getProvider();
 
   const sig = Signature.from(flatSig);

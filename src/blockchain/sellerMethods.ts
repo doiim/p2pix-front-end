@@ -5,7 +5,8 @@ import { encodeBytes32String, Contract, parseEther } from "ethers";
 
 import mockToken from "../utils/smart_contract_files/MockToken.json";
 import { useEtherStore } from "@/store/ether";
-import { createParticipant, Participant } from "@/utils/bbPay";
+import { createParticipant } from "@/utils/bbPay";
+import type { Participant } from "@/utils/bbPay";
 
 const approveTokens = async (participant: Participant): Promise<any> => {
   const provider = getProvider();

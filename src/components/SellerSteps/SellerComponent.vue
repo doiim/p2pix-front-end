@@ -9,6 +9,10 @@ import { getTokenImage } from "@/utils/imagesPath";
 import { useOnboard } from "@web3-onboard/vue";
 import ChevronDown from "@/assets/chevron.svg";
 
+// Import the bank list
+import bankList from "@/utils/files/isbpList.json";
+import type { Participant } from "@/utils/bbPay";
+
 // Define Bank interface
 interface Bank {
   ISPB: string;
@@ -37,10 +41,6 @@ const errors = ref<{ [key: string]: string }>({});
 const bankSearchQuery = ref<string>("");
 const showBankList = ref<boolean>(false);
 const selectedBank = ref<Bank | null>(null);
-
-// Import the bank list
-import bankList from "@/utils/files/isbpList.json";
-import { Participant } from "@/utils/bbPay";
 
 const filteredBanks = computed(() => {
   if (!bankSearchQuery.value) return [];

@@ -1,6 +1,6 @@
 import { NetworkEnum, TokenEnum } from "../model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
-import { Participant } from "@/utils/bbPay";
+import type { Participant } from "../utils/bbPay";
 import { defineStore } from "pinia";
 
 export const useEtherStore = defineStore("ether", {

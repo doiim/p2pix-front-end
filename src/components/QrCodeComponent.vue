@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { pix } from "@/utils/QrCodePix";
 import { onMounted, onUnmounted, ref } from "vue";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import CustomModal from "@/components//CustomModal/CustomModal.vue";
+import QRCode from "qrcode";
 
 // props and store references
 const props = defineProps({
   sellerId: String,
   amount: Number,
+  qrcode: String,
 });
 
 const windowSize = ref<number>(window.innerWidth);

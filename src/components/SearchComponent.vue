@@ -34,6 +34,7 @@ const tokenValue = ref<number>(0);
 const enableConfirmButton = ref<boolean>(false);
 const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
+const identification = ref<string>("");
 const selectedDeposits = ref<ValidDeposit[]>();
 
 import ChevronDown from "@/assets/chevronDown.svg";
@@ -104,9 +105,17 @@ const verifyLiquidity = (): void => {
 };
 
 const enableOrDisableConfirmButton = (): void => {
-  enableConfirmButton.value =
-    !!selectedDeposits.value &&
-    !!selectedDeposits.value.find((d) => d.network === networkName.value);
+  if (!selectedDeposits.value) {
+    enableConfirmButton.value = false;
+    return;
+  }
+
+  if (!selectedDeposits.value.find((d) => d.network === networkName.value)) {
+    enableConfirmButton.value = false;
+    return;
+  }
+
+  enableConfirmButton.value = true;
 };
 
 watch(networkName, (): void => {
@@ -117,6 +126,18 @@ watch(networkName, (): void => {
 watch(walletAddress, (): void => {
   verifyLiquidity();
 });
+
+// Add form submission handler
+const handleSubmit = async (e: Event): Promise<void> => {
+  e.preventDefault();
+  if (!enableConfirmButton.value) return;
+
+  if (walletAddress.value) {
+    await emitConfirmButton();
+  } else {
+    await connectAccount();
+  }
+};
 </script>
 
 <template>
@@ -132,7 +153,7 @@ watch(walletAddress, (): void => {
         tokens após realizar o Pix</span
       >
     </div>
-    <div class="main-container">
+    <form class="main-container" @submit="handleSubmit">
       <div class="backdrop-blur -z-10 w-full h-full"></div>
       <div
         class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg border-y-10"
@@ -140,14 +161,16 @@ watch(walletAddress, (): void => {
         <div class="flex justify-between sm:w-full items-center">
           <input
             type="number"
+            name="tokenAmount"
             class="border-none outline-none text-lg text-gray-900"
             v-bind:class="{
               'font-semibold': tokenValue != undefined,
               'text-xl': tokenValue != undefined,
             }"
             @input="debounce(handleInputEvent, 500)($event)"
-            placeholder="0  "
+            placeholder="0"
             step=".01"
+            required
           />
           <div class="relative overflow-visible">
             <button
@@ -260,18 +283,33 @@ watch(walletAddress, (): void => {
           >
         </div>
       </div>
-      <CustomButton
-        v-if="!walletAddress"
-        :text="'Conectar carteira'"
-        @buttonClicked="connectAccount()"
-      />
+
+      <div
+        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg border-y-10"
+      >
+        <input
+          type="text"
+          v-model="identification"
+          maxlength="14"
+          :pattern="'^\\d{11}$|^\\d{14}$'"
+          class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full"
+          placeholder="Digite seu CPF ou CNPJ (somente números)"
+          required
+        />
+      </div>
+
+      <!-- Action buttons -->
       <CustomButton
         v-if="walletAddress"
-        :text="'Confirmar compra'"
-        :is-disabled="!enableConfirmButton"
-        @buttonClicked="emitConfirmButton()"
+        type="submit"
+        text="Confirmar Oferta"
       />
-    </div>
+      <CustomButton
+        v-else
+        text="Conectar carteira"
+        @buttonClicked="connectAccount()"
+      />
+    </form>
   </div>
 </template>
 
@@ -305,5 +343,11 @@ input[type="number"] {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
+}
+
+.custom-button {
+  @apply w-full py-3 px-6 rounded-lg font-semibold text-white bg-indigo-600 
+         hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed
+         transition-colors duration-200;
 }
 </style>

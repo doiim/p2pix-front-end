@@ -59,18 +59,15 @@ const confirmBuyClick = async (
   }
 };
 
-const releaseTransaction = async (e2eId: string) => {
+const releaseTransaction = async (lockId: string) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
-  if (lockID.value && tokenAmount.value && pixTarget.value) {
-    const release = await releaseLock(
-      pixTarget.value,
-      tokenAmount.value,
-      e2eId,
-      lockID.value
-    );
+  const solicitation = await getSolicitation(lockId);
+
+  if (solicitation.confirmed) {
+    const release = await releaseLock(solicitation);
     await release.wait();
 
     await updateWalletStatus();

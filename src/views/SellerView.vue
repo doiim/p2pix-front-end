@@ -7,7 +7,7 @@ import { approveTokens, addDeposit } from "@/blockchain/sellerMethods";
 import { ref } from "vue";
 import { useEtherStore } from "@/store/ether";
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
-import { Participant } from "@/utils/bbPay";
+import type { Participant } from "@/utils/bbPay";
 
 enum Step {
   Search,
