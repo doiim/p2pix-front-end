@@ -1,5 +1,5 @@
 export interface Bank {
-    COMPE: string;
-    ISPB: string;
-    longName: string;
+  COMPE: string;
+  ISPB: string;
+  longName: string;
 }

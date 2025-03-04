@@ -87,12 +87,12 @@ describe("addresses.ts functions", () => {
   it("isPossibleNetwork Returns", () => {
     const etherStore = useEtherStore();
     etherStore.setNetworkId(NetworkEnum.sepolia);
-    expect(isPossibleNetwork(0x5)).toBe(true);
-    expect(isPossibleNetwork(5)).toBe(true);
-    expect(isPossibleNetwork(0x13881)).toBe(true);
-    expect(isPossibleNetwork(80001)).toBe(true);
+    expect(isPossibleNetwork(0x5 as NetworkEnum)).toBe(true);
+    expect(isPossibleNetwork(5 as NetworkEnum)).toBe(true);
+    expect(isPossibleNetwork(0x13881 as NetworkEnum)).toBe(true);
+    expect(isPossibleNetwork(80001 as NetworkEnum)).toBe(true);
 
-    expect(isPossibleNetwork(NaN)).toBe(false);
-    expect(isPossibleNetwork(0x55)).toBe(false);
+    expect(isPossibleNetwork(NaN as NetworkEnum)).toBe(false);
+    expect(isPossibleNetwork(0x55 as NetworkEnum)).toBe(false);
   });
 });

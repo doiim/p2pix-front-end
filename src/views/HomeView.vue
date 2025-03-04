@@ -12,6 +12,7 @@ import { getNetworksLiquidity } from "@/blockchain/events";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getUnreleasedLockById } from "@/blockchain/events";
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
+import { getSolicitation } from "@/utils/bbPay";
 
 enum Step {
   Search,
@@ -66,7 +67,7 @@ const releaseTransaction = async (lockId: string) => {
 
   const solicitation = await getSolicitation(lockId);
 
-  if (solicitation.confirmed) {
+  if (solicitation.status) {
     const release = await releaseLock(solicitation);
     await release.wait();
 

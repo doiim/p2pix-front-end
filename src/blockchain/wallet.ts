@@ -26,8 +26,8 @@ export const updateWalletStatus = async (): Promise<void> => {
 
   const provider = await getProvider();
   const signer = await provider?.getSigner();
-
-  const { chainId } = await provider?.getNetwork();
+  const network = await provider?.getNetwork();
+  const chainId = network?.chainId;
   if (!isPossibleNetwork(Number(chainId))) {
     window.alert("Invalid chain!:" + chainId);
     return;

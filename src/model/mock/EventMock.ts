@@ -1,7 +1,6 @@
-import type { Event } from "ethers";
 import { vi } from "vitest";
 
-export const MockEvents: Event[] = [
+export const MockEvents = [
   {
     blockNumber: 1,
     blockHash: "0x8",

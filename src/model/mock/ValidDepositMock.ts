@@ -1,4 +1,5 @@
 import type { ValidDeposit } from "../ValidDeposit";
+import { NetworkEnum } from "@/model/NetworkEnum";
 
 export const MockValidDeposits: ValidDeposit[] = [
   {
@@ -7,6 +8,7 @@ export const MockValidDeposits: ValidDeposit[] = [
     remaining: 70,
     seller: "mockedSellerAddress",
     pixKey: "123456789",
+    network: NetworkEnum.sepolia,
   },
   {
     blockNumber: 2,
@@ -14,6 +16,7 @@ export const MockValidDeposits: ValidDeposit[] = [
     remaining: 200,
     seller: "mockedSellerAddress",
     pixKey: "123456789",
+    network: NetworkEnum.sepolia,
   },
   {
     blockNumber: 3,
@@ -21,6 +24,7 @@ export const MockValidDeposits: ValidDeposit[] = [
     remaining: 1250,
     seller: "mockedSellerAddress",
     pixKey: "123456789",
+    network: NetworkEnum.sepolia,
   },
   {
     blockNumber: 4,
@@ -28,6 +32,7 @@ export const MockValidDeposits: ValidDeposit[] = [
     remaining: 4000,
     seller: "mockedSellerAddress",
     pixKey: "123456789",
+    network: NetworkEnum.sepolia,
   },
   {
     blockNumber: 5,
@@ -35,5 +40,6 @@ export const MockValidDeposits: ValidDeposit[] = [
     remaining: 2000,
     seller: "mockedSellerAddress",
     pixKey: "123456789",
+    network: NetworkEnum.sepolia,
   },
 ];
