@@ -25,6 +25,9 @@
       "esnext",
       "dom"
     ],
+    "preserveValueImports": false,
+    "importsNotUsedAsValues": "remove",
+    "verbatimModuleSyntax": true
   },
   "references": [
     {
