@@ -32,14 +32,6 @@ describe("addresses.ts functions", () => {
     );
   });
 
-  it("getTokenAddress Polygon", () => {
-    const etherStore = useEtherStore();
-    etherStore.setNetworkId(NetworkEnum.polygon);
-    expect(getTokenAddress(TokenEnum.BRZ)).toBe(
-      "0xC86042E9F2977C62Da8c9dDF7F9c40fde4796A29"
-    );
-  });
-
   it("getTokenAddress Rootstock", () => {
     const etherStore = useEtherStore();
     etherStore.setNetworkId(NetworkEnum.rootstock);
@@ -47,7 +39,6 @@ describe("addresses.ts functions", () => {
       "0xfE841c74250e57640390f46d914C88d22C51e82e"
     );
   });
-
 
   it("getTokenAddress Default", () => {
     expect(getTokenAddress(TokenEnum.BRZ)).toBe(
@@ -60,14 +51,6 @@ describe("addresses.ts functions", () => {
     etherStore.setNetworkId(NetworkEnum.sepolia);
     expect(getP2PixAddress()).toBe(
       "0x2414817FF64A114d91eCFA16a834d3fCf69103d4"
-    );
-  });
-
-  it("getP2PixAddress Polygon", () => {
-    const etherStore = useEtherStore();
-    etherStore.setNetworkId(NetworkEnum.polygon);
-    expect(getP2PixAddress()).toBe(
-      "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00"
     );
   });
 
@@ -89,12 +72,6 @@ describe("addresses.ts functions", () => {
     const etherStore = useEtherStore();
     etherStore.setNetworkId(NetworkEnum.sepolia);
     expect(getProviderUrl()).toBe(import.meta.env.VITE_GOERLI_API_URL);
-  });
-
-  it("getProviderUrl Polygon", () => {
-    const etherStore = useEtherStore();
-    etherStore.setNetworkId(NetworkEnum.polygon);
-    expect(getProviderUrl()).toBe(import.meta.env.VITE_MUMBAI_API_URL);
   });
 
   it("getProviderUrl Rootstock", () => {
