@@ -3,7 +3,7 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { Participant } from "../utils/bbPay";
 import { defineStore } from "pinia";
 
-export const useEtherStore = defineStore("ether", {
+export const useViemStore = defineStore("viem", {
   state: () => ({
     walletAddress: "",
     balance: "",

@@ -3,7 +3,7 @@ import { withdrawDeposit } from "@/blockchain/buyerMethods";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
-import { useEtherStore } from "@/store/ether";
+import { useViemStore } from "@/store/viem";
 import { storeToRefs } from "pinia";
 import { ref, watch, onMounted } from "vue";
 import SpinnerComponent from "../SpinnerComponent.vue";
@@ -12,7 +12,7 @@ import { debounce } from "@/utils/debounce";
 import { getTokenByAddress } from "@/blockchain/addresses";
 import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";
 
-const etherStore = useEtherStore();
+const etherStore = useViemStore();
 
 // props
 const props = defineProps<{

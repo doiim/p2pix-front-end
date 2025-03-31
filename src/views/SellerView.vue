@@ -1,11 +1,15 @@
 <script setup lang="ts">
+import { ref, onMounted, watch } from "vue";
+import { storeToRefs } from "pinia";
+
 import SellerComponent from "@/components/SellerSteps/SellerComponent.vue";
+import SearchComponent from "@/components/SearchComponent.vue";
 import SendNetwork from "@/components/SellerSteps/SendNetwork.vue";
+import SellerSearchComponent from "@/components/SellerSteps/SellerSearchComponent.vue";
 import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
+import { useViemStore } from "@/store/viem";
 import { approveTokens, addDeposit } from "@/blockchain/sellerMethods";
 
-import { ref } from "vue";
-import { useEtherStore } from "@/store/ether";
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
 import type { Participant } from "@/utils/bbPay";
 
@@ -15,8 +19,8 @@ enum Step {
   Network,
 }
 
-const etherStore = useEtherStore();
-etherStore.setSellerView(true);
+const viemStore = useViemStore();
+viemStore.setSellerView(true);
 
 const flowStep = ref<Step>(Step.Sell);
 const loading = ref<boolean>(false);
@@ -40,7 +44,7 @@ const approveOffer = async (args: Participant) => {
 const sendNetwork = async () => {
   loading.value = true;
   try {
-    if (etherStore.seller) {
+    if (viemStore.seller) {
       await addDeposit();
       flowStep.value = Step.Sell;
       loading.value = false;
@@ -70,9 +74,9 @@ const sendNetwork = async () => {
     />
     <div v-if="flowStep == Step.Network">
       <SendNetwork
-        :sellerId="etherStore.sellerId"
-        :offer="Number(etherStore.seller.offer)"
-        :selected-token="etherStore.selectedToken"
+        :sellerId="viemStore.sellerId"
+        :offer="Number(viemStore.seller.offer)"
+        :selected-token="viemStore.selectedToken"
         v-if="!loading"
         @send-network="sendNetwork"
       />

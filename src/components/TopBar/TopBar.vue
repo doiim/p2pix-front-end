@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { ref, computed, onMounted, watch } from "vue";
+import { useRouter } from "vue-router";
+import { useViemStore } from "@/store/viem";
 import { storeToRefs } from "pinia";
-import { useEtherStore } from "@/store/ether";
-import { ref, watch } from "vue";
 import { onClickOutside } from "@vueuse/core";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import { getNetworkImage } from "@/utils/imagesPath";
@@ -16,9 +17,9 @@ import GithubIcon from "@/assets/githubIcon.svg";
 import { connectProvider } from "@/blockchain/provider";
 
 // Store reference
-const etherStore = useEtherStore();
+const viemStore = useViemStore();
 
-const { walletAddress, sellerView } = storeToRefs(etherStore);
+const { walletAddress, sellerView } = storeToRefs(viemStore);
 
 const menuOpenToggle = ref<boolean>(false);
 const infoMenuOpenToggle = ref<boolean>(false);
@@ -38,11 +39,11 @@ const connnectWallet = async (): Promise<void> => {
 watch(connectedWallet, async (newVal: any) => {
   connectProvider(newVal.provider);
   const addresses = await newVal.provider.request({ method: "eth_accounts" });
-  etherStore.setWalletAddress(addresses.shift());
+  viemStore.setWalletAddress(addresses.shift());
 });
 
 watch(connectedChain, (newVal: any) => {
-  etherStore.setNetworkId(newVal?.id);
+  viemStore.setNetworkId(newVal?.id);
 });
 
 const formatWalletAddress = (): string => {
@@ -56,7 +57,7 @@ const formatWalletAddress = (): string => {
 };
 
 const disconnectUser = async (): Promise<void> => {
-  etherStore.setWalletAddress("");
+  viemStore.setWalletAddress("");
   await disconnectWallet({ label: connectedWallet.value?.label || "" });
   closeMenu();
 };
@@ -72,7 +73,7 @@ const networkChange = async (network: NetworkEnum): Promise<void> => {
       chainId: Networks[network].chainId,
       wallet: connectedWallet.value?.label || "",
     });
-    etherStore.setNetworkId(network);
+    viemStore.setNetworkId(network);
   } catch (error) {
     console.log("Error changing network", error);
   }
@@ -245,7 +246,7 @@ onClickOutside(infoMenuRef, () => {
         >
           <img
             alt="Choosed network image"
-            :src="getNetworkImage(NetworkEnum[etherStore.networkName])"
+            :src="getNetworkImage(NetworkEnum[viemStore.networkName])"
             height="24"
             width="24"
           />
@@ -253,7 +254,7 @@ onClickOutside(infoMenuRef, () => {
             class="default-text hidden sm:inline-block text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap text-ellipsis overflow-hidden"
             :class="{ '!text-gray-900': currencyMenuOpenToggle }"
           >
-            {{ Networks[etherStore.networkName].chainName }}
+            {{ Networks[viemStore.networkName].chainName }}
           </span>
           <div
             class="transition-all duration-500 ease-in-out mt-1"

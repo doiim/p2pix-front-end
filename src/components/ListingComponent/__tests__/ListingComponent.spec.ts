@@ -1,15 +1,14 @@
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
-import ListingComponent from "@/components/ListingComponent/ListingComponent.vue";
-import { createPinia, setActivePinia } from "pinia";
-import { expect } from "vitest";
+import ListingComponent from "../ListingComponent.vue";
+import SpinnerComponent from "../../SpinnerComponent.vue";
+import { useViemStore } from "@/store/viem";
 import { MockValidDeposits } from "@/model/mock/ValidDepositMock";
 import { MockWalletTransactions } from "@/model/mock/WalletTransactionMock";
-import { useEtherStore } from "@/store/ether";
 
 describe("ListingComponent.vue", () => {
   beforeEach(() => {
-    setActivePinia(createPinia());
-    useEtherStore().setLoadingWalletTransactions(false);
+    useViemStore().setLoadingWalletTransactions(false);
   });
 
   test("Test Message when an empty array is received", () => {

@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { useEtherStore } from "@/store/ether";
-import { storeToRefs } from "pinia";
+import { ref, onMounted, watch } from "vue";
+import { useViemStore } from "@/store/viem";
 import ListingComponent from "@/components/ListingComponent/ListingComponent.vue";
 import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
-import { ref, watch, onMounted } from "vue";
 import {
   listValidDepositTransactionsByWalletAddress,
   listAllTransactionByWalletAddress,
@@ -15,9 +14,10 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 
 import router from "@/router/index";
+import { storeToRefs } from "pinia";
 
-const etherStore = useEtherStore();
-const { walletAddress, networkName, selectedToken } = storeToRefs(etherStore);
+const viemStore = useViemStore();
+const { walletAddress, networkName, selectedToken } = storeToRefs(viemStore);
 const loadingWithdraw = ref<boolean>(false);
 const showAlert = ref<boolean>(false);
 
@@ -47,7 +47,7 @@ const callWithdraw = async (amount: string) => {
 };
 
 const getWalletTransactions = async () => {
-  etherStore.setLoadingWalletTransactions(true);
+  viemStore.setLoadingWalletTransactions(true);
   if (walletAddress.value) {
     console.log("Will fetch all required data...");
     const walletDeposits = await listValidDepositTransactionsByWalletAddress(
@@ -70,7 +70,7 @@ const getWalletTransactions = async () => {
       transactionsList.value = allUserTransactions;
     }
   }
-  etherStore.setLoadingWalletTransactions(false);
+  viemStore.setLoadingWalletTransactions(false);
 };
 
 onMounted(async () => {

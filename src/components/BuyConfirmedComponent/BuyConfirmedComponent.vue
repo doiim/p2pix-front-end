@@ -8,8 +8,8 @@ import {
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
-import { useEtherStore } from "@/store/ether";
-import { storeToRefs } from "pinia";
+import { useViemStore } from "@/store/viem";
+import { NetworkEnum } from "@/model/NetworkEnum";
 import { onMounted, ref, watch } from "vue";
 import ListingComponent from "../ListingComponent/ListingComponent.vue";
 
@@ -19,8 +19,8 @@ const props = defineProps<{
   isCurrentStep: boolean;
 }>();
 
-const etherStore = useEtherStore();
-const { walletAddress } = storeToRefs(etherStore);
+const viemStore = useViemStore();
+const { walletAddress } = storeToRefs(viemStore);
 
 const lastWalletTransactions = ref<WalletTransaction[]>([]);
 const depositList = ref<ValidDeposit[]>([]);
@@ -29,7 +29,7 @@ const activeLockAmount = ref<number>(0);
 // methods
 
 const getWalletTransactions = async () => {
-  etherStore.setLoadingWalletTransactions(true);
+  viemStore.setLoadingWalletTransactions(true);
   if (walletAddress.value) {
     const walletDeposits = await listValidDepositTransactionsByWalletAddress(
       walletAddress.value
@@ -48,20 +48,20 @@ const getWalletTransactions = async () => {
       lastWalletTransactions.value = allUserTransactions;
     }
   }
-  etherStore.setLoadingWalletTransactions(false);
+  viemStore.setLoadingWalletTransactions(false);
 };
 
 const callWithdraw = async (amount: string) => {
   if (amount) {
-    etherStore.setLoadingWalletTransactions(true);
-    const withdraw = await withdrawDeposit(amount, etherStore.selectedToken);
+    viemStore.setLoadingWalletTransactions(true);
+    const withdraw = await withdrawDeposit(amount, viemStore.selectedToken);
     if (withdraw) {
       console.log("Saque realizado!");
       await getWalletTransactions();
     } else {
       console.log("Não foi possível realizar o saque!");
     }
-    etherStore.setLoadingWalletTransactions(false);
+    viemStore.setLoadingWalletTransactions(false);
   }
 };
 
@@ -93,14 +93,14 @@ onMounted(async () => {
         <div>
           <p>Tokens recebidos</p>
           <p class="text-2xl text-gray-900">
-            {{ props.tokenAmount }} {{ etherStore.selectedToken }}
+            {{ props.tokenAmount }} {{ viemStore.selectedToken }}
           </p>
         </div>
         <div class="my-5">
           <p class="text-sm">
             <b>Não encontrou os tokens? </b><br />Clique no botão abaixo para
             <br />
-            cadastrar o {{ etherStore.selectedToken }} em sua carteira.
+            cadastrar o {{ viemStore.selectedToken }} em sua carteira.
           </p>
         </div>
         <CustomButton :text="'Cadastrar token'" @buttonClicked="() => {}" />
