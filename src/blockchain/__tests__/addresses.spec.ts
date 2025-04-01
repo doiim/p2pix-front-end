@@ -8,7 +8,7 @@ import {
 
 import { setActivePinia, createPinia } from "pinia";
 import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 
 describe("addresses.ts types", () => {
   it("My addresses.ts types work properly", () => {
@@ -25,16 +25,16 @@ describe("addresses.ts functions", () => {
   });
 
   it("getTokenAddress Ethereum", () => {
-    const etherStore = useViemStore();
-    etherStore.setNetworkId(NetworkEnum.sepolia);
+    const user = useUser();
+    user.setNetworkId(NetworkEnum.sepolia);
     expect(getTokenAddress(TokenEnum.BRZ)).toBe(
       "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00"
     );
   });
 
   it("getTokenAddress Rootstock", () => {
-    const etherStore = useViemStore();
-    etherStore.setNetworkId(NetworkEnum.rootstock);
+    const user = useUser();
+    user.setNetworkId(NetworkEnum.rootstock);
     expect(getTokenAddress(TokenEnum.BRZ)).toBe(
       "0xfE841c74250e57640390f46d914C88d22C51e82e"
     );
@@ -47,16 +47,16 @@ describe("addresses.ts functions", () => {
   });
 
   it("getP2PixAddress Ethereum", () => {
-    const etherStore = useViemStore();
-    etherStore.setNetworkId(NetworkEnum.sepolia);
+    const user = useUser();
+    user.setNetworkId(NetworkEnum.sepolia);
     expect(getP2PixAddress()).toBe(
       "0x2414817FF64A114d91eCFA16a834d3fCf69103d4"
     );
   });
 
   it("getP2PixAddress Rootstock", () => {
-    const etherStore = useViemStore();
-    etherStore.setNetworkId(NetworkEnum.rootstock);
+    const user = useUser();
+    user.setNetworkId(NetworkEnum.rootstock);
     expect(getP2PixAddress()).toBe(
       "0x98ba35eb14b38D6Aa709338283af3e922476dE34"
     );
@@ -69,14 +69,14 @@ describe("addresses.ts functions", () => {
   });
 
   it("getProviderUrl Ethereum", () => {
-    const etherStore = useViemStore();
-    etherStore.setNetworkId(NetworkEnum.sepolia);
+    const user = useUser();
+    user.setNetworkId(NetworkEnum.sepolia);
     expect(getProviderUrl()).toBe(import.meta.env.VITE_GOERLI_API_URL);
   });
 
   it("getProviderUrl Rootstock", () => {
-    const etherStore = useViemStore();
-    etherStore.setNetworkId(NetworkEnum.rootstock);
+    const user = useUser();
+    user.setNetworkId(NetworkEnum.rootstock);
     expect(getProviderUrl()).toBe(import.meta.env.VITE_ROOTSTOCK_API_URL);
   });
 
@@ -85,8 +85,8 @@ describe("addresses.ts functions", () => {
   });
 
   it("isPossibleNetwork Returns", () => {
-    const etherStore = useViemStore();
-    etherStore.setNetworkId(NetworkEnum.sepolia);
+    const user = useUser();
+    user.setNetworkId(NetworkEnum.sepolia);
     expect(isPossibleNetwork(0x5 as NetworkEnum)).toBe(true);
     expect(isPossibleNetwork(5 as NetworkEnum)).toBe(true);
     expect(isPossibleNetwork(0x13881 as NetworkEnum)).toBe(true);

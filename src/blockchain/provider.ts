@@ -3,17 +3,17 @@ import { updateWalletStatus } from "./wallet";
 import { getProviderUrl, getP2PixAddress } from "./addresses";
 import { createPublicClient, createWalletClient, custom, http } from "viem";
 import { sepolia, rootstock } from "viem/chains";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 
 let publicClient = null;
 let walletClient = null;
 
 const getPublicClient = (onlyRpcProvider = false) => {
   if (onlyRpcProvider) {
-    const viemStore = useViemStore();
+    const user = useUser();
     const rpcUrl = getProviderUrl();
     return createPublicClient({
-      chain: viemStore.networkName === sepolia.id ? sepolia : rootstock,
+      chain: Number(user.networkName.value) === sepolia.id ? sepolia : rootstock,
       transport: http(rpcUrl)
     });
   }
@@ -28,24 +28,25 @@ const getContract = async (onlyRpcProvider = false) => {
   const client = getPublicClient(onlyRpcProvider);
   const address = getP2PixAddress();
   const abi = p2pix.abi;
-  
+
   return { address, abi, client };
 };
 
 const connectProvider = async (p: any): Promise<void> => {
-  const viemStore = useViemStore();
-  const chain = viemStore.networkName === sepolia.id ? sepolia : rootstock;
-  
+  console.log("Connecting to provider...");
+  const user = useUser();
+  const chain = Number(user.networkName.value) === sepolia.id ? sepolia : rootstock;
+
   publicClient = createPublicClient({
     chain,
     transport: custom(p)
   });
-  
+
   walletClient = createWalletClient({
     chain,
     transport: custom(p)
   });
-  
+
   await updateWalletStatus();
 };
 

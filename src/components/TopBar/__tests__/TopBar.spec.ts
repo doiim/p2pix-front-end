@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import TopBar from "../TopBar.vue";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 
 import { createPinia, setActivePinia } from "pinia";
 
@@ -21,8 +21,8 @@ describe("TopBar.vue", () => {
   });
 
   it("should render button to change to seller view when in buyer screen", () => {
-    const viemStore = useViemStore();
-    viemStore.setSellerView(true);
+    const user = useUser();
+    user.setSellerView(true);
     const wrapper = mount(TopBar);
     expect(wrapper.html()).toContain("Quero comprar");
   });

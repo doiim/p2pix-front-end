@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from "vue";
-import { storeToRefs } from "pinia";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 import SpinnerComponent from "@/components/SpinnerComponent.vue";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
@@ -15,7 +14,7 @@ import { onClickOutside } from "@vueuse/core";
 import { TokenEnum } from "@/model/NetworkEnum";
 
 // Store reference
-const viemStore = useViemStore();
+const user = useUser();
 const selectTokenToggle = ref<boolean>(false);
 
 const {
@@ -24,7 +23,7 @@ const {
   selectedToken,
   depositsValidList,
   loadingNetworkLiquidity,
-} = storeToRefs(viemStore);
+} = user;
 
 // html references
 const tokenDropdownRef = ref<any>(null);
@@ -84,7 +83,7 @@ onClickOutside(tokenDropdownRef, () => {
 });
 
 const handleSelectedToken = (token: TokenEnum): void => {
-  viemStore.setSelectedToken(token);
+  user.setSelectedToken(token);
   selectTokenToggle.value = false;
 };
 

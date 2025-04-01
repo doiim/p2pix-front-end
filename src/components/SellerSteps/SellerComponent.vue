@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { storeToRefs } from "pinia";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { pixFormatValidation, postProcessKey } from "@/utils/pixKeyFormat";
 import { TokenEnum } from "@/model/NetworkEnum";
@@ -24,8 +23,8 @@ const tokenDropdownRef = ref<any>(null);
 const formRef = ref<HTMLFormElement | null>(null);
 
 // Reactive state
-const viemStore = useViemStore();
-const { walletAddress, selectedToken } = storeToRefs(viemStore);
+const user = useUser();
+const { walletAddress, selectedToken } = user;
 
 const fullName = ref<string>("");
 const offer = ref<string>("");
@@ -91,7 +90,7 @@ const openTokenSelection = (): void => {
 };
 
 const handleSelectedToken = (token: TokenEnum): void => {
-  viemStore.setSelectedToken(token);
+  user.setSelectedToken(token);
   selectTokenToggle.value = false;
 };
 </script>

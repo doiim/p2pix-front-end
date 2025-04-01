@@ -1,141 +1,61 @@
-import { getContract, getWalletClient } from "./provider";
+import { getContract } from "./provider";
 import { getTokenAddress } from "./addresses";
-import { parseEther, stringToHex, toHex } from "viem";
-
+import { parseEther } from "viem";
 import type { TokenEnum } from "@/model/NetworkEnum";
-import { createSolicitation } from "../utils/bbPay";
-import type { Offer } from "../utils/bbPay";
 
-const addLock = async (
-  sellerId: string,
-  token: string,
+export const addLock = async (
+  sellerAddress: string,
+  tokenAddress: string,
   amount: number
 ): Promise<string> => {
   const { address, abi, client } = await getContract();
-  const walletClient = getWalletClient();
-  
-  if (!walletClient) {
-    throw new Error("Wallet client not initialized");
-  }
-  
-  const [account] = await walletClient.getAddresses();
-  
-  const hash = await walletClient.writeContract({
+
+  const parsedAmount = parseEther(amount.toString());
+
+  const { request } = await client.simulateContract({
     address,
     abi,
-    functionName: 'lock',
-    args: [
-      sellerId,
-      token,
-      parseEther(String(amount)),
-      [],
-      []
-    ],
-    account
+    functionName: "addLock",
+    args: [sellerAddress, tokenAddress, parsedAmount],
   });
-  
+
+  const hash = await client.writeContract(request);
   const receipt = await client.waitForTransactionReceipt({ hash });
-  const logs = receipt.logs;
-  
-  // Extract the lockID from transaction logs
-  // This is a simplified approach - in production you'll want more robust log parsing
-  const lockId = logs[0].topics[2]; // Simplified - adjust based on actual event structure
-  
-  const offer: Offer = {
-    amount,
-    lockId: String(lockId),
-    sellerId: sellerId,
-  };
-  
-  await createSolicitation(offer);
-  
-  return String(lockId);
+
+  return receipt.status ? receipt.logs[0].topics[2] : "";
 };
 
-const releaseLock = async (
-  pixKey: string,
-  amount: number,
-  e2eId: string,
-  lockId: string
-): Promise<any> => {
-  const { address, abi, client } = await getContract();
-  const walletClient = getWalletClient();
-  
-  if (!walletClient) {
-    throw new Error("Wallet client not initialized");
-  }
-  
-  const [account] = await walletClient.getAddresses();
-  
-  // In a real implementation, you would get this signature from your backend
-  // This is just a placeholder for the mock implementation
-  const signature = "0x1234567890";
-  
-  const hash = await walletClient.writeContract({
-    address,
-    abi,
-    functionName: 'release',
-    args: [
-      BigInt(lockId),
-      toHex(e2eId, { size: 32 }),
-      signature
-    ],
-    account
-  });
-  
-  const receipt = await client.waitForTransactionReceipt({ hash });
-  return receipt;
-};
-
-const cancelDeposit = async (depositId: bigint): Promise<any> => {
-  const { address, abi, client } = await getContract();
-  const walletClient = getWalletClient();
-  
-  if (!walletClient) {
-    throw new Error("Wallet client not initialized");
-  }
-  
-  const [account] = await walletClient.getAddresses();
-  
-  const hash = await walletClient.writeContract({
-    address,
-    abi,
-    functionName: 'cancelDeposit',
-    args: [depositId],
-    account
-  });
-  
-  const receipt = await client.waitForTransactionReceipt({ hash });
-  return receipt;
-};
-
-const withdrawDeposit = async (
+export const withdrawDeposit = async (
   amount: string,
   token: TokenEnum
-): Promise<any> => {
+): Promise<boolean> => {
   const { address, abi, client } = await getContract();
-  const walletClient = getWalletClient();
-  
-  if (!walletClient) {
-    throw new Error("Wallet client not initialized");
-  }
-  
-  const [account] = await walletClient.getAddresses();
-  
-  const hash = await walletClient.writeContract({
+
+  const tokenAddress = getTokenAddress(token);
+
+  const { request } = await client.simulateContract({
     address,
     abi,
-    functionName: 'withdraw',
-    args: [
-      getTokenAddress(token),
-      parseEther(String(amount)),
-      []
-    ],
-    account
+    functionName: "withdrawDeposit",
+    args: [tokenAddress, parseEther(amount)],
   });
-  
+
+  const hash = await client.writeContract(request);
   const receipt = await client.waitForTransactionReceipt({ hash });
-  return receipt;
+
+  return receipt.status;
 };
 
-export { cancelDeposit, withdrawDeposit, addLock, releaseLock };
+export const releaseLock = async (solicitation: any): Promise<any> => {
+  const { address, abi, client } = await getContract();
+
+  const { request } = await client.simulateContract({
+    address,
+    abi,
+    functionName: "releaseLock",
+    args: [solicitation.lockId, solicitation.e2eId],
+  });
+
+  const hash = await client.writeContract(request);
+  return client.waitForTransactionReceipt({ hash });
+};

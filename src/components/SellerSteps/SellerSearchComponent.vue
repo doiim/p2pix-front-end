@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
-import { storeToRefs } from "pinia";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 import SpinnerComponent from "@/components/SpinnerComponent.vue";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
@@ -10,8 +9,8 @@ import { getTokenImage } from "@/utils/imagesPath";
 import { useOnboard } from "@web3-onboard/vue";
 
 // Store
-const viemStore = useViemStore();
-const { walletAddress } = storeToRefs(viemStore);
+const user = useUser();
+const { walletAddress } = user;
 
 // Reactive state
 const tokenValue = ref<number>(0);
@@ -76,10 +75,10 @@ const handleInputEvent = (event: any): void => {
             <img
               alt="Token image"
               class="w-fit"
-              :src="getTokenImage(viemStore.selectedToken)"
+              :src="getTokenImage(user.selectedToken.value)"
             />
             <span class="text-gray-900 text-lg w-fit" id="token">{{
-              viemStore.selectedToken
+              user.selectedToken
             }}</span>
           </div>
         </div>

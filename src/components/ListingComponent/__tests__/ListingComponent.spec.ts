@@ -2,13 +2,13 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import ListingComponent from "../ListingComponent.vue";
 import SpinnerComponent from "../../SpinnerComponent.vue";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 import { MockValidDeposits } from "@/model/mock/ValidDepositMock";
 import { MockWalletTransactions } from "@/model/mock/WalletTransactionMock";
 
 describe("ListingComponent.vue", () => {
   beforeEach(() => {
-    useViemStore().setLoadingWalletTransactions(false);
+    useUser().setLoadingWalletTransactions(false);
   });
 
   test("Test Message when an empty array is received", () => {

@@ -1,4 +1,4 @@
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 import { formatEther, decodeEventLog, parseAbi, toHex, type PublicClient, type Address } from "viem";
 
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
@@ -14,8 +14,8 @@ import type { UnreleasedLock } from "@/model/UnreleasedLock";
 import type { Pix } from "@/model/Pix";
 
 const getNetworksLiquidity = async (): Promise<void> => {
-  const viemStore = useViemStore();
-  viemStore.setLoadingNetworkLiquidity(true);
+  const user = useUser();
+  user.setLoadingNetworkLiquidity(true);
 
   const depositLists: ValidDeposit[][] = [];
 
@@ -23,22 +23,16 @@ const getNetworksLiquidity = async (): Promise<void> => {
     (v) => !isNaN(Number(v))
   )) {
     console.log("getNetworksLiquidity", network);
-    
-    // Get public client for this network
-    const client = getProviderByNetwork(network as NetworkEnum);
-    const address = getP2PixAddress(network as NetworkEnum);
-    
-    depositLists.push(
-      await getValidDeposits(
-        getTokenAddress(viemStore.selectedToken, network as NetworkEnum),
-        network as NetworkEnum,
-        { client, address }
-      )
+    const deposits = await getValidDeposits(
+      getTokenAddress(user.selectedToken.value),
+      Number(network)
     );
+    if (deposits) depositLists.push(deposits);
   }
 
-  viemStore.setDepositsValidList(depositLists.flat());
-  viemStore.setLoadingNetworkLiquidity(false);
+  const allDeposits = depositLists.flat();
+  user.setDepositsValidList(allDeposits);
+  user.setLoadingNetworkLiquidity(false);
 };
 
 const getPixKey = async (seller: string, token: string): Promise<string> => {

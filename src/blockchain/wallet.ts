@@ -5,7 +5,7 @@ import {
   type Log,
   parseAbi,
 } from "viem";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 
 import { getPublicClient, getWalletClient, getContract } from "./provider";
 import { getTokenAddress, isPossibleNetwork } from "./addresses";
@@ -21,46 +21,31 @@ import type { UnreleasedLock } from "@/model/UnreleasedLock";
 import type { Pix } from "@/model/Pix";
 
 export const updateWalletStatus = async (): Promise<void> => {
-  const viemStore = useViemStore();
+  const user = useUser();
 
   const publicClient = getPublicClient();
   const walletClient = getWalletClient();
-  
+
   if (!publicClient || !walletClient) {
     console.error("Client not initialized");
     return;
   }
-  
-  const chainId = await publicClient.getChainId();
-  if (!isPossibleNetwork(Number(chainId))) {
-    window.alert("Invalid chain!:" + chainId);
-    return;
-  }
-  viemStore.setNetworkId(Number(chainId));
 
-  // Get account address
-  const [address] = await walletClient.getAddresses();
-  
-  // Get token balance
-  const tokenAddress = getTokenAddress(viemStore.selectedToken);
-  const balanceResult = await publicClient.readContract({
-    address: tokenAddress,
-    abi: mockToken.abi,
-    functionName: 'balanceOf',
-    args: [address]
-  });
+  // Get balance
+  const [account] = await walletClient.getAddresses();
+  const balance = await publicClient.getBalance({ address: account });
 
-  viemStore.setBalance(formatEther(balanceResult));
-  viemStore.setWalletAddress(getAddress(address));
+  user.setWalletAddress(account);
+  user.setBalance(formatEther(balance));
 };
 
 export const listValidDepositTransactionsByWalletAddress = async (
   walletAddress: string
 ): Promise<ValidDeposit[]> => {
-  const viemStore = useViemStore();
+  const user = useUser();
   const walletDeposits = await getValidDeposits(
-    getTokenAddress(viemStore.selectedToken),
-    viemStore.networkName
+    getTokenAddress(user.selectedToken.value),
+    user.networkName.value
   );
   if (walletDeposits) {
     return walletDeposits
@@ -96,12 +81,12 @@ const filterLockStatus = async (
         data: transaction.data,
         topics: transaction.topics,
       });
-      
+
       if (!decoded || !decoded.args) continue;
-      
+
       // Type assertion to handle the args safely
       const args = decoded.args as Record<string, any>;
-      
+
       const tx: WalletTransaction = {
         token: args.token ? String(args.token) : "",
         blockNumber: Number(transaction.blockNumber),
@@ -244,7 +229,7 @@ const listLockTransactionByWalletAddress = async (
   });
 
   return lockLogs
-    .sort((a:Log, b:Log) => {
+    .sort((a: Log, b: Log) => {
       return Number(b.blockNumber) - Number(a.blockNumber);
     })
     .map((log: Log) => {
@@ -259,7 +244,7 @@ const listLockTransactionByWalletAddress = async (
         return null;
       }
     })
-    .filter((decoded:any) => decoded !== null);
+    .filter((decoded: any) => decoded !== null);
 };
 
 const listLockTransactionBySellerAddress = async (
@@ -267,7 +252,7 @@ const listLockTransactionBySellerAddress = async (
 ) => {
   const { address, abi, client } = await getContract(true);
   console.log("Will get locks as seller", sellerAddress);
-  
+
   const lockLogs = await client.getLogs({
     address,
     event: parseAbi(['event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)'])[0],
@@ -290,8 +275,8 @@ const listLockTransactionBySellerAddress = async (
     })
     .filter((decoded: any) => decoded !== null)
     .filter(
-      (decoded:any) => decoded.args && decoded.args.seller && 
-      decoded.args.seller.toLowerCase() === sellerAddress.toLowerCase()
+      (decoded: any) => decoded.args && decoded.args.seller &&
+        decoded.args.seller.toLowerCase() === sellerAddress.toLowerCase()
     );
 };
 
@@ -304,25 +289,25 @@ export const checkUnreleasedLock = async (
   };
 
   const addedLocks = await listLockTransactionByWalletAddress(walletAddress);
-  
+
   if (!addedLocks.length) return undefined;
-  
+
   const lockIds = addedLocks.map((lock: any) => lock.args.lockID);
-  
+
   const lockStatus = await client.readContract({
     address,
     abi,
     functionName: 'getLocksStatus',
     args: [lockIds]
   });
-  
+
   const unreleasedLockId = lockStatus[1].findIndex(
     (status: number) => status == 1
   );
 
   if (unreleasedLockId !== -1) {
     const lockID = lockStatus[0][unreleasedLockId];
-    
+
     const lock = await client.readContract({
       address,
       abi,
@@ -351,7 +336,7 @@ export const getActiveLockAmount = async (
   if (!lockSeller.length) return 0;
 
   const lockIds = lockSeller.map((lock: any) => lock.args.lockID);
-  
+
   const lockStatus = await client.readContract({
     address,
     abi,

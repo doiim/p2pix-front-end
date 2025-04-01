@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
-import { storeToRefs } from "pinia";
 
 import SellerComponent from "@/components/SellerSteps/SellerComponent.vue";
 import SearchComponent from "@/components/SearchComponent.vue";
 import SendNetwork from "@/components/SellerSteps/SendNetwork.vue";
 import SellerSearchComponent from "@/components/SellerSteps/SellerSearchComponent.vue";
 import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 import { approveTokens, addDeposit } from "@/blockchain/sellerMethods";
 
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
@@ -19,12 +18,11 @@ enum Step {
   Network,
 }
 
-const viemStore = useViemStore();
-viemStore.setSellerView(true);
+const user = useUser();
+user.setSellerView(true);
 
 const flowStep = ref<Step>(Step.Sell);
 const loading = ref<boolean>(false);
-
 const showAlert = ref<boolean>(false);
 
 // Verificar tipagem
@@ -44,7 +42,7 @@ const approveOffer = async (args: Participant) => {
 const sendNetwork = async () => {
   loading.value = true;
   try {
-    if (viemStore.seller) {
+    if (user.seller.value) {
       await addDeposit();
       flowStep.value = Step.Sell;
       loading.value = false;
@@ -74,9 +72,9 @@ const sendNetwork = async () => {
     />
     <div v-if="flowStep == Step.Network">
       <SendNetwork
-        :sellerId="viemStore.sellerId"
-        :offer="Number(viemStore.seller.offer)"
-        :selected-token="viemStore.selectedToken"
+        :sellerId="user.sellerId"
+        :offer="Number(user.seller.offer)"
+        :selected-token="user.selectedToken"
         v-if="!loading"
         @send-network="sendNetwork"
       />

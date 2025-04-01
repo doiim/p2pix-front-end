@@ -1,4 +1,4 @@
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
 import { createPublicClient, http } from "viem";
 import { sepolia, rootstock } from "viem/chains";
@@ -15,8 +15,8 @@ const Tokens: { [key in NetworkEnum]: { [key in TokenEnum]: string } } = {
 };
 
 export const getTokenByAddress = (address: string) => {
-  const viemStore = useViemStore();
-  const networksTokens = Tokens[viemStore.networkName];
+  const user = useUser();
+  const networksTokens = Tokens[user.networkName.value];
   for (const [token, tokenAddress] of Object.entries(networksTokens)) {
     if (tokenAddress.toLowerCase() === address.toLowerCase()) {
       return token;
@@ -29,28 +29,28 @@ export const getTokenAddress = (
   token: TokenEnum,
   network?: NetworkEnum
 ): string => {
-  const viemStore = useViemStore();
-  return Tokens[network ? network : viemStore.networkName][token];
+  const user = useUser();
+  return Tokens[network ? network : user.networkName.value][token];
 };
 
 export const getP2PixAddress = (network?: NetworkEnum): string => {
-  const viemStore = useViemStore();
+  const user = useUser();
   const possibleP2PixAddresses: { [key in NetworkEnum]: string } = {
     [NetworkEnum.sepolia]: "0x2414817FF64A114d91eCFA16a834d3fCf69103d4",
     [NetworkEnum.rootstock]: "0x98ba35eb14b38D6Aa709338283af3e922476dE34",
   };
 
-  return possibleP2PixAddresses[network ? network : viemStore.networkName];
+  return possibleP2PixAddresses[network ? network : user.networkName.value];
 };
 
 export const getProviderUrl = (network?: NetworkEnum): string => {
-  const viemStore = useViemStore();
+  const user = useUser();
   const possibleProvidersUrls: { [key in NetworkEnum]: string } = {
     [NetworkEnum.sepolia]: import.meta.env.VITE_SEPOLIA_API_URL,
     [NetworkEnum.rootstock]: import.meta.env.VITE_RSK_API_URL,
   };
 
-  return possibleProvidersUrls[network || viemStore.networkName];
+  return possibleProvidersUrls[network || user.networkName.value];
 };
 
 export const getProviderByNetwork = (network: NetworkEnum) => {

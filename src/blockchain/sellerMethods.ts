@@ -3,25 +3,25 @@ import { getTokenAddress, getP2PixAddress } from "./addresses";
 import { parseEther, toHex } from "viem";
 
 import mockToken from "../utils/smart_contract_files/MockToken.json";
-import { useViemStore } from "@/store/viem";
+import { useUser } from "@/composables/useUser";
 import { createParticipant } from "@/utils/bbPay";
 import type { Participant } from "@/utils/bbPay";
 
 const approveTokens = async (participant: Participant): Promise<any> => {
-  const viemStore = useViemStore();
+  const user = useUser();
   const publicClient = getPublicClient();
   const walletClient = getWalletClient();
-  
+
   if (!publicClient || !walletClient) {
     throw new Error("Clients not initialized");
   }
-  
-  viemStore.setSeller(participant);
+
+  user.setSeller(participant);
   const [account] = await walletClient.getAddresses();
-  
+
   // Get token address
-  const tokenAddress = getTokenAddress(viemStore.selectedToken);
-  
+  const tokenAddress = getTokenAddress(user.selectedToken.value);
+
   // Check if the token is already approved
   const allowance = await publicClient.readContract({
     address: tokenAddress,
@@ -29,17 +29,17 @@ const approveTokens = async (participant: Participant): Promise<any> => {
     functionName: 'allowance',
     args: [account, getP2PixAddress()]
   });
-  
-  if (allowance < parseEther(participant.offer)) {
+
+  if (allowance < parseEther(participant.offer.toString())) {
     // Approve tokens
     const hash = await walletClient.writeContract({
       address: tokenAddress,
       abi: mockToken.abi,
       functionName: 'approve',
-      args: [getP2PixAddress(), parseEther(participant.offer)],
+      args: [getP2PixAddress(), parseEther(participant.offer.toString())],
       account
     });
-    
+
     await publicClient.waitForTransactionReceipt({ hash });
     return true;
   }
@@ -49,17 +49,17 @@ const approveTokens = async (participant: Participant): Promise<any> => {
 const addDeposit = async (): Promise<any> => {
   const { address, abi, client } = await getContract();
   const walletClient = getWalletClient();
-  const viemStore = useViemStore();
-  
+  const user = useUser();
+
   if (!walletClient) {
     throw new Error("Wallet client not initialized");
   }
-  
+
   const [account] = await walletClient.getAddresses();
-  
-  const sellerId = await createParticipant(viemStore.seller);
-  viemStore.setSellerId(sellerId.id);
-  
+
+  const sellerId = await createParticipant(user.seller.value);
+  user.setSellerId(sellerId.id);
+
   const hash = await walletClient.writeContract({
     address,
     abi,
@@ -67,13 +67,13 @@ const addDeposit = async (): Promise<any> => {
     args: [
       sellerId.id,
       toHex("", { size: 32 }),
-      getTokenAddress(viemStore.selectedToken),
-      parseEther(viemStore.seller.offer),
+      getTokenAddress(user.selectedToken.value),
+      parseEther(user.seller.value.offer),
       true
     ],
     account
   });
-  
+
   const receipt = await client.waitForTransactionReceipt({ hash });
   return receipt;
 };
