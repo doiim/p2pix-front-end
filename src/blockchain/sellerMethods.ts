@@ -68,7 +68,7 @@ const addDeposit = async (): Promise<any> => {
       sellerId.id,
       toHex("", { size: 32 }),
       getTokenAddress(user.selectedToken.value),
-      parseEther(user.seller.value.offer),
+      parseEther(user.seller.value.offer.toString()),
       true,
     ],
     account,
