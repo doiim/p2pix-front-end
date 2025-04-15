@@ -26,7 +26,7 @@ const props = defineProps({
         os tokens de volta.</span
       >
     </div>
-    <div class="main-container sm:w-1/3">
+    <div class="main-container">
       <div
         class="flex flex-col w-full bg-white px-10 py-5 rounded-lg border-y-10"
       >
@@ -77,12 +77,6 @@ p {
 
 .last-deposit-info {
   @apply font-medium text-base;
-}
-
-input[type="number"] {
-  appearance: textfield;
-  -webkit-appearance: textfield;
-  -moz-appearance: textfield;
 }
 
 input[type="number"]::-webkit-inner-spin-button,

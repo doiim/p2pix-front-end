@@ -6,7 +6,6 @@ import SendNetwork from "@/components/SellerSteps/SendNetwork.vue";
 import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
 import { useUser } from "@/composables/useUser";
 import { approveTokens, addDeposit } from "@/blockchain/sellerMethods";
-
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
 import type { Participant } from "@/utils/bbPay";
 
@@ -70,9 +69,9 @@ const sendNetwork = async () => {
     />
     <div v-if="flowStep == Step.Network">
       <SendNetwork
-        :sellerId="user.sellerId"
-        :offer="Number(user.seller.offer)"
-        :selected-token="user.selectedToken"
+        :sellerId="user.sellerId.value"
+        :offer="Number(user.seller.value.offer)"
+        :selected-token="user.selectedToken.value"
         v-if="!loading"
         @send-network="sendNetwork"
       />

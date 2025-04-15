@@ -151,12 +151,6 @@ const handleInputEvent = (event: any): void => {
   @apply text-white text-center;
 }
 
-input[type="number"] {
-  appearance: textfield;
-  -webkit-appearance: textfield;
-  -moz-appearance: textfield;
-}
-
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
