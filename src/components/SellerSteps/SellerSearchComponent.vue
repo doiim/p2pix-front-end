@@ -1,17 +1,15 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useUser } from "@/composables/useUser";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { decimalCount } from "@/utils/decimalCount";
-
-import { useEtherStore } from "@/store/ether";
 import { getTokenImage } from "@/utils/imagesPath";
-import { storeToRefs } from "pinia";
 import { useOnboard } from "@web3-onboard/vue";
 
 // Store
-const etherStore = useEtherStore();
-const { walletAddress } = storeToRefs(etherStore);
+const user = useUser();
+const { walletAddress } = user;
 
 // Reactive state
 const tokenValue = ref<number>(0);
@@ -76,10 +74,10 @@ const handleInputEvent = (event: any): void => {
             <img
               alt="Token image"
               class="w-fit"
-              :src="getTokenImage(etherStore.selectedToken)"
+              :src="getTokenImage(user.selectedToken.value)"
             />
             <span class="text-gray-900 text-lg w-fit" id="token">{{
-              etherStore.selectedToken
+              user.selectedToken
             }}</span>
           </div>
         </div>
@@ -151,10 +149,6 @@ const handleInputEvent = (event: any): void => {
 
 .text {
   @apply text-white text-center;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 
 input[type="number"]::-webkit-inner-spin-button,

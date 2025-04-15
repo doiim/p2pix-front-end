@@ -1,21 +1,20 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useUser } from "@/composables/useUser";
+import SpinnerComponent from "@/components/SpinnerComponent.vue";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
-import { useEtherStore } from "@/store/ether";
-import { storeToRefs } from "pinia";
 import { verifyNetworkLiquidity } from "@/utils/networkLiquidity";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { decimalCount } from "@/utils/decimalCount";
-import SpinnerComponent from "./SpinnerComponent.vue";
 import { getTokenImage } from "@/utils/imagesPath";
 import { onClickOutside } from "@vueuse/core";
 
 import { TokenEnum } from "@/model/NetworkEnum";
 
 // Store reference
-const etherStore = useEtherStore();
+const user = useUser();
 const selectTokenToggle = ref<boolean>(false);
 
 const {
@@ -24,7 +23,7 @@ const {
   selectedToken,
   depositsValidList,
   loadingNetworkLiquidity,
-} = storeToRefs(etherStore);
+} = user;
 
 // html references
 const tokenDropdownRef = ref<any>(null);
@@ -84,7 +83,7 @@ onClickOutside(tokenDropdownRef, () => {
 });
 
 const handleSelectedToken = (token: TokenEnum): void => {
-  etherStore.setSelectedToken(token);
+  user.setSelectedToken(token);
   selectTokenToggle.value = false;
 };
 

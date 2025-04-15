@@ -2,13 +2,16 @@
 import { useRoute } from "vue-router";
 import TopBar from "@/components/TopBar/TopBar.vue";
 import SpinnerComponent from "@/components/SpinnerComponent.vue";
+import ToasterComponent from "@/components/ToasterComponent.vue";
 import { init, useOnboard } from "@web3-onboard/vue";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { Networks } from "./model/Networks";
 import { NetworkEnum } from "./model/NetworkEnum";
+import { ref } from "vue";
 
 const route = useRoute();
 const injected = injectedModule();
+const targetNetwork = ref(NetworkEnum.sepolia);
 
 const web3Onboard = init({
   wallets: [injected],
@@ -58,5 +61,6 @@ if (!connectedWallet) {
         </Transition>
       </template>
     </RouterView>
+    <ToasterComponent :targetNetwork="targetNetwork" />
   </div>
 </template>

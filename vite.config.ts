@@ -36,6 +36,9 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
+      "viem/errors": fileURLToPath(
+        new URL("./node_modules/viem/errors", import.meta.url)
+      ),
     },
   },
 });

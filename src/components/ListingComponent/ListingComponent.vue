@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { withdrawDeposit } from "@/blockchain/buyerMethods";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
-import { useEtherStore } from "@/store/ether";
-import { storeToRefs } from "pinia";
+import { useUser } from "@/composables/useUser";
 import { ref, watch, onMounted } from "vue";
 import SpinnerComponent from "../SpinnerComponent.vue";
 import { decimalCount } from "@/utils/decimalCount";
@@ -12,7 +10,7 @@ import { debounce } from "@/utils/debounce";
 import { getTokenByAddress } from "@/blockchain/addresses";
 import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";
 
-const etherStore = useEtherStore();
+const user = useUser();
 
 // props
 const props = defineProps<{
@@ -23,8 +21,9 @@ const props = defineProps<{
 
 const emit = defineEmits(["depositWithdrawn"]);
 
-const { loadingWalletTransactions } = storeToRefs(etherStore);
-const remaining = ref<number>(0.0);
+const { loadingWalletTransactions } = user;
+
+const remaining = ref<number>(0);
 const itemsToShow = ref<WalletTransaction[]>([]);
 const withdrawAmount = ref<string>("");
 const withdrawButtonOpacity = ref<number>(0.6);
@@ -85,8 +84,7 @@ watch(withdrawAmount, (): void => {
 });
 
 const getRemaining = (): number => {
-  if (props.validDeposits instanceof Array) {
-    // Here we are getting only the first element of the list because
+  if (props.validDeposits.length > 0) {
     // in this release only the BRL token is being used.
     const deposit = props.validDeposits[0];
     remaining.value = deposit ? deposit.remaining : 0;
@@ -96,7 +94,7 @@ const getRemaining = (): number => {
 };
 
 const getExplorer = (): string => {
-  return etherStore.networkName == NetworkEnum.sepolia
+  return user.networkName.value == NetworkEnum.sepolia
     ? "Etherscan"
     : "Polygonscan";
 };
@@ -107,7 +105,7 @@ const showInitialItems = (): void => {
 
 const openEtherscanUrl = (transactionHash: string): void => {
   const networkUrl =
-    etherStore.networkName == NetworkEnum.sepolia
+    user.networkName.value == NetworkEnum.sepolia
       ? "sepolia.etherscan.io"
       : "mumbai.polygonscan.com";
   const url = `https://${networkUrl}/tx/${transactionHash}`;

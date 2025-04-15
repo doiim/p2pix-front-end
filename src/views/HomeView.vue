@@ -3,9 +3,8 @@ import SearchComponent from "@/components/SearchComponent.vue";
 import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
 import BuyConfirmedComponent from "@/components/BuyConfirmedComponent/BuyConfirmedComponent.vue";
 import { ref, onMounted, watch } from "vue";
-import { useEtherStore } from "@/store/ether";
+import { useUser } from "@/composables/useUser";
 import QrCodeComponent from "@/components/QrCodeComponent.vue";
-import { storeToRefs } from "pinia";
 import { addLock, releaseLock } from "@/blockchain/buyerMethods";
 import { updateWalletStatus, checkUnreleasedLock } from "@/blockchain/wallet";
 import { getNetworksLiquidity } from "@/blockchain/events";
@@ -20,11 +19,11 @@ enum Step {
   List,
 }
 
-const etherStore = useEtherStore();
-etherStore.setSellerView(false);
+const user = useUser();
+user.setSellerView(false);
 
 // States
-const { loadingLock, walletAddress, networkName } = storeToRefs(etherStore);
+const { loadingLock, walletAddress, networkName } = user;
 const flowStep = ref<Step>(Step.Search);
 const pixTarget = ref<string>();
 const tokenAmount = ref<number>();
@@ -38,14 +37,12 @@ const confirmBuyClick = async (
   selectedDeposit: ValidDeposit,
   tokenValue: number
 ) => {
-  // finish buy screen
   pixTarget.value = selectedDeposit.pixKey;
   tokenAmount.value = tokenValue;
 
-  // Makes lock with deposit ID and the Amount
   if (selectedDeposit) {
     flowStep.value = Step.Buy;
-    etherStore.setLoadingLock(true);
+    user.setLoadingLock(true);
 
     await addLock(selectedDeposit.seller, selectedDeposit.token, tokenValue)
       .then((_lockID) => {
@@ -56,7 +53,7 @@ const confirmBuyClick = async (
         flowStep.value = Step.Search;
       });
 
-    etherStore.setLoadingLock(false);
+    user.setLoadingLock(false);
   }
 };
 

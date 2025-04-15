@@ -1,6 +1,7 @@
-import { useEtherStore } from "@/store/ether";
+import { useUser } from "@/composables/useUser";
 import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
-import { JsonRpcProvider } from "ethers";
+import { createPublicClient, http } from "viem";
+import { sepolia, rootstock } from "viem/chains";
 
 const Tokens: { [key in NetworkEnum]: { [key in TokenEnum]: string } } = {
   [NetworkEnum.sepolia]: {
@@ -14,57 +15,53 @@ const Tokens: { [key in NetworkEnum]: { [key in TokenEnum]: string } } = {
 };
 
 export const getTokenByAddress = (address: string) => {
-  for (const network of Object.values(NetworkEnum).filter(
-    (v) => !isNaN(Number(v))
-  )) {
-    for (const token of Object.keys(Tokens[network as NetworkEnum])) {
-      if (address === Tokens[network as NetworkEnum][token as TokenEnum]) {
-        return token as TokenEnum;
-      }
+  const user = useUser();
+  const networksTokens = Tokens[user.networkName.value];
+  for (const [token, tokenAddress] of Object.entries(networksTokens)) {
+    if (tokenAddress.toLowerCase() === address.toLowerCase()) {
+      return token;
     }
   }
-
   return null;
 };
 
-const getTokenAddress = (token: TokenEnum, network?: NetworkEnum): string => {
-  const etherStore = useEtherStore();
-  return Tokens[network ? network : etherStore.networkName][token];
+export const getTokenAddress = (
+  token: TokenEnum,
+  network?: NetworkEnum
+): string => {
+  const user = useUser();
+  return Tokens[network ? network : user.networkName.value][token];
 };
 
-const getP2PixAddress = (network?: NetworkEnum): string => {
-  const etherStore = useEtherStore();
+export const getP2PixAddress = (network?: NetworkEnum): string => {
+  const user = useUser();
   const possibleP2PixAddresses: { [key in NetworkEnum]: string } = {
-    [NetworkEnum.sepolia]: "0xb7cD135F5eFD9760981e02E2a898790b688939fe",
+    [NetworkEnum.sepolia]: "0x2414817FF64A114d91eCFA16a834d3fCf69103d4",
     [NetworkEnum.rootstock]: "0x98ba35eb14b38D6Aa709338283af3e922476dE34",
   };
 
-  return possibleP2PixAddresses[network ? network : etherStore.networkName];
+  return possibleP2PixAddresses[network ? network : user.networkName.value];
 };
 
-const getProviderUrl = (network?: NetworkEnum): string => {
-  const etherStore = useEtherStore();
+export const getProviderUrl = (network?: NetworkEnum): string => {
+  const user = useUser();
   const possibleProvidersUrls: { [key in NetworkEnum]: string } = {
     [NetworkEnum.sepolia]: import.meta.env.VITE_SEPOLIA_API_URL,
     [NetworkEnum.rootstock]: import.meta.env.VITE_RSK_API_URL,
   };
 
-  return possibleProvidersUrls[network || etherStore.networkName];
+  return possibleProvidersUrls[network || user.networkName.value];
 };
 
-const getProviderByNetwork = (network: NetworkEnum): JsonRpcProvider => {
+export const getProviderByNetwork = (network: NetworkEnum) => {
   console.log("network", network);
-  return new JsonRpcProvider(getProviderUrl(network), network);
+  const chain = network === NetworkEnum.sepolia ? sepolia : rootstock;
+  return createPublicClient({
+    chain,
+    transport: http(getProviderUrl(network)),
+  });
 };
 
-const isPossibleNetwork = (networkChain: NetworkEnum): boolean => {
+export const isPossibleNetwork = (networkChain: NetworkEnum): boolean => {
   return Number(networkChain) in NetworkEnum;
-};
-
-export {
-  getTokenAddress,
-  getProviderUrl,
-  isPossibleNetwork,
-  getP2PixAddress,
-  getProviderByNetwork,
 };

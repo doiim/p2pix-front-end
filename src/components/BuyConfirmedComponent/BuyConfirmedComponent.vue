@@ -8,8 +8,7 @@ import {
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
-import { useEtherStore } from "@/store/ether";
-import { storeToRefs } from "pinia";
+import { useUser } from "@/composables/useUser";
 import { onMounted, ref, watch } from "vue";
 import ListingComponent from "../ListingComponent/ListingComponent.vue";
 
@@ -19,8 +18,8 @@ const props = defineProps<{
   isCurrentStep: boolean;
 }>();
 
-const etherStore = useEtherStore();
-const { walletAddress } = storeToRefs(etherStore);
+const user = useUser();
+const { walletAddress } = useUser();
 
 const lastWalletTransactions = ref<WalletTransaction[]>([]);
 const depositList = ref<ValidDeposit[]>([]);
@@ -29,7 +28,7 @@ const activeLockAmount = ref<number>(0);
 // methods
 
 const getWalletTransactions = async () => {
-  etherStore.setLoadingWalletTransactions(true);
+  user.setLoadingWalletTransactions(true);
   if (walletAddress.value) {
     const walletDeposits = await listValidDepositTransactionsByWalletAddress(
       walletAddress.value
@@ -48,20 +47,20 @@ const getWalletTransactions = async () => {
       lastWalletTransactions.value = allUserTransactions;
     }
   }
-  etherStore.setLoadingWalletTransactions(false);
+  user.setLoadingWalletTransactions(false);
 };
 
 const callWithdraw = async (amount: string) => {
   if (amount) {
-    etherStore.setLoadingWalletTransactions(true);
-    const withdraw = await withdrawDeposit(amount, etherStore.selectedToken);
+    user.setLoadingWalletTransactions(true);
+    const withdraw = await withdrawDeposit(amount, user.selectedToken.value);
     if (withdraw) {
       console.log("Saque realizado!");
       await getWalletTransactions();
     } else {
       console.log("Não foi possível realizar o saque!");
     }
-    etherStore.setLoadingWalletTransactions(false);
+    user.setLoadingWalletTransactions(false);
   }
 };
 
@@ -93,14 +92,14 @@ onMounted(async () => {
         <div>
           <p>Tokens recebidos</p>
           <p class="text-2xl text-gray-900">
-            {{ props.tokenAmount }} {{ etherStore.selectedToken }}
+            {{ props.tokenAmount }} {{ user.selectedToken }}
           </p>
         </div>
         <div class="my-5">
           <p class="text-sm">
             <b>Não encontrou os tokens? </b><br />Clique no botão abaixo para
             <br />
-            cadastrar o {{ etherStore.selectedToken }} em sua carteira.
+            cadastrar o {{ user.selectedToken }} em sua carteira.
           </p>
         </div>
         <CustomButton :text="'Cadastrar token'" @buttonClicked="() => {}" />
@@ -148,10 +147,6 @@ p {
 
 .last-release-info {
   @apply font-medium text-base text-gray-900;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 
 input[type="number"]::-webkit-inner-spin-button,

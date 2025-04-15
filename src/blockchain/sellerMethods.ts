@@ -1,60 +1,81 @@
-import { getContract, getProvider } from "./provider";
+import { getContract, getPublicClient, getWalletClient } from "./provider";
 import { getTokenAddress, getP2PixAddress } from "./addresses";
-
-import { encodeBytes32String, Contract, parseEther } from "ethers";
+import { parseEther, toHex } from "viem";
 
 import mockToken from "../utils/smart_contract_files/MockToken.json";
-import { useEtherStore } from "@/store/ether";
+import { useUser } from "@/composables/useUser";
 import { createParticipant } from "@/utils/bbPay";
 import type { Participant } from "@/utils/bbPay";
 
 const approveTokens = async (participant: Participant): Promise<any> => {
-  const provider = getProvider();
-  const signer = await provider?.getSigner();
-  const etherStore = useEtherStore();
+  const user = useUser();
+  const publicClient = getPublicClient();
+  const walletClient = getWalletClient();
 
-  etherStore.setSeller(participant);
-  const tokenContract = new Contract(
-    getTokenAddress(etherStore.selectedToken),
-    mockToken.abi,
-    signer
-  );
+  if (!publicClient || !walletClient) {
+    throw new Error("Clients not initialized");
+  }
+
+  user.setSeller(participant);
+  const [account] = await walletClient.getAddresses();
+
+  // Get token address
+  const tokenAddress = getTokenAddress(user.selectedToken.value);
 
   // Check if the token is already approved
-  const approved = await tokenContract.allowance(
-    await signer?.getAddress(),
-    getP2PixAddress()
-  );
-  if (approved < parseEther(participant.offer)) {
+  const allowance = await publicClient.readContract({
+    address: tokenAddress,
+    abi: mockToken.abi,
+    functionName: "allowance",
+    args: [account, getP2PixAddress()],
+  });
+
+  if (allowance < parseEther(participant.offer.toString())) {
     // Approve tokens
-    const apprv = await tokenContract.approve(
-      getP2PixAddress(),
-      parseEther(participant.offer)
-    );
-    await apprv.wait();
+    const hash = await walletClient.writeContract({
+      address: tokenAddress,
+      abi: mockToken.abi,
+      functionName: "approve",
+      args: [getP2PixAddress(), parseEther(participant.offer.toString())],
+      account,
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash });
     return true;
   }
   return true;
 };
 
 const addDeposit = async (): Promise<any> => {
-  const p2pContract = await getContract();
-  const etherStore = useEtherStore();
+  const { address, abi, client } = await getContract();
+  const walletClient = getWalletClient();
+  const user = useUser();
 
-  const sellerId = await createParticipant(etherStore.seller);
-  etherStore.setSellerId(sellerId.id);
+  if (!walletClient) {
+    throw new Error("Wallet client not initialized");
+  }
 
-  const deposit = await p2pContract.deposit(
-    sellerId,
-    encodeBytes32String(""),
-    getTokenAddress(etherStore.selectedToken),
-    parseEther(etherStore.seller.offer),
-    true
-  );
+  const [account] = await walletClient.getAddresses();
 
-  await deposit.wait();
+  const sellerId = await createParticipant(user.seller.value);
+  user.setSellerId(sellerId.id);
 
-  return deposit;
+  const hash = await walletClient.writeContract({
+    address,
+    abi,
+    functionName: "deposit",
+    args: [
+      sellerId.id,
+      toHex("", { size: 32 }),
+      getTokenAddress(user.selectedToken.value),
+      parseEther(user.seller.value.offer),
+      true,
+    ],
+    account,
+  });
+
+  const receipt = await client.waitForTransactionReceipt({ hash });
+  return receipt;
 };
 
 export { approveTokens, addDeposit };

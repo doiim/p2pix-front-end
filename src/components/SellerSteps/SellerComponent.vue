@@ -1,9 +1,8 @@
 <script setup lang="ts">
-import { computed, ref } from "vue";
-import CustomButton from "../CustomButton/CustomButton.vue";
-import { pixFormatValidation, postProcessKey } from "@/utils/pixKeyFormat";
-import { useEtherStore } from "@/store/ether";
-import { storeToRefs } from "pinia";
+import { ref, computed } from "vue";
+import { useUser } from "@/composables/useUser";
+import CustomButton from "@/components/CustomButton/CustomButton.vue";
+import { postProcessKey } from "@/utils/pixKeyFormat";
 import { TokenEnum } from "@/model/NetworkEnum";
 import { getTokenImage } from "@/utils/imagesPath";
 import { useOnboard } from "@web3-onboard/vue";
@@ -24,8 +23,8 @@ const tokenDropdownRef = ref<any>(null);
 const formRef = ref<HTMLFormElement | null>(null);
 
 // Reactive state
-const etherStore = useEtherStore();
-const { walletAddress, selectedToken } = storeToRefs(etherStore);
+const user = useUser();
+const { walletAddress, selectedToken } = user;
 
 const fullName = ref<string>("");
 const offer = ref<string>("");
@@ -91,7 +90,7 @@ const openTokenSelection = (): void => {
 };
 
 const handleSelectedToken = (token: TokenEnum): void => {
-  etherStore.setSelectedToken(token);
+  user.setSelectedToken(token);
   selectTokenToggle.value = false;
 };
 </script>

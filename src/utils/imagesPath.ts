@@ -7,10 +7,19 @@ export const imagesPath = import.meta.glob<string>("@/assets/*.{png,svg}", {
 });
 
 export const getNetworkImage = (networkName: string): string => {
-  const path = Object.keys(imagesPath).find((key) =>
-    key.endsWith(`${networkName.toLowerCase()}.svg`)
-  );
-  return path ? imagesPath[path] : "";
+  try {
+    const path = Object.keys(imagesPath).find((key) =>
+      key.endsWith(`${networkName.toLowerCase()}.svg`)
+    );
+    return path ? imagesPath[path] : "";
+  } catch (error) {
+    console.error("Error fetching network image");
+    const path = Object.keys(imagesPath).find((key) =>
+      key.endsWith(`invalidIcon.svg`)
+    );
+    return path ? imagesPath[path] : "";
+    return "";
+  }
 };
 
 export const getTokenImage = (tokenName: TokenEnum): string => {

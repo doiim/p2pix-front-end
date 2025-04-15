@@ -27,7 +27,7 @@
     ],
     "preserveValueImports": false,
     "importsNotUsedAsValues": "remove",
-    "verbatimModuleSyntax": true
+    "verbatimModuleSyntax": false
   },
   "references": [
     {
