@@ -26,7 +26,7 @@ describe("addresses.ts functions", () => {
 
   it("getTokenAddress Ethereum", () => {
     const user = useUser();
-    user.setNetworkId(NetworkEnum.sepolia);
+    user.setNetworkId(11155111);
     expect(getTokenAddress(TokenEnum.BRZ)).toBe(
       "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00"
     );
@@ -34,7 +34,7 @@ describe("addresses.ts functions", () => {
 
   it("getTokenAddress Rootstock", () => {
     const user = useUser();
-    user.setNetworkId(NetworkEnum.rootstock);
+    user.setNetworkId(30);
     expect(getTokenAddress(TokenEnum.BRZ)).toBe(
       "0xfE841c74250e57640390f46d914C88d22C51e82e"
     );
@@ -48,7 +48,7 @@ describe("addresses.ts functions", () => {
 
   it("getP2PixAddress Ethereum", () => {
     const user = useUser();
-    user.setNetworkId(NetworkEnum.sepolia);
+    user.setNetworkId(11155111);
     expect(getP2PixAddress()).toBe(
       "0x2414817FF64A114d91eCFA16a834d3fCf69103d4"
     );
@@ -56,7 +56,7 @@ describe("addresses.ts functions", () => {
 
   it("getP2PixAddress Rootstock", () => {
     const user = useUser();
-    user.setNetworkId(NetworkEnum.rootstock);
+    user.setNetworkId(30);
     expect(getP2PixAddress()).toBe(
       "0x98ba35eb14b38D6Aa709338283af3e922476dE34"
     );
@@ -70,13 +70,13 @@ describe("addresses.ts functions", () => {
 
   it("getProviderUrl Ethereum", () => {
     const user = useUser();
-    user.setNetworkId(NetworkEnum.sepolia);
+    user.setNetworkId(11155111);
     expect(getProviderUrl()).toBe(import.meta.env.VITE_GOERLI_API_URL);
   });
 
   it("getProviderUrl Rootstock", () => {
     const user = useUser();
-    user.setNetworkId(NetworkEnum.rootstock);
+    user.setNetworkId(30);
     expect(getProviderUrl()).toBe(import.meta.env.VITE_ROOTSTOCK_API_URL);
   });
 
@@ -86,7 +86,7 @@ describe("addresses.ts functions", () => {
 
   it("isPossibleNetwork Returns", () => {
     const user = useUser();
-    user.setNetworkId(NetworkEnum.sepolia);
+    user.setNetworkId(11155111);
     expect(isPossibleNetwork(0x5 as NetworkEnum)).toBe(true);
     expect(isPossibleNetwork(5 as NetworkEnum)).toBe(true);
     expect(isPossibleNetwork(0x13881 as NetworkEnum)).toBe(true);

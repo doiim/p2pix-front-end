@@ -2,9 +2,11 @@ import { ref } from "vue";
 import { NetworkEnum, TokenEnum } from "../model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { Participant } from "../utils/bbPay";
+import { NetworkById } from "@/model/Networks";
 
 const walletAddress = ref("");
 const balance = ref("");
+const networkId = ref(11155111);
 const networkName = ref(NetworkEnum.sepolia);
 const selectedToken = ref(TokenEnum.BRZ);
 const loadingLock = ref(false);
@@ -29,9 +31,9 @@ export function useUser() {
     selectedToken.value = token;
   };
 
-  const setNetworkId = (network: NetworkEnum) => {
-    console.log("setNetworkId", network);
-    networkName.value = Number(network);
+  const setNetworkId = (network: string | number) => {
+    networkName.value = NetworkById(network) || NetworkEnum.sepolia;
+    networkId.value = Number(network);
   };
 
   const setLoadingLock = (isLoading: boolean) => {
@@ -73,6 +75,7 @@ export function useUser() {
     // State
     walletAddress,
     balance,
+    networkId,
     networkName,
     selectedToken,
     loadingLock,

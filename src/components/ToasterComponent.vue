@@ -2,42 +2,19 @@
 import { ref, computed, watch, onMounted } from "vue";
 import { useOnboard } from "@web3-onboard/vue";
 import { Networks } from "../model/Networks";
-import { NetworkEnum } from "../model/NetworkEnum";
-import type { PropType } from "vue";
 import { useUser } from "@/composables/useUser";
-
-const props = defineProps({
-  targetNetwork: {
-    type: Object as PropType<NetworkEnum>,
-    default: NetworkEnum.sepolia,
-  },
-});
 
 const { connectedWallet } = useOnboard();
 const user = useUser();
-const { networkName } = user;
+const { networkId, networkName } = user;
 
 const isWrongNetwork = ref(false);
-const currentNetworkName = ref("");
-const targetNetworkName = computed(
-  () => Networks[props.targetNetwork as keyof typeof Networks].chainName
-);
+const targetNetworkName = computed(() => Networks[networkName.value].chainName);
 
 const checkNetwork = () => {
   if (connectedWallet.value) {
     const chainId = connectedWallet.value.chains[0].id;
-    const targetChainId =
-      Networks[props.targetNetwork as keyof typeof Networks].chainId;
-
-    isWrongNetwork.value =
-      chainId.toLowerCase() !== targetChainId.toLowerCase();
-
-    // Find current network name
-    Object.entries(Networks).forEach(([key, network]) => {
-      if (network.chainId === chainId) {
-        currentNetworkName.value = network.chainName;
-      }
-    });
+    isWrongNetwork.value = Number(chainId) !== networkId.value;
   } else {
     isWrongNetwork.value = false; // No wallet connected yet
   }
@@ -46,11 +23,13 @@ const checkNetwork = () => {
 const switchNetwork = async () => {
   try {
     if (connectedWallet.value && connectedWallet.value.provider) {
-      const targetChainId =
-        Networks[props.targetNetwork as keyof typeof Networks].chainId;
       await connectedWallet.value.provider.request({
         method: "wallet_switchEthereumChain",
-        params: [{ chainId: targetChainId }],
+        params: [
+          {
+            chainId: Networks[networkName.value].chainId,
+          },
+        ],
       });
     }
   } catch (error) {
@@ -59,8 +38,8 @@ const switchNetwork = async () => {
 };
 
 onMounted(checkNetwork);
-watch(connectedWallet, checkNetwork, { immediate: true });
-watch(networkName, checkNetwork, { immediate: true });
+watch(connectedWallet, checkNetwork);
+watch(networkId, checkNetwork, { immediate: true });
 </script>
 
 <template>
@@ -71,9 +50,6 @@ watch(networkName, checkNetwork, { immediate: true });
     >
       <div>
         <span class="font-bold">Wrong network!</span>
-        <span v-if="currentNetworkName"
-          >You are connected to {{ currentNetworkName }}.</span
-        >
         <span> Please switch to {{ targetNetworkName }}.</span>
       </div>
       <button

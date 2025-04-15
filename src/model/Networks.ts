@@ -1,5 +1,20 @@
 import { NetworkEnum } from "@/model/NetworkEnum";
 
+export const NetworkById = (
+  chainId: string | number
+): NetworkEnum | undefined => {
+  const normalizedChainId =
+    typeof chainId === "number" ? chainId : Number(chainId);
+
+  for (const [network, details] of Object.entries(Networks)) {
+    if (Number(details.chainId) === normalizedChainId) {
+      return network as unknown as NetworkEnum;
+    }
+  }
+
+  return undefined;
+};
+
 export const Networks = {
   [NetworkEnum.sepolia]: {
     chainId: "0xAA36A7",
