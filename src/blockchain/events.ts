@@ -1,14 +1,16 @@
 import { useUser } from "@/composables/useUser";
-import { formatEther, decodeEventLog, parseAbi, toHex, type PublicClient, type Address } from "viem";
+import {
+  formatEther,
+  decodeEventLog,
+  parseAbi,
+  toHex,
+  type PublicClient,
+} from "viem";
 
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 import { getContract } from "./provider";
 import type { ValidDeposit } from "@/model/ValidDeposit";
-import {
-  getP2PixAddress,
-  getProviderByNetwork,
-  getTokenAddress,
-} from "./addresses";
+import { getTokenAddress } from "./addresses";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
 import type { Pix } from "@/model/Pix";
@@ -37,16 +39,17 @@ const getNetworksLiquidity = async (): Promise<void> => {
 
 const getPixKey = async (seller: string, token: string): Promise<string> => {
   const { address, abi, client } = await getContract();
-  
+
   const pixKeyHex = await client.readContract({
     address,
     abi,
-    functionName: 'getPixTarget',
-    args: [seller, token]
+    functionName: "getPixTarget",
+    args: [seller, token],
   });
-  
+
   // Remove '0x' prefix and convert hex to UTF-8 string
-  const hexString = typeof pixKeyHex === 'string' ? pixKeyHex : toHex(pixKeyHex);
+  const hexString =
+    typeof pixKeyHex === "string" ? pixKeyHex : toHex(pixKeyHex);
   if (!hexString) throw new Error("PixKey not found");
   const bytes = new Uint8Array(
     // @ts-ignore
@@ -62,10 +65,10 @@ const getPixKey = async (seller: string, token: string): Promise<string> => {
 const getValidDeposits = async (
   token: string,
   network: NetworkEnum,
-  contractInfo?: { client: any, address: string }
+  contractInfo?: { client: any; address: string }
 ): Promise<ValidDeposit[]> => {
-  let client:PublicClient, address, abi;
-  
+  let client: PublicClient, address, abi;
+
   if (contractInfo) {
     ({ client, address } = contractInfo);
     abi = p2pix.abi;
@@ -76,17 +79,17 @@ const getValidDeposits = async (
   const depositLogs = await client.getLogs({
     address,
     event: parseAbi([
-      "event DepositAdded(address indexed seller, address token, uint256 amount)"
+      "event DepositAdded(address indexed seller, address token, uint256 amount)",
     ])[0],
     fromBlock: 0n,
-    toBlock: 'latest'
+    toBlock: "latest",
   });
 
   if (!contractInfo) {
     // Get metamask provider contract
     ({ address, abi, client } = await getContract());
   }
-  
+
   const depositList: { [key: string]: ValidDeposit } = {};
 
   for (const log of depositLogs) {
@@ -94,19 +97,19 @@ const getValidDeposits = async (
       const decoded = decodeEventLog({
         abi,
         data: log.data,
-        topics: log.topics
+        topics: log.topics,
       });
-      
+
       // Get liquidity only for the selected token
       if (decoded?.args.token.toLowerCase() !== token.toLowerCase()) continue;
-      
+
       const mappedBalance = await client.readContract({
         address,
         abi,
-        functionName: 'getBalance',
-        args: [decoded.args.seller, token]
+        functionName: "getBalance",
+        args: [decoded.args.seller, token],
       });
-      
+
       let validDeposit: ValidDeposit | null = null;
 
       if (mappedBalance) {
@@ -139,8 +142,8 @@ const getUnreleasedLockById = async (
   const lock = await client.readContract({
     address,
     abi,
-    functionName: 'mapLocks',
-    args: [BigInt(lockID)]
+    functionName: "mapLocks",
+    args: [BigInt(lockID)],
   });
 
   const pixTarget = lock.pixTarget;

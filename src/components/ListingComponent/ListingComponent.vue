@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { withdrawDeposit } from "@/blockchain/buyerMethods";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";

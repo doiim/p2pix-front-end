@@ -9,7 +9,6 @@ import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import { useUser } from "@/composables/useUser";
-import { NetworkEnum } from "@/model/NetworkEnum";
 import { onMounted, ref, watch } from "vue";
 import ListingComponent from "../ListingComponent/ListingComponent.vue";
 
@@ -151,6 +150,8 @@ p {
 }
 
 input[type="number"] {
+  appearance: textfield;
+  -webkit-appearance: textfield;
   -moz-appearance: textfield;
 }
 

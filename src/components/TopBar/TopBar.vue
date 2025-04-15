@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
-import { useRouter } from "vue-router";
 import { useUser } from "@/composables/useUser";
 import { onClickOutside } from "@vueuse/core";
 import { NetworkEnum } from "@/model/NetworkEnum";

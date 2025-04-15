@@ -13,8 +13,9 @@ const getPublicClient = (onlyRpcProvider = false) => {
     const user = useUser();
     const rpcUrl = getProviderUrl();
     return createPublicClient({
-      chain: Number(user.networkName.value) === sepolia.id ? sepolia : rootstock,
-      transport: http(rpcUrl)
+      chain:
+        Number(user.networkName.value) === sepolia.id ? sepolia : rootstock,
+      transport: http(rpcUrl),
     });
   }
   return publicClient;
@@ -35,16 +36,17 @@ const getContract = async (onlyRpcProvider = false) => {
 const connectProvider = async (p: any): Promise<void> => {
   console.log("Connecting to provider...");
   const user = useUser();
-  const chain = Number(user.networkName.value) === sepolia.id ? sepolia : rootstock;
+  const chain =
+    Number(user.networkName.value) === sepolia.id ? sepolia : rootstock;
 
   publicClient = createPublicClient({
     chain,
-    transport: custom(p)
+    transport: custom(p),
   });
 
   walletClient = createWalletClient({
     chain,
-    transport: custom(p)
+    transport: custom(p),
   });
 
   await updateWalletStatus();

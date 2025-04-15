@@ -1,7 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref } from "vue";
 import { useUser } from "@/composables/useUser";
-import SpinnerComponent from "@/components/SpinnerComponent.vue";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { decimalCount } from "@/utils/decimalCount";
@@ -153,6 +152,8 @@ const handleInputEvent = (event: any): void => {
 }
 
 input[type="number"] {
+  appearance: textfield;
+  -webkit-appearance: textfield;
   -moz-appearance: textfield;
 }
 

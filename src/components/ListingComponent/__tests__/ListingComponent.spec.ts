@@ -1,7 +1,6 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, expect, beforeEach } from "vitest";
 import { mount } from "@vue/test-utils";
 import ListingComponent from "../ListingComponent.vue";
-import SpinnerComponent from "../../SpinnerComponent.vue";
 import { useUser } from "@/composables/useUser";
 import { MockValidDeposits } from "@/model/mock/ValidDepositMock";
 import { MockWalletTransactions } from "@/model/mock/WalletTransactionMock";

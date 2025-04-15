@@ -80,6 +80,8 @@ p {
 }
 
 input[type="number"] {
+  appearance: textfield;
+  -webkit-appearance: textfield;
   -moz-appearance: textfield;
 }
 

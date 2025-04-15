@@ -26,8 +26,8 @@ const approveTokens = async (participant: Participant): Promise<any> => {
   const allowance = await publicClient.readContract({
     address: tokenAddress,
     abi: mockToken.abi,
-    functionName: 'allowance',
-    args: [account, getP2PixAddress()]
+    functionName: "allowance",
+    args: [account, getP2PixAddress()],
   });
 
   if (allowance < parseEther(participant.offer.toString())) {
@@ -35,9 +35,9 @@ const approveTokens = async (participant: Participant): Promise<any> => {
     const hash = await walletClient.writeContract({
       address: tokenAddress,
       abi: mockToken.abi,
-      functionName: 'approve',
+      functionName: "approve",
       args: [getP2PixAddress(), parseEther(participant.offer.toString())],
-      account
+      account,
     });
 
     await publicClient.waitForTransactionReceipt({ hash });
@@ -63,15 +63,15 @@ const addDeposit = async (): Promise<any> => {
   const hash = await walletClient.writeContract({
     address,
     abi,
-    functionName: 'deposit',
+    functionName: "deposit",
     args: [
       sellerId.id,
       toHex("", { size: 32 }),
       getTokenAddress(user.selectedToken.value),
       parseEther(user.seller.value.offer),
-      true
+      true,
     ],
-    account
+    account,
   });
 
   const receipt = await client.waitForTransactionReceipt({ hash });

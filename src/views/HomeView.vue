@@ -33,7 +33,10 @@ const showModal = ref<boolean>(false);
 const showBuyAlert = ref<boolean>(false);
 const paramLockID = window.history.state?.lockID;
 
-const confirmBuyClick = async (selectedDeposit: ValidDeposit, tokenValue: number) => {
+const confirmBuyClick = async (
+  selectedDeposit: ValidDeposit,
+  tokenValue: number
+) => {
   pixTarget.value = selectedDeposit.pixKey;
   tokenAmount.value = tokenValue;
 

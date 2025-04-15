@@ -1,16 +1,9 @@
-import {
-  decodeEventLog,
-  formatEther,
-  getAddress,
-  type Log,
-  parseAbi,
-} from "viem";
+import { decodeEventLog, formatEther, type Log, parseAbi } from "viem";
 import { useUser } from "@/composables/useUser";
 
 import { getPublicClient, getWalletClient, getContract } from "./provider";
-import { getTokenAddress, isPossibleNetwork } from "./addresses";
+import { getTokenAddress } from "./addresses";
 
-import mockToken from "@/utils/smart_contract_files/MockToken.json";
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 
 import { getValidDeposits } from "./events";
@@ -63,8 +56,8 @@ const getLockStatus = async (id: bigint): Promise<number> => {
   const result = await client.readContract({
     address,
     abi,
-    functionName: 'getLocksStatus',
-    args: [[id]]
+    functionName: "getLocksStatus",
+    args: [[id]],
   });
   return result[1][0];
 };
@@ -90,9 +83,7 @@ const filterLockStatus = async (
       const tx: WalletTransaction = {
         token: args.token ? String(args.token) : "",
         blockNumber: Number(transaction.blockNumber),
-        amount: args.amount
-          ? Number(formatEther(args.amount))
-          : -1,
+        amount: args.amount ? Number(formatEther(args.amount)) : -1,
         seller: args.seller ? String(args.seller) : "",
         buyer: args.buyer ? String(args.buyer) : "",
         event: decoded.eventName || "",
@@ -116,53 +107,61 @@ const filterLockStatus = async (
 export const listAllTransactionByWalletAddress = async (
   walletAddress: string
 ): Promise<WalletTransaction[]> => {
-  const { address, abi, client } = await getContract(true);
+  const { address, client } = await getContract(true);
 
   // Get deposits
   const depositLogs = await client.getLogs({
     address,
-    event: parseAbi(['event DepositAdded(address indexed seller, address token, uint256 amount)'])[0],
+    event: parseAbi([
+      "event DepositAdded(address indexed seller, address token, uint256 amount)",
+    ])[0],
     args: {
-      seller: walletAddress
+      seller: walletAddress,
     },
     fromBlock: 0n,
-    toBlock: 'latest'
+    toBlock: "latest",
   });
   console.log("Fetched all wallet deposits");
 
   // Get locks
   const lockLogs = await client.getLogs({
     address,
-    event: parseAbi(['event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)'])[0],
+    event: parseAbi([
+      "event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)",
+    ])[0],
     args: {
-      buyer: walletAddress
+      buyer: walletAddress,
     },
     fromBlock: 0n,
-    toBlock: 'latest'
+    toBlock: "latest",
   });
   console.log("Fetched all wallet locks");
 
   // Get released locks
   const releasedLogs = await client.getLogs({
     address,
-    event: parseAbi(['event LockReleased(address indexed buyer, uint256 indexed lockID, string e2eId)'])[0],
+    event: parseAbi([
+      "event LockReleased(address indexed buyer, uint256 indexed lockID, string e2eId)",
+    ])[0],
     args: {
-      buyer: walletAddress
+      buyer: walletAddress,
     },
     fromBlock: 0n,
-    toBlock: 'latest'
+    toBlock: "latest",
   });
   console.log("Fetched all wallet released locks");
 
   // Get withdrawn deposits
   const withdrawnLogs = await client.getLogs({
     address,
-    event: parseAbi(['event DepositWithdrawn(address indexed seller, address token, uint256 amount)'])[0],
+    event: parseAbi([
+      "event DepositWithdrawn(address indexed seller, address token, uint256 amount)",
+    ])[0],
     args: {
-      seller: walletAddress
+      seller: walletAddress,
     },
     fromBlock: 0n,
-    toBlock: 'latest'
+    toBlock: "latest",
   });
   console.log("Fetched all wallet withdrawn deposits");
 
@@ -170,7 +169,7 @@ export const listAllTransactionByWalletAddress = async (
     ...depositLogs,
     ...lockLogs,
     ...releasedLogs,
-    ...withdrawnLogs
+    ...withdrawnLogs,
   ].sort((a: Log, b: Log) => {
     return Number(b.blockNumber) - Number(a.blockNumber);
   });
@@ -182,16 +181,18 @@ export const listAllTransactionByWalletAddress = async (
 export const listReleaseTransactionByWalletAddress = async (
   walletAddress: string
 ) => {
-  const { address, abi, client } = await getContract(true);
+  const { address, client } = await getContract(true);
 
   const releasedLogs = await client.getLogs({
     address,
-    event: parseAbi(['event LockReleased(address indexed buyer, uint256 indexed lockID, string e2eId)'])[0],
+    event: parseAbi([
+      "event LockReleased(address indexed buyer, uint256 indexed lockID, string e2eId)",
+    ])[0],
     args: {
-      buyer: walletAddress
+      buyer: walletAddress,
     },
     fromBlock: 0n,
-    toBlock: 'latest'
+    toBlock: "latest",
   });
 
   return releasedLogs
@@ -203,7 +204,7 @@ export const listReleaseTransactionByWalletAddress = async (
         return decodeEventLog({
           abi: p2pix.abi,
           data: log.data,
-          topics: log.topics
+          topics: log.topics,
         });
       } catch (error) {
         console.error("Error decoding log", error);
@@ -213,19 +214,19 @@ export const listReleaseTransactionByWalletAddress = async (
     .filter((decoded: any) => decoded !== null);
 };
 
-const listLockTransactionByWalletAddress = async (
-  walletAddress: string
-) => {
-  const { address, abi, client } = await getContract(true);
+const listLockTransactionByWalletAddress = async (walletAddress: string) => {
+  const { address, client } = await getContract(true);
 
   const lockLogs = await client.getLogs({
     address,
-    event: parseAbi(['event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)'])[0],
+    event: parseAbi([
+      "event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)",
+    ])[0],
     args: {
-      buyer: walletAddress
+      buyer: walletAddress,
     },
     fromBlock: 0n,
-    toBlock: 'latest'
+    toBlock: "latest",
   });
 
   return lockLogs
@@ -237,7 +238,7 @@ const listLockTransactionByWalletAddress = async (
         return decodeEventLog({
           abi: p2pix.abi,
           data: log.data,
-          topics: log.topics
+          topics: log.topics,
         });
       } catch (error) {
         console.error("Error decoding log", error);
@@ -247,17 +248,17 @@ const listLockTransactionByWalletAddress = async (
     .filter((decoded: any) => decoded !== null);
 };
 
-const listLockTransactionBySellerAddress = async (
-  sellerAddress: string
-) => {
-  const { address, abi, client } = await getContract(true);
+const listLockTransactionBySellerAddress = async (sellerAddress: string) => {
+  const { address, client } = await getContract(true);
   console.log("Will get locks as seller", sellerAddress);
 
   const lockLogs = await client.getLogs({
     address,
-    event: parseAbi(['event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)'])[0],
+    event: parseAbi([
+      "event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)",
+    ])[0],
     fromBlock: 0n,
-    toBlock: 'latest'
+    toBlock: "latest",
   });
 
   return lockLogs
@@ -266,7 +267,7 @@ const listLockTransactionBySellerAddress = async (
         return decodeEventLog({
           abi: p2pix.abi,
           data: log.data,
-          topics: log.topics
+          topics: log.topics,
         });
       } catch (error) {
         console.error("Error decoding log", error);
@@ -275,7 +276,9 @@ const listLockTransactionBySellerAddress = async (
     })
     .filter((decoded: any) => decoded !== null)
     .filter(
-      (decoded: any) => decoded.args && decoded.args.seller &&
+      (decoded: any) =>
+        decoded.args &&
+        decoded.args.seller &&
         decoded.args.seller.toLowerCase() === sellerAddress.toLowerCase()
     );
 };
@@ -297,8 +300,8 @@ export const checkUnreleasedLock = async (
   const lockStatus = await client.readContract({
     address,
     abi,
-    functionName: 'getLocksStatus',
-    args: [lockIds]
+    functionName: "getLocksStatus",
+    args: [lockIds],
   });
 
   const unreleasedLockId = lockStatus[1].findIndex(
@@ -311,8 +314,8 @@ export const checkUnreleasedLock = async (
     const lock = await client.readContract({
       address,
       abi,
-      functionName: 'mapLocks',
-      args: [lockID]
+      functionName: "mapLocks",
+      args: [lockID],
     });
 
     const pixTarget = lock.pixTarget;
@@ -340,8 +343,8 @@ export const getActiveLockAmount = async (
   const lockStatus = await client.readContract({
     address,
     abi,
-    functionName: 'getLocksStatus',
-    args: [lockIds]
+    functionName: "getLocksStatus",
+    args: [lockIds],
   });
 
   let activeLockAmount = 0;
@@ -351,8 +354,8 @@ export const getActiveLockAmount = async (
       const lock = await client.readContract({
         address,
         abi,
-        functionName: 'mapLocks',
-        args: [lockId]
+        functionName: "mapLocks",
+        args: [lockId],
       });
       activeLockAmount += Number(formatEther(lock.amount));
     }

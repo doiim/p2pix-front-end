@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted, watchEffect } from "vue";
+import { ref, computed, watch, onMounted } from "vue";
 import { useOnboard } from "@web3-onboard/vue";
 import { Networks } from "../model/Networks";
 import { NetworkEnum } from "../model/NetworkEnum";

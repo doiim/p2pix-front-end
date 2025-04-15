@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue";
+import { ref, watch } from "vue";
 import { useUser } from "@/composables/useUser";
 import SpinnerComponent from "@/components/SpinnerComponent.vue";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";

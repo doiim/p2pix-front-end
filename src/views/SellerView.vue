@@ -1,10 +1,8 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
+import { ref } from "vue";
 
 import SellerComponent from "@/components/SellerSteps/SellerComponent.vue";
-import SearchComponent from "@/components/SearchComponent.vue";
 import SendNetwork from "@/components/SellerSteps/SendNetwork.vue";
-import SellerSearchComponent from "@/components/SellerSteps/SellerSearchComponent.vue";
 import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
 import { useUser } from "@/composables/useUser";
 import { approveTokens, addDeposit } from "@/blockchain/sellerMethods";

@@ -58,11 +58,10 @@ export const getProviderByNetwork = (network: NetworkEnum) => {
   const chain = network === NetworkEnum.sepolia ? sepolia : rootstock;
   return createPublicClient({
     chain,
-    transport: http(getProviderUrl(network))
+    transport: http(getProviderUrl(network)),
   });
 };
 
 export const isPossibleNetwork = (networkChain: NetworkEnum): boolean => {
   return Number(networkChain) in NetworkEnum;
 };
-
