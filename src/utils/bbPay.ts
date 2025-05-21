@@ -1,3 +1,5 @@
+import { off } from "process";
+
 export interface Participant {
   offer: string;
   chainID: number;
@@ -24,37 +26,42 @@ export interface Offer {
 
 export const createParticipant = async (participant: Participant) => {
   console.log("Creating participant", participant);
-  const response = await fetch(
-    `${import.meta.env.VITE_APP_API_URL}/participants`,
-    {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(participant),
-    }
-  );
+  const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/register`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      chainID: participant.chainID,
+      tipoDocumento: 1,
+      numeroDocumento: participant.identification,
+      numeroConta: participant.account,
+      numeroAgencia: participant.branch,
+      tipoConta: participant.accountType,
+      codigoIspb: participant.bankIspb,
+    }),
+  });
   const data = await response.json();
   return { ...participant, id: data.id } as ParticipantWithID;
 };
 
 export const createSolicitation = async (offer: Offer) => {
-  const response = await fetch(
-    `${import.meta.env.VITE_APP_API_URL}/solicitation`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(offer),
-    }
-  );
+  const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/request`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      amount: offer.amount,
+      pixTarget: offer.sellerId,
+    }),
+  });
   return response.json();
 };
 
 export const getSolicitation = async (id: string) => {
   const response = await fetch(
-    `${import.meta.env.VITE_APP_API_URL}/solicitation/${id}`
+    `${import.meta.env.VITE_APP_API_URL}/release/${id}`
   );
 
   const obj: any = response.json();
