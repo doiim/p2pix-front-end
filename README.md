@@ -102,3 +102,10 @@ cd P2Pix-Front-End
 # Run docker-compose up command
 docker-compose up
 ```
+
+### Backend Communication
+
+Backend Repo: `https://gitea.kosmos.org/hueso/helpix`
+
+Backend Endpoint: `https://api.p2pix.co/release/1279331`
+

@@ -1,6 +1,6 @@
 export interface Participant {
   offer: string;
-  fullName: string;
+  chainID: number;
   identification: string;
   bankIspb?: string;
   accountType: string;
@@ -23,25 +23,38 @@ export interface Offer {
 // https://apoio.developers.bb.com.br/sandbox/spec/665797498bb48200130fc32c
 
 export const createParticipant = async (participant: Participant) => {
-  const response = await fetch(`${process.env.VUE_APP_API_URL}/participants`, {
-    method: "PUT",
-    body: JSON.stringify(participant),
-  });
+  console.log("Creating participant", participant);
+  const response = await fetch(
+    `${import.meta.env.VITE_APP_API_URL}/participants`,
+    {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(participant),
+    }
+  );
   const data = await response.json();
   return { ...participant, id: data.id } as ParticipantWithID;
 };
 
 export const createSolicitation = async (offer: Offer) => {
-  const response = await fetch(`${process.env.VUE_APP_API_URL}/solicitation`, {
-    method: "POST",
-    body: JSON.stringify(offer),
-  });
+  const response = await fetch(
+    `${import.meta.env.VITE_APP_API_URL}/solicitation`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(offer),
+    }
+  );
   return response.json();
 };
 
 export const getSolicitation = async (id: string) => {
   const response = await fetch(
-    `${process.env.VUE_APP_API_URL}/solicitation/${id}`
+    `${import.meta.env.VITE_APP_API_URL}/solicitation/${id}`
   );
 
   const obj: any = response.json();

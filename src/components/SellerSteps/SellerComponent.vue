@@ -26,7 +26,6 @@ const formRef = ref<HTMLFormElement | null>(null);
 const user = useUser();
 const { walletAddress, selectedToken } = user;
 
-const fullName = ref<string>("");
 const offer = ref<string>("");
 const identification = ref<string>("");
 const account = ref<string>("");
@@ -72,7 +71,7 @@ const handleSubmit = (e: Event): void => {
 
   const data: Participant = {
     offer: offer.value,
-    fullName: fullName.value,
+    chainID: user.networkId.value,
     identification: processedIdentification,
     bankIspb: selectedBank.value?.ISPB,
     accountType: accountType.value,
@@ -184,21 +183,6 @@ const handleSelectedToken = (token: TokenEnum): void => {
             </div>
           </transition>
         </div>
-      </div>
-
-      <!-- Full name input -->
-      <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg border-y-10"
-      >
-        <input
-          type="text"
-          v-model="fullName"
-          class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full"
-          maxlength="60"
-          :class="{ 'text-xl font-medium': fullName }"
-          placeholder="Digite seu nome completo"
-          required
-        />
       </div>
       <!-- CPF or CNPJ input -->
       <div
