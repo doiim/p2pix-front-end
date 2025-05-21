@@ -65,7 +65,7 @@ const addDeposit = async (): Promise<any> => {
     abi,
     functionName: "deposit",
     args: [
-      sellerId.id,
+      user.networkId + "-" + sellerId.id,
       toHex("", { size: 32 }),
       getTokenAddress(user.selectedToken.value),
       parseEther(user.seller.value.offer.toString()),
