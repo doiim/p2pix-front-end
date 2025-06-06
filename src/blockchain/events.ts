@@ -1,16 +1,10 @@
 import { useUser } from "@/composables/useUser";
-import {
-  formatEther,
-  decodeEventLog,
-  parseAbi,
-  toHex,
-  type PublicClient,
-} from "viem";
+import { formatEther, toHex, type PublicClient } from "viem";
 
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 import { getContract } from "./provider";
 import type { ValidDeposit } from "@/model/ValidDeposit";
-import { getTokenAddress } from "./addresses";
+import { getP2PixAddress, getTokenAddress } from "./addresses";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
 import type { Pix } from "@/model/Pix";
@@ -76,58 +70,80 @@ const getValidDeposits = async (
     ({ address, abi, client } = await getContract(true));
   }
 
-  const depositLogs = await client.getLogs({
-    address,
-    event: parseAbi([
-      "event DepositAdded(address indexed seller, address token, uint256 amount)",
-    ])[0],
-    fromBlock: 0n,
-    toBlock: "latest",
-  });
+  if (network === NetworkEnum.rootstock) return [];
+
+  const body = {
+    query: `
+      {
+        depositAddeds(where: { token: "${token}" }) {
+          seller
+          amount
+          blockTimestamp
+          blockNumber
+        }
+      }
+  `,
+  };
+
+  const depositLogs = await fetch(
+    "https://subgraph.satsuma-prod.com/0c3d7b832269/gavins-team--383150/p2pix/version/v0.0.2/api",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(body),
+    }
+  );
+
+  // remove doubles from sellers list
+  const depositData = await depositLogs.json();
+  const depositAddeds = depositData.data.depositAddeds;
+  const uniqueSellers = depositAddeds.reduce(
+    (acc: Record<string, boolean>, deposit: any) => {
+      acc[deposit.seller] = true;
+      return acc;
+    },
+    {} as Record<string, boolean>
+  );
 
   if (!contractInfo) {
     // Get metamask provider contract
-    ({ address, abi, client } = await getContract());
+    ({ abi, client } = await getContract(true));
   }
 
   const depositList: { [key: string]: ValidDeposit } = {};
 
-  for (const log of depositLogs) {
-    try {
-      const decoded = decodeEventLog({
-        abi,
-        data: log.data,
-        topics: log.topics,
-      });
+  const sellersList = Object.keys(uniqueSellers);
+  // Use multicall to batch all getBalance requests
+  const balanceCalls = sellersList.map((seller) => ({
+    address: getP2PixAddress(network),
+    abi,
+    functionName: "getBalance",
+    args: [seller, token],
+  }));
 
-      // Get liquidity only for the selected token
-      if (decoded?.args.token.toLowerCase() !== token.toLowerCase()) continue;
+  const balanceResults = await client.multicall({
+    contracts: balanceCalls as any,
+  });
 
-      const mappedBalance = await client.readContract({
-        address,
-        abi,
-        functionName: "getBalance",
-        args: [decoded.args.seller, token],
-      });
+  // Process results into the depositList
+  sellersList.forEach((seller, index) => {
+    const mappedBalance = balanceResults[index];
 
-      let validDeposit: ValidDeposit | null = null;
+    if (!mappedBalance.error && mappedBalance.result) {
+      const validDeposit: ValidDeposit = {
+        token: token,
+        blockNumber: 0,
+        remaining: Number(formatEther(mappedBalance.result as bigint)),
+        seller: seller,
+        network,
+        pixKey: "",
+      };
 
-      if (mappedBalance) {
-        validDeposit = {
-          token: token,
-          blockNumber: Number(log.blockNumber),
-          remaining: Number(formatEther(mappedBalance)),
-          seller: decoded.args.seller,
-          network,
-          pixKey: "",
-        };
-      }
-      if (validDeposit) depositList[decoded.args.seller + token] = validDeposit;
-    } catch (error) {
-      console.error("Error decoding log", error);
+      depositList[seller + token] = validDeposit;
     }
-  }
-
+  });
   return Object.values(depositList);
 };
 

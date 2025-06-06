@@ -36,7 +36,7 @@ export const getTokenAddress = (
 export const getP2PixAddress = (network?: NetworkEnum): string => {
   const user = useUser();
   const possibleP2PixAddresses: { [key in NetworkEnum]: string } = {
-    [NetworkEnum.sepolia]: "0x2414817FF64A114d91eCFA16a834d3fCf69103d4",
+    [NetworkEnum.sepolia]: "0xb7cD135F5eFD9760981e02E2a898790b688939fe",
     [NetworkEnum.rootstock]: "0x98ba35eb14b38D6Aa709338283af3e922476dE34",
   };
 

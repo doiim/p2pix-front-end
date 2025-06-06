@@ -1,14 +1,20 @@
 import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 import { updateWalletStatus } from "./wallet";
 import { getProviderUrl, getP2PixAddress } from "./addresses";
-import { createPublicClient, createWalletClient, custom, http } from "viem";
+import {
+  createPublicClient,
+  createWalletClient,
+  custom,
+  http,
+  PublicClient,
+} from "viem";
 import { sepolia, rootstock } from "viem/chains";
 import { useUser } from "@/composables/useUser";
 
 let publicClient = null;
 let walletClient = null;
 
-const getPublicClient = (onlyRpcProvider = false) => {
+const getPublicClient: PublicClient = (onlyRpcProvider = false) => {
   if (onlyRpcProvider) {
     const user = useUser();
     const rpcUrl = getProviderUrl();

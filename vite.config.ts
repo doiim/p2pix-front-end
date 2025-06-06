@@ -39,6 +39,9 @@ export default defineConfig({
       "viem/errors": fileURLToPath(
         new URL("./node_modules/viem/errors", import.meta.url)
       ),
+      "../../errors/unit.js": fileURLToPath(
+        new URL("./node_modules/viem/errors/unit.js", import.meta.url)
+      ),
     },
   },
 });
