@@ -1,4 +1,4 @@
-import { decodeEventLog, formatEther, type Log, parseAbi } from "viem";
+import { decodeEventLog, formatEther, type Log } from "viem";
 import { useUser } from "@/composables/useUser";
 
 import { getPublicClient, getWalletClient, getContract } from "./provider";
@@ -12,6 +12,7 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
 import type { Pix } from "@/model/Pix";
+import { getNetworkSubgraphURL } from "@/model/NetworkEnum";
 
 export const updateWalletStatus = async (): Promise<void> => {
   const user = useUser();
@@ -107,107 +108,205 @@ const filterLockStatus = async (
 export const listAllTransactionByWalletAddress = async (
   walletAddress: string
 ): Promise<WalletTransaction[]> => {
-  const { address, client } = await getContract(true);
+  const user = useUser();
 
-  // Get deposits
-  const depositLogs = await client.getLogs({
-    address,
-    event: parseAbi([
-      "event DepositAdded(address indexed seller, address token, uint256 amount)",
-    ])[0],
-    args: {
-      seller: walletAddress,
+  // Get the current network for the subgraph URL
+  const network = user.networkName.value;
+
+  // Query subgraph for all relevant transactions
+  const subgraphQuery = {
+    query: `
+      {
+        depositAddeds(where: {seller: "${walletAddress.toLowerCase()}"}) {
+          seller
+          token
+          amount
+          blockTimestamp
+          blockNumber
+          transactionHash
+        }
+        lockAddeds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
+          buyer
+          lockID
+          seller
+          token
+          amount
+          blockTimestamp
+          blockNumber
+          transactionHash
+        }
+        lockReleaseds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
+          buyer
+          lockId
+          e2eId
+          blockTimestamp
+          blockNumber
+          transactionHash
+        }
+        depositWithdrawns(where: {seller: "${walletAddress.toLowerCase()}"}) {
+          seller
+          token
+          amount
+          blockTimestamp
+          blockNumber
+          transactionHash
+        }
+      }
+    `,
+  };
+
+  console.log("Fetching transactions from subgraph");
+  const response = await fetch(getNetworkSubgraphURL(network), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-    fromBlock: 0n,
-    toBlock: "latest",
-  });
-  console.log("Fetched all wallet deposits");
-
-  // Get locks
-  const lockLogs = await client.getLogs({
-    address,
-    event: parseAbi([
-      "event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)",
-    ])[0],
-    args: {
-      buyer: walletAddress,
-    },
-    fromBlock: 0n,
-    toBlock: "latest",
-  });
-  console.log("Fetched all wallet locks");
-
-  // Get released locks
-  const releasedLogs = await client.getLogs({
-    address,
-    event: parseAbi([
-      "event LockReleased(address indexed buyer, uint256 indexed lockID, string e2eId)",
-    ])[0],
-    args: {
-      buyer: walletAddress,
-    },
-    fromBlock: 0n,
-    toBlock: "latest",
-  });
-  console.log("Fetched all wallet released locks");
-
-  // Get withdrawn deposits
-  const withdrawnLogs = await client.getLogs({
-    address,
-    event: parseAbi([
-      "event DepositWithdrawn(address indexed seller, address token, uint256 amount)",
-    ])[0],
-    args: {
-      seller: walletAddress,
-    },
-    fromBlock: 0n,
-    toBlock: "latest",
-  });
-  console.log("Fetched all wallet withdrawn deposits");
-
-  const allLogs = [
-    ...depositLogs,
-    ...lockLogs,
-    ...releasedLogs,
-    ...withdrawnLogs,
-  ].sort((a: Log, b: Log) => {
-    return Number(b.blockNumber) - Number(a.blockNumber);
+    body: JSON.stringify(subgraphQuery),
   });
 
-  return await filterLockStatus(allLogs);
+  const data = await response.json();
+  console.log("Subgraph data fetched:", data);
+
+  // Convert all transactions to common WalletTransaction format
+  const transactions: WalletTransaction[] = [];
+
+  // Process deposit added events
+  if (data.data?.depositAddeds) {
+    console.log("Processing deposit events");
+    for (const deposit of data.data.depositAddeds) {
+      transactions.push({
+        token: deposit.token,
+        blockNumber: parseInt(deposit.blockNumber),
+        amount: parseFloat(formatEther(BigInt(deposit.amount))),
+        seller: deposit.seller,
+        buyer: "",
+        event: "DepositAdded",
+        lockStatus: -1,
+        transactionHash: deposit.transactionHash,
+      });
+    }
+  }
+
+  // Process lock added events
+  if (data.data?.lockAddeds) {
+    console.log("Processing lock events");
+    for (const lock of data.data.lockAddeds) {
+      // Get lock status from the contract
+      const lockStatus = await getLockStatus(BigInt(lock.lockID));
+
+      transactions.push({
+        token: lock.token,
+        blockNumber: parseInt(lock.blockNumber),
+        amount: parseFloat(formatEther(BigInt(lock.amount))),
+        seller: lock.seller,
+        buyer: lock.buyer,
+        event: "LockAdded",
+        lockStatus: lockStatus,
+        transactionHash: lock.transactionHash,
+        transactionID: lock.lockID.toString(),
+      });
+    }
+  }
+
+  // Process lock released events
+  if (data.data?.lockReleaseds) {
+    console.log("Processing release events");
+    for (const release of data.data.lockReleaseds) {
+      transactions.push({
+        token: "", // Subgraph doesn't provide token in this event, we could enhance this later
+        blockNumber: parseInt(release.blockNumber),
+        amount: -1, // Amount not available in this event
+        seller: "",
+        buyer: release.buyer,
+        event: "LockReleased",
+        lockStatus: -1,
+        transactionHash: release.transactionHash,
+        transactionID: release.lockId.toString(),
+      });
+    }
+  }
+
+  // Process deposit withdrawn events
+  if (data.data?.depositWithdrawns) {
+    console.log("Processing withdrawal events");
+    for (const withdrawal of data.data.depositWithdrawns) {
+      transactions.push({
+        token: withdrawal.token,
+        blockNumber: parseInt(withdrawal.blockNumber),
+        amount: parseFloat(formatEther(BigInt(withdrawal.amount))),
+        seller: withdrawal.seller,
+        buyer: "",
+        event: "DepositWithdrawn",
+        lockStatus: -1,
+        transactionHash: withdrawal.transactionHash,
+      });
+    }
+  }
+
+  // Sort transactions by block number (newest first)
+  return transactions.sort((a, b) => b.blockNumber - a.blockNumber);
 };
 
 // get wallet's release transactions
 export const listReleaseTransactionByWalletAddress = async (
   walletAddress: string
 ) => {
-  const { address, client } = await getContract(true);
+  const user = useUser();
+  const network = user.networkName.value;
 
-  const releasedLogs = await client.getLogs({
-    address,
-    event: parseAbi([
-      "event LockReleased(address indexed buyer, uint256 indexed lockID, string e2eId)",
-    ])[0],
-    args: {
-      buyer: walletAddress,
+  // Query subgraph for release transactions
+  const subgraphQuery = {
+    query: `
+      {
+        lockReleaseds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
+          buyer
+          lockId
+          e2eId
+          blockTimestamp
+          blockNumber
+          transactionHash
+        }
+      }
+    `,
+  };
+
+  // Fetch data from subgraph
+  const response = await fetch(getNetworkSubgraphURL(network), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
     },
-    fromBlock: 0n,
-    toBlock: "latest",
+    body: JSON.stringify(subgraphQuery),
   });
 
-  return releasedLogs
-    .sort((a: Log, b: Log) => {
-      return Number(b.blockNumber) - Number(a.blockNumber);
+  const data = await response.json();
+
+  // Process the subgraph response into the same format as the previous implementation
+  if (!data.data?.lockReleaseds) {
+    return [];
+  }
+
+  // Transform the subgraph data to match the event log decode format
+  return data.data.lockReleaseds
+    .sort((a: any, b: any) => {
+      return parseInt(b.blockNumber) - parseInt(a.blockNumber);
     })
-    .map((log: Log) => {
+    .map((release: any) => {
       try {
-        return decodeEventLog({
-          abi: p2pix.abi,
-          data: log.data,
-          topics: log.topics,
-        });
+        // Create a structure similar to the decoded event log
+        return {
+          eventName: "LockReleased",
+          args: {
+            buyer: release.buyer,
+            lockID: BigInt(release.lockId),
+            e2eId: release.e2eId,
+          },
+          // Add any other necessary fields to match the original return format
+          blockNumber: BigInt(release.blockNumber),
+          transactionHash: release.transactionHash,
+        };
       } catch (error) {
-        console.error("Error decoding log", error);
+        console.error("Error processing subgraph data", error);
         return null;
       }
     })
@@ -215,72 +314,145 @@ export const listReleaseTransactionByWalletAddress = async (
 };
 
 const listLockTransactionByWalletAddress = async (walletAddress: string) => {
-  const { address, client } = await getContract(true);
+  const user = useUser();
+  const network = user.networkName.value;
 
-  const lockLogs = await client.getLogs({
-    address,
-    event: parseAbi([
-      "event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)",
-    ])[0],
-    args: {
-      buyer: walletAddress,
-    },
-    fromBlock: 0n,
-    toBlock: "latest",
-  });
-
-  return lockLogs
-    .sort((a: Log, b: Log) => {
-      return Number(b.blockNumber) - Number(a.blockNumber);
-    })
-    .map((log: Log) => {
-      try {
-        return decodeEventLog({
-          abi: p2pix.abi,
-          data: log.data,
-          topics: log.topics,
-        });
-      } catch (error) {
-        console.error("Error decoding log", error);
-        return null;
+  // Query subgraph for lock added transactions
+  const subgraphQuery = {
+    query: `
+      {
+        lockAddeds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
+          buyer
+          lockID
+          seller
+          token
+          amount
+          blockTimestamp
+          blockNumber
+          transactionHash
+        }
       }
-    })
-    .filter((decoded: any) => decoded !== null);
+    `,
+  };
+
+  try {
+    // Fetch data from subgraph
+    const response = await fetch(getNetworkSubgraphURL(network), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(subgraphQuery),
+    });
+
+    const data = await response.json();
+
+    if (!data.data?.lockAddeds) {
+      return [];
+    }
+
+    // Transform the subgraph data to match the event log decode format
+    return data.data.lockAddeds
+      .sort((a: any, b: any) => {
+        return parseInt(b.blockNumber) - parseInt(a.blockNumber);
+      })
+      .map((lock: any) => {
+        try {
+          // Create a structure similar to the decoded event log
+          return {
+            eventName: "LockAdded",
+            args: {
+              buyer: lock.buyer,
+              lockID: BigInt(lock.lockID),
+              seller: lock.seller,
+              token: lock.token,
+              amount: BigInt(lock.amount),
+            },
+            // Add other necessary fields to match the original format
+            blockNumber: BigInt(lock.blockNumber),
+            transactionHash: lock.transactionHash,
+          };
+        } catch (error) {
+          console.error("Error processing subgraph data", error);
+          return null;
+        }
+      })
+      .filter((decoded: any) => decoded !== null);
+  } catch (error) {
+    console.error("Error fetching from subgraph:", error);
+  }
 };
 
 const listLockTransactionBySellerAddress = async (sellerAddress: string) => {
-  const { address, client } = await getContract(true);
+  const user = useUser();
+  const network = user.networkName.value;
   console.log("Will get locks as seller", sellerAddress);
 
-  const lockLogs = await client.getLogs({
-    address,
-    event: parseAbi([
-      "event LockAdded(address indexed buyer, uint256 indexed lockID, address seller, address token, uint256 amount)",
-    ])[0],
-    fromBlock: 0n,
-    toBlock: "latest",
-  });
-
-  return lockLogs
-    .map((log: Log) => {
-      try {
-        return decodeEventLog({
-          abi: p2pix.abi,
-          data: log.data,
-          topics: log.topics,
-        });
-      } catch (error) {
-        console.error("Error decoding log", error);
-        return null;
+  // Query subgraph for lock added transactions where seller matches
+  const subgraphQuery = {
+    query: `
+      {
+        lockAddeds(where: {seller: "${sellerAddress.toLowerCase()}"}) {
+          buyer
+          lockID
+          seller
+          token
+          amount
+          blockTimestamp
+          blockNumber
+          transactionHash
+        }
       }
-    })
-    .filter((decoded: any) => decoded !== null)
-    .filter(
-      (decoded: any) =>
-        decoded.args &&
-        decoded.args.seller &&
-        decoded.args.seller.toLowerCase() === sellerAddress.toLowerCase()
-    );
+    `,
+  };
+
+  try {
+    // Fetch data from subgraph
+    const response = await fetch(getNetworkSubgraphURL(network), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(subgraphQuery),
+    });
+
+    const data = await response.json();
+
+    if (!data.data?.lockAddeds) {
+      return [];
+    }
+
+    // Transform the subgraph data to match the event log decode format
+    return data.data.lockAddeds
+      .sort((a: any, b: any) => {
+        return parseInt(b.blockNumber) - parseInt(a.blockNumber);
+      })
+      .map((lock: any) => {
+        try {
+          // Create a structure similar to the decoded event log
+          return {
+            eventName: "LockAdded",
+            args: {
+              buyer: lock.buyer,
+              lockID: BigInt(lock.lockID),
+              seller: lock.seller,
+              token: lock.token,
+              amount: BigInt(lock.amount),
+            },
+            // Add other necessary fields to match the original format
+            blockNumber: BigInt(lock.blockNumber),
+            transactionHash: lock.transactionHash,
+          };
+        } catch (error) {
+          console.error("Error processing subgraph data", error);
+          return null;
+        }
+      })
+      .filter((decoded: any) => decoded !== null);
+  } catch (error) {
+    console.error("Error fetching from subgraph:", error);
+    return [];
+  }
 };
 
 export const checkUnreleasedLock = async (
@@ -347,19 +519,23 @@ export const getActiveLockAmount = async (
     args: [lockIds],
   });
 
-  let activeLockAmount = 0;
-  for (let i = 0; i < lockStatus[1].length; i++) {
-    if (lockStatus[1][i] === 1) {
-      const lockId = lockStatus[0][i];
-      const lock = await client.readContract({
-        address,
-        abi,
-        functionName: "mapLocks",
-        args: [lockId],
-      });
-      activeLockAmount += Number(formatEther(lock.amount));
-    }
-  }
+  const mapLocksRequests = lockStatus[0].map((id: bigint) =>
+    client.readContract({
+      address,
+      abi,
+      functionName: "mapLocks",
+      args: [id],
+    })
+  );
 
-  return activeLockAmount;
+  const mapLocksResults = await client.multicall({
+    contracts: mapLocksRequests as any,
+  });
+
+  return mapLocksResults.reduce((total: number, lock: any, index: number) => {
+    if (lockStatus[1][index] === 1) {
+      return total + Number(formatEther(lock.amount));
+    }
+    return total;
+  }, 0);
 };

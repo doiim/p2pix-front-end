@@ -109,3 +109,10 @@ Backend Repo: `https://gitea.kosmos.org/hueso/helpix`
 
 Backend Endpoint: `https://api.p2pix.co/release/1279331`
 
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer {api-key}" \
+  -d '{"query": "{ depositAddeds { id seller token amount } }"}' \
+https://api.studio.thegraph.com/query/113713/p-2-pix/sepolia
+
+https://api.studio.thegraph.com/query/113713/p-2-pix/1

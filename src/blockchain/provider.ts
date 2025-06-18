@@ -7,14 +7,15 @@ import {
   custom,
   http,
   PublicClient,
+  WalletClient,
 } from "viem";
 import { sepolia, rootstock } from "viem/chains";
 import { useUser } from "@/composables/useUser";
 
-let publicClient = null;
-let walletClient = null;
+let publicClient: PublicClient | null = null;
+let walletClient: WalletClient | null = null;
 
-const getPublicClient: PublicClient = (onlyRpcProvider = false) => {
+const getPublicClient: PublicClient | null = (onlyRpcProvider = false) => {
   if (onlyRpcProvider) {
     const user = useUser();
     const rpcUrl = getProviderUrl();
@@ -27,7 +28,7 @@ const getPublicClient: PublicClient = (onlyRpcProvider = false) => {
   return publicClient;
 };
 
-const getWalletClient = () => {
+const getWalletClient: WalletClient | null = () => {
   return walletClient;
 };
 
@@ -35,12 +36,15 @@ const getContract = async (onlyRpcProvider = false) => {
   const client = getPublicClient(onlyRpcProvider);
   const address = getP2PixAddress();
   const abi = p2pix.abi;
+  const wallet = getWalletClient();
 
-  return { address, abi, client };
+  const [account] = wallet ? await wallet.getAddresses() : [""];
+
+  return { address, abi, client, wallet, account };
 };
 
 const connectProvider = async (p: any): Promise<void> => {
-  console.log("Connecting to provider...");
+  console.log("Connecting to wallet provider...");
   const user = useUser();
   const chain =
     Number(user.networkName.value) === sepolia.id ? sepolia : rootstock;
@@ -50,7 +54,10 @@ const connectProvider = async (p: any): Promise<void> => {
     transport: custom(p),
   });
 
+  const [account] = await p!.request({ method: "eth_requestAccounts" });
+
   walletClient = createWalletClient({
+    account,
     chain,
     transport: custom(p),
   });

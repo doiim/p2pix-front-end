@@ -51,7 +51,7 @@ const connectAccount = async (): Promise<void> => {
 
 const emitConfirmButton = async (): Promise<void> => {
   const deposit = selectedDeposits.value?.find(
-    (d) => d.network === networkName.value
+    (d) => d.network === Number(networkName.value)
   );
   if (!deposit) return;
   deposit.pixKey = await getPixKey(deposit.seller, deposit.token);
@@ -95,10 +95,9 @@ const verifyLiquidity = (): void => {
     walletAddress.value,
     depositsValidList.value
   );
-
   selectedDeposits.value = selDeposits;
   hasLiquidity.value = !!selDeposits.find(
-    (d) => d.network === networkName.value
+    (d) => d.network === Number(networkName.value)
   );
   enableOrDisableConfirmButton();
 };
@@ -129,8 +128,6 @@ watch(walletAddress, (): void => {
 // Add form submission handler
 const handleSubmit = async (e: Event): Promise<void> => {
   e.preventDefault();
-  if (!enableConfirmButton.value) return;
-
   if (walletAddress.value) {
     await emitConfirmButton();
   } else {
@@ -274,7 +271,9 @@ const handleSubmit = async (e: Event): Promise<void> => {
         </div>
         <div
           class="flex justify-center"
-          v-else-if="!hasLiquidity && !loadingNetworkLiquidity"
+          v-else-if="
+            !hasLiquidity && !loadingNetworkLiquidity && tokenValue > 0
+          "
         >
           <span class="text-red-500 font-normal text-sm"
             >Atualmente não há liquidez nas rede selecionada para sua

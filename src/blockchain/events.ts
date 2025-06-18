@@ -5,7 +5,7 @@ import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 import { getContract } from "./provider";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getP2PixAddress, getTokenAddress } from "./addresses";
-import { NetworkEnum } from "@/model/NetworkEnum";
+import { getNetworkSubgraphURL, NetworkEnum } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
 import type { Pix } from "@/model/Pix";
 
@@ -18,7 +18,6 @@ const getNetworksLiquidity = async (): Promise<void> => {
   for (const network of Object.values(NetworkEnum).filter(
     (v) => !isNaN(Number(v))
   )) {
-    console.log("getNetworksLiquidity", network);
     const deposits = await getValidDeposits(
       getTokenAddress(user.selectedToken.value),
       Number(network)
@@ -70,6 +69,7 @@ const getValidDeposits = async (
     ({ address, abi, client } = await getContract(true));
   }
 
+  // TODO: Remove this once we have a subgraph for rootstock
   if (network === NetworkEnum.rootstock) return [];
 
   const body = {
@@ -85,16 +85,13 @@ const getValidDeposits = async (
   `,
   };
 
-  const depositLogs = await fetch(
-    "https://subgraph.satsuma-prod.com/0c3d7b832269/gavins-team--383150/p2pix/version/v0.0.2/api",
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(body),
-    }
-  );
+  const depositLogs = await fetch(getNetworkSubgraphURL(network), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
 
   // remove doubles from sellers list
   const depositData = await depositLogs.json();
@@ -140,7 +137,6 @@ const getValidDeposits = async (
         network,
         pixKey: "",
       };
-
       depositList[seller + token] = validDeposit;
     }
   });

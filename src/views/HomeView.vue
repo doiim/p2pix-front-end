@@ -74,7 +74,6 @@ const releaseTransaction = async (lockId: string) => {
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
-  console.log("Checking for unreleased locks");
   const walletLocks = await checkUnreleasedLock(walletAddress.value);
   if (walletLocks) {
     lockID.value = walletLocks.lockID;
