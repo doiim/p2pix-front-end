@@ -2,7 +2,6 @@ import { ref } from "vue";
 import { NetworkEnum, TokenEnum } from "../model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { Participant } from "../utils/bbPay";
-import { NetworkById } from "@/model/Networks";
 import type { Address } from "viem"
 
 const walletAddress = ref<Address | null>(null);
@@ -33,7 +32,7 @@ export function useUser() {
   };
 
   const setNetworkId = (network: string | number) => {
-    networkName.value = NetworkById(network) || NetworkEnum.sepolia;
+    networkName.value = Number(network) as NetworkEnum || NetworkEnum.sepolia;
     networkId.value = Number(network);
   };
 

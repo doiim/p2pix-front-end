@@ -5,8 +5,8 @@ import SpinnerComponent from "@/components/SpinnerComponent.vue";
 import ToasterComponent from "@/components/ToasterComponent.vue";
 import { init, useOnboard } from "@web3-onboard/vue";
 import injectedModule from "@web3-onboard/injected-wallets";
-import { Networks } from "./model/Networks";
-import { NetworkEnum } from "./model/NetworkEnum";
+import { Networks } from "@/model/Networks";
+import { NetworkEnum } from "@/model/NetworkEnum";
 import { ref } from "vue";
 
 const route = useRoute();
@@ -15,20 +15,12 @@ const targetNetwork = ref(NetworkEnum.sepolia);
 
 const web3Onboard = init({
   wallets: [injected],
-  chains: [
-    {
-      id: Networks[NetworkEnum.sepolia].chainId,
-      token: "ETH",
-      label: "Sepolia",
-      rpcUrl: import.meta.env.VITE_SEPOLIA_API_URL,
-    },
-    {
-      id: Networks[NetworkEnum.rootstock].chainId,
-      token: "tRBTC",
-      label: "Rootstock Testnet",
-      rpcUrl: import.meta.env.VITE_ROOTSTOCK_API_URL,
-    },
-  ],
+  chains: Object.entries(Networks).map(([, network]) => ({
+    id: network.chainId,
+    token: network.token,
+    label: network.chainName,
+    rpcUrl: network.rpcUrl,
+  })),
   connect: {
     autoConnectLastWallet: true,
   },
