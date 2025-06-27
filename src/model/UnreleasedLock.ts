@@ -1,6 +1,8 @@
-import type { Pix } from "./Pix";
+import { Address } from "viem";
 
 export type UnreleasedLock = {
   lockID: string;
-  pix: Pix;
+  sellerAddress?: Address;
+  tokenAddress: Address;
+  amount: number;
 };

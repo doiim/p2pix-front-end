@@ -15,7 +15,7 @@ import { useUser } from "@/composables/useUser";
 let publicClient: PublicClient | null = null;
 let walletClient: WalletClient | null = null;
 
-const getPublicClient: PublicClient | null = (onlyRpcProvider = false) => {
+const getPublicClient = (onlyRpcProvider = false): PublicClient | null => {
   if (onlyRpcProvider) {
     const user = useUser();
     const rpcUrl = getProviderUrl();
@@ -28,7 +28,7 @@ const getPublicClient: PublicClient | null = (onlyRpcProvider = false) => {
   return publicClient;
 };
 
-const getWalletClient: WalletClient | null = () => {
+const getWalletClient = (): WalletClient | null => {
   return walletClient;
 };
 
@@ -38,13 +38,16 @@ const getContract = async (onlyRpcProvider = false) => {
   const abi = p2pix.abi;
   const wallet = getWalletClient();
 
+  if (!client) {
+    throw new Error("Public client not initialized");
+  }
+
   const [account] = wallet ? await wallet.getAddresses() : [""];
 
   return { address, abi, client, wallet, account };
 };
 
 const connectProvider = async (p: any): Promise<void> => {
-  console.log("Connecting to wallet provider...");
   const user = useUser();
   const chain =
     Number(user.networkName.value) === sepolia.id ? sepolia : rootstock;

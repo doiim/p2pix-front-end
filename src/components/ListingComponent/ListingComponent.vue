@@ -7,7 +7,6 @@ import { ref, watch, onMounted } from "vue";
 import SpinnerComponent from "../SpinnerComponent.vue";
 import { decimalCount } from "@/utils/decimalCount";
 import { debounce } from "@/utils/debounce";
-import { getTokenByAddress } from "@/blockchain/addresses";
 import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";
 
 const user = useUser();
@@ -174,12 +173,12 @@ showInitialItems();
             Saldo disponível
           </p>
           <p class="text-xl leading-7 font-semibold text-gray-900">
-            {{ getRemaining() }} {{ etherStore.selectedToken }}
+            {{ getRemaining() }} {{ user.selectedToken.value }}
           </p>
           <div class="flex gap-2 w-32 sm:w-56" v-if="activeLockAmount != 0">
             <span class="text-xs font-normal text-gray-400" ref="infoText">{{
               `com ${activeLockAmount.toFixed(2)} ${
-                etherStore.selectedToken
+                user.selectedToken.value
               } em lock`
             }}</span>
             <div
@@ -283,10 +282,10 @@ showInitialItems();
             class="text-xl sm:text-xl leading-7 font-semibold text-gray-900"
           >
             {{ item.amount }}
-            {{ getTokenByAddress(item.token) }}
+            <!-- {{ getTokenByAddress(item.token) }} -->
           </span>
         </div>
-        <div>
+        <div class="flex flex-col items-center justify-center">
           <div
             class="bg-amber-300 status-text"
             v-if="getEventName(item.event) == 'Reserva' && item.lockStatus == 1"
@@ -409,6 +408,7 @@ p {
 }
 
 input[type="number"] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 

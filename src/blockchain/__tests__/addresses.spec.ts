@@ -6,7 +6,6 @@ import {
   isPossibleNetwork,
 } from "../addresses";
 
-import { setActivePinia, createPinia } from "pinia";
 import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
 import { useUser } from "@/composables/useUser";
 
@@ -20,10 +19,6 @@ describe("addresses.ts types", () => {
 });
 
 describe("addresses.ts functions", () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-  });
-
   it("getTokenAddress Ethereum", () => {
     const user = useUser();
     user.setNetworkId(11155111);

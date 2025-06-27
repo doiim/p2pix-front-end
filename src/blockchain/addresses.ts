@@ -28,19 +28,23 @@ export const getTokenByAddress = (address: string) => {
 export const getTokenAddress = (
   token: TokenEnum,
   network?: NetworkEnum
-): string => {
+): `0x${string}` => {
   const user = useUser();
-  return Tokens[network ? network : user.networkName.value][token];
+  return Tokens[network ? network : user.networkName.value][
+    token
+  ] as `0x${string}`;
 };
 
-export const getP2PixAddress = (network?: NetworkEnum): string => {
+export const getP2PixAddress = (network?: NetworkEnum): `0x${string}` => {
   const user = useUser();
   const possibleP2PixAddresses: { [key in NetworkEnum]: string } = {
     [NetworkEnum.sepolia]: "0xb7cD135F5eFD9760981e02E2a898790b688939fe",
     [NetworkEnum.rootstock]: "0x98ba35eb14b38D6Aa709338283af3e922476dE34",
   };
 
-  return possibleP2PixAddresses[network ? network : user.networkName.value];
+  return possibleP2PixAddresses[
+    network ? network : user.networkName.value
+  ] as `0x${string}`;
 };
 
 export const getProviderUrl = (network?: NetworkEnum): string => {
@@ -54,7 +58,6 @@ export const getProviderUrl = (network?: NetworkEnum): string => {
 };
 
 export const getProviderByNetwork = (network: NetworkEnum) => {
-  console.log("network", network);
   const chain = network === NetworkEnum.sepolia ? sepolia : rootstock;
   return createPublicClient({
     chain,

@@ -1,12 +1,7 @@
 import { mount } from "@vue/test-utils";
 import BuyConfirmedComponent from "../BuyConfirmedComponent.vue";
-import { createPinia, setActivePinia } from "pinia";
 
 describe("BuyConfirmedComponent.vue", async () => {
-  beforeEach(() => {
-    setActivePinia(createPinia());
-  });
-
   const wrapper = mount(BuyConfirmedComponent, {
     props: {
       tokenAmount: 1,

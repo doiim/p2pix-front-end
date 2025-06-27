@@ -1,6 +1,7 @@
 import { getContract, getPublicClient, getWalletClient } from "./provider";
 import { getTokenAddress, getP2PixAddress } from "./addresses";
 import { parseEther, toHex } from "viem";
+import { sepolia, rootstock } from "viem/chains";
 
 import mockToken from "../utils/smart_contract_files/MockToken.json";
 import { useUser } from "@/composables/useUser";
@@ -24,20 +25,25 @@ const approveTokens = async (participant: Participant): Promise<any> => {
 
   // Check if the token is already approved
   const allowance = await publicClient.readContract({
-    address: tokenAddress,
+    address: tokenAddress as `0x${string}`,
     abi: mockToken.abi,
     functionName: "allowance",
     args: [account, getP2PixAddress()],
   });
 
-  if (allowance < parseEther(participant.offer.toString())) {
+  if ((allowance as bigint) < parseEther(participant.offer.toString())) {
     // Approve tokens
+    const chain = user.networkId.value === sepolia.id ? sepolia : rootstock;
     const hash = await walletClient.writeContract({
-      address: tokenAddress,
+      address: tokenAddress as `0x${string}`,
       abi: mockToken.abi,
       functionName: "approve",
-      args: [getP2PixAddress(), parseEther(participant.offer.toString())],
+      args: [
+        getP2PixAddress() as `0x${string}`,
+        parseEther(participant.offer.toString()),
+      ],
       account,
+      chain,
     });
 
     await publicClient.waitForTransactionReceipt({ hash });
@@ -59,19 +65,23 @@ const addDeposit = async (): Promise<any> => {
 
   const sellerId = await createParticipant(user.seller.value);
   user.setSellerId(sellerId.id);
-
+  if (!sellerId.id) {
+    throw new Error("Failed to create participant");
+  }
+  const chain = user.networkId.value === sepolia.id ? sepolia : rootstock;
   const hash = await walletClient.writeContract({
-    address,
+    address: address as `0x${string}`,
     abi,
     functionName: "deposit",
     args: [
-      user.networkId + "-" + sellerId.id,
+      user.networkId.value + "-" + sellerId.id,
       toHex("", { size: 32 }),
-      getTokenAddress(user.selectedToken.value),
+      getTokenAddress(user.selectedToken.value) as `0x${string}`,
       parseEther(user.seller.value.offer.toString()),
       true,
     ],
     account,
+    chain,
   });
 
   const receipt = await client.waitForTransactionReceipt({ hash });

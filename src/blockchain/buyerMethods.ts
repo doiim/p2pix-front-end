@@ -8,51 +8,65 @@ export const addLock = async (
   tokenAddress: string,
   amount: number
 ): Promise<string> => {
-  const { address, abi, wallet, client } = await getContract();
+  const { address, abi, wallet, client, account } = await getContract();
   const parsedAmount = parseEther(amount.toString());
 
+  if (!wallet) {
+    throw new Error("Wallet not connected");
+  }
+
   const { request } = await client.simulateContract({
-    address,
+    address: address as `0x${string}`,
     abi,
     functionName: "lock",
-    args: [sellerAddress, tokenAddress, parsedAmount, [], []],
+    args: [sellerAddress, tokenAddress as `0x${string}`, parsedAmount, [], []],
+    account: account as `0x${string}`,
   });
-  console.log(wallet);
   const hash = await wallet.writeContract(request);
   const receipt = await client.waitForTransactionReceipt({ hash });
 
-  return receipt.status ? receipt.logs[0].topics[2] : "";
+  return receipt.status === "success" ? receipt.logs[0].topics[2] ?? "" : "";
 };
 
 export const withdrawDeposit = async (
   amount: string,
   token: TokenEnum
 ): Promise<boolean> => {
-  const { address, abi, wallet, client } = await getContract();
+  const { address, abi, wallet, client, account } = await getContract();
+
+  if (!wallet) {
+    throw new Error("Wallet not connected");
+  }
 
   const tokenAddress = getTokenAddress(token);
 
   const { request } = await client.simulateContract({
-    address,
+    address: address as `0x${string}`,
     abi,
     functionName: "withdraw",
-    args: [tokenAddress, parseEther(amount), []],
+    args: [tokenAddress as `0x${string}`, parseEther(amount), []],
+    account: account as `0x${string}`,
   });
 
   const hash = await wallet.writeContract(request);
   const receipt = await client.waitForTransactionReceipt({ hash });
 
-  return receipt.status;
+  return receipt.status === "success";
 };
 
 export const releaseLock = async (solicitation: any): Promise<any> => {
-  const { address, abi, wallet, client } = await getContract();
+  const { address, abi, wallet, client, account } = await getContract();
+
+  if (!wallet) {
+    throw new Error("Wallet not connected");
+  }
 
   const { request } = await client.simulateContract({
-    address,
+    address: address as `0x${string}`,
     abi,
     functionName: "release",
     args: [solicitation.lockId, solicitation.e2eId],
+    account: account as `0x${string}`,
   });
 
   const hash = await wallet.writeContract(request);

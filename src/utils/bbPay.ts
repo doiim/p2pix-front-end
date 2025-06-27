@@ -17,7 +17,6 @@ export interface ParticipantWithID extends Participant {
 
 export interface Offer {
   amount: number;
-  lockId: string;
   sellerId: string;
 }
 
@@ -41,11 +40,18 @@ export const createParticipant = async (participant: Participant) => {
       codigoIspb: participant.bankIspb,
     }),
   });
+  if (!response.ok) {
+    throw new Error(`Error creating participant: ${response.statusText}`);
+  }
   const data = await response.json();
-  return { ...participant, id: data.id } as ParticipantWithID;
+  if (data.errors || data.erros) {
+    throw new Error(`Error creating participant: ${JSON.stringify(data)}`);
+  }
+  return { ...participant, id: data.numeroParticipante } as ParticipantWithID;
 };
 
 export const createSolicitation = async (offer: Offer) => {
+  console.log("Creating solicitation", offer);
   const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/request`, {
     method: "POST",
     headers: {
@@ -53,7 +59,7 @@ export const createSolicitation = async (offer: Offer) => {
     },
     body: JSON.stringify({
       amount: offer.amount,
-      pixTarget: offer.sellerId,
+      pixTarget: offer.sellerId.split("-").pop(),
     }),
   });
   return response.json();

@@ -7,7 +7,6 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getP2PixAddress, getTokenAddress } from "./addresses";
 import { getNetworkSubgraphURL, NetworkEnum } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
-import type { Pix } from "@/model/Pix";
 
 const getNetworksLiquidity = async (): Promise<void> => {
   const user = useUser();
@@ -34,7 +33,7 @@ const getPixKey = async (seller: string, token: string): Promise<string> => {
   const { address, abi, client } = await getContract();
 
   const pixKeyHex = await client.readContract({
-    address,
+    address: address as `0x${string}`,
     abi,
     functionName: "getPixTarget",
     args: [seller, token],
@@ -42,13 +41,12 @@ const getPixKey = async (seller: string, token: string): Promise<string> => {
 
   // Remove '0x' prefix and convert hex to UTF-8 string
   const hexString =
-    typeof pixKeyHex === "string" ? pixKeyHex : toHex(pixKeyHex);
+    typeof pixKeyHex === "string" ? pixKeyHex : toHex(pixKeyHex as bigint);
   if (!hexString) throw new Error("PixKey not found");
   const bytes = new Uint8Array(
-    // @ts-ignore
     hexString
       .slice(2)
-      .match(/.{1,2}/g)
+      .match(/.{1,2}/g)!
       .map((byte: string) => parseInt(byte, 16))
   );
   // Remove null bytes from the end of the string
@@ -60,13 +58,13 @@ const getValidDeposits = async (
   network: NetworkEnum,
   contractInfo?: { client: any; address: string }
 ): Promise<ValidDeposit[]> => {
-  let client: PublicClient, address, abi;
+  let client: PublicClient, abi;
 
   if (contractInfo) {
-    ({ client, address } = contractInfo);
+    ({ client } = contractInfo);
     abi = p2pix.abi;
   } else {
-    ({ address, abi, client } = await getContract(true));
+    ({ abi, client } = await getContract(true));
   }
 
   // TODO: Remove this once we have a subgraph for rootstock
@@ -114,7 +112,7 @@ const getValidDeposits = async (
   const sellersList = Object.keys(uniqueSellers);
   // Use multicall to batch all getBalance requests
   const balanceCalls = sellersList.map((seller) => ({
-    address: getP2PixAddress(network),
+    address: getP2PixAddress(network) as `0x${string}`,
     abi,
     functionName: "getBalance",
     args: [seller, token],
@@ -147,25 +145,31 @@ const getUnreleasedLockById = async (
   lockID: string
 ): Promise<UnreleasedLock> => {
   const { address, abi, client } = await getContract();
-  const pixData: Pix = {
-    pixKey: "",
-  };
 
   const lock = await client.readContract({
-    address,
+    address: address as `0x${string}`,
     abi,
     functionName: "mapLocks",
     args: [BigInt(lockID)],
   });
 
-  const pixTarget = lock.pixTarget;
-  const amount = formatEther(lock.amount);
-  pixData.pixKey = pixTarget;
-  pixData.value = Number(amount);
+  // Type the lock result as an array (based on the smart contract structure)
+  const lockData = lock as [
+    bigint,
+    string,
+    string,
+    bigint,
+    string,
+    string,
+    string
+  ];
+  const amount = formatEther(lockData[3]);
 
   return {
     lockID: lockID,
-    pix: pixData,
+    amount: Number(amount),
+    tokenAddress: lockData[4] as `0x${string}`,
+    sellerAddress: lockData[6] as `0x${string}`,
   };
 };
 

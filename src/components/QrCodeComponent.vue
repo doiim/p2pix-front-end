@@ -1,28 +1,54 @@
 <script setup lang="ts">
-import { onMounted, onUnmounted, ref } from "vue";
+import { ref, onMounted } from "vue";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import CustomModal from "@/components//CustomModal/CustomModal.vue";
+import { createSolicitation, type Offer } from "@/utils/bbPay";
+import { getSellerParticipantId } from "@/blockchain/wallet";
+import { hexToString } from "viem";
+import { getUnreleasedLockById } from "@/blockchain/events";
 
-const windowSize = ref<number>(window.innerWidth);
+// Props
+interface Props {
+  lockID: string;
+}
+
+const props = defineProps<Props>();
+
 const qrCode = ref<string>("");
 const isPixValid = ref<boolean>(false);
 const showWarnModal = ref<boolean>(true);
 const releaseSignature = ref<string>("");
+const solicitationData = ref<any>(null);
 
 // Emits
 const emit = defineEmits(["pixValidated"]);
 
-onMounted(() => {
-  window.addEventListener(
-    "resize",
-    () => (windowSize.value = window.innerWidth)
-  );
-});
-onUnmounted(() => {
-  window.removeEventListener(
-    "resize",
-    () => (windowSize.value = window.innerWidth)
-  );
+onMounted(async () => {
+  try {
+    const { tokenAddress, sellerAddress, amount } = await getUnreleasedLockById(
+      props.lockID
+    );
+
+    const participantId = await getSellerParticipantId(
+      sellerAddress as `0x${string}`,
+      tokenAddress
+    );
+
+    const offer: Offer = {
+      amount,
+      sellerId: hexToString(participantId as `0x${string}`, { size: 32 }),
+    };
+
+    const response = await createSolicitation(offer);
+    solicitationData.value = response;
+
+    // Update qrCode if the response contains QR code data
+    if (response?.informacoesPIX?.textoQrCode) {
+      qrCode.value = response.informacoesPIX?.textoQrCode;
+    }
+  } catch (error) {
+    console.error("Error creating solicitation:", error);
+  }
 });
 </script>
 
@@ -65,7 +91,7 @@ onUnmounted(() => {
       />
     </div>
     <CustomModal
-      v-if="showWarnModal && windowSize <= 500"
+      v-if="showWarnModal"
       @close-modal="showWarnModal = false"
       :isRedirectModal="false"
     />
@@ -122,6 +148,7 @@ h2 {
 }
 
 input[type="number"] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 

@@ -74,11 +74,11 @@ const releaseTransaction = async (lockId: string) => {
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
-  const walletLocks = await checkUnreleasedLock(walletAddress.value);
-  if (walletLocks) {
-    lockID.value = walletLocks.lockID;
-    tokenAmount.value = walletLocks.pix.value;
-    pixTarget.value = walletLocks.pix.pixKey;
+  const lock = await checkUnreleasedLock(walletAddress.value);
+  if (lock) {
+    lockID.value = lock.lockID;
+    tokenAmount.value = lock.amount;
+    pixTarget.value = lock.sellerAddress;
     showModal.value = true;
   } else {
     flowStep.value = Step.Search;
@@ -90,8 +90,8 @@ if (paramLockID) {
   const lockToRedirect = await getUnreleasedLockById(paramLockID as string);
   if (lockToRedirect) {
     lockID.value = lockToRedirect.lockID;
-    tokenAmount.value = lockToRedirect.pix.value;
-    pixTarget.value = lockToRedirect.pix.pixKey;
+    tokenAmount.value = lockToRedirect.amount;
+    pixTarget.value = lockToRedirect.sellerAddress;
     flowStep.value = Step.Buy;
   } else {
     flowStep.value = Step.Search;
@@ -135,7 +135,8 @@ onMounted(async () => {
     <div v-if="flowStep == Step.Buy">
       <QrCodeComponent
         :sellerId="String(pixTarget)"
-        :amount="tokenAmount"
+        :amount="tokenAmount || 0"
+        :lockID="lockID"
         @pix-validated="releaseTransaction"
         v-if="!loadingLock"
       />

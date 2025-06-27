@@ -19,7 +19,7 @@ if (props.isRedirectModal) {
 <template>
   <div>
     <div
-      class="modal-overlay inset-0 fixed justify-center backdrop-blur-sm sm:backdrop-blur-none"
+      class="modal-overlay inset-0 fixed hidden md:block justify-center backdrop-blur-sm sm:backdrop-blur-none"
       v-if="!isRedirectModal"
     >
       <div class="modal px-5 text-center">
