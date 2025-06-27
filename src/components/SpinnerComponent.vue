@@ -20,6 +20,7 @@ const getCustomClass = () => {
 
 <template>
   <div v-if="props.show ? props.show : true">
+    Aguarde...
     <svg
       aria-hidden="true"
       :class="getCustomClass()"
