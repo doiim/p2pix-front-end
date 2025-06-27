@@ -29,10 +29,13 @@ const getNetworksLiquidity = async (): Promise<void> => {
   user.setLoadingNetworkLiquidity(false);
 };
 
-const getPixKey = async (seller: string, token: string): Promise<string> => {
+const getParticipantID = async (
+  seller: string,
+  token: string
+): Promise<string> => {
   const { address, abi, client } = await getContract();
 
-  const pixKeyHex = await client.readContract({
+  const participantIDHex = await client.readContract({
     address: address as `0x${string}`,
     abi,
     functionName: "getPixTarget",
@@ -41,8 +44,10 @@ const getPixKey = async (seller: string, token: string): Promise<string> => {
 
   // Remove '0x' prefix and convert hex to UTF-8 string
   const hexString =
-    typeof pixKeyHex === "string" ? pixKeyHex : toHex(pixKeyHex as bigint);
-  if (!hexString) throw new Error("PixKey not found");
+    typeof participantIDHex === "string"
+      ? participantIDHex
+      : toHex(participantIDHex as bigint);
+  if (!hexString) throw new Error("Participant ID not found");
   const bytes = new Uint8Array(
     hexString
       .slice(2)
@@ -133,7 +138,7 @@ const getValidDeposits = async (
         remaining: Number(formatEther(mappedBalance.result as bigint)),
         seller: seller,
         network,
-        pixKey: "",
+        participantID: "",
       };
       depositList[seller + token] = validDeposit;
     }
@@ -177,5 +182,5 @@ export {
   getValidDeposits,
   getNetworksLiquidity,
   getUnreleasedLockById,
-  getPixKey,
+  getParticipantID,
 };

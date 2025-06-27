@@ -38,7 +38,7 @@ const selectedDeposits = ref<ValidDeposit[]>();
 
 import ChevronDown from "@/assets/chevronDown.svg";
 import { useOnboard } from "@web3-onboard/vue";
-import { getPixKey } from "@/blockchain/events";
+import { getParticipantID } from "@/blockchain/events";
 
 // Emits
 const emit = defineEmits(["tokenBuy"]);
@@ -54,7 +54,7 @@ const emitConfirmButton = async (): Promise<void> => {
     (d) => d.network === Number(networkName.value)
   );
   if (!deposit) return;
-  deposit.pixKey = await getPixKey(deposit.seller, deposit.token);
+  deposit.participantID = await getParticipantID(deposit.seller, deposit.token);
   emit("tokenBuy", deposit, tokenValue.value);
 };
 

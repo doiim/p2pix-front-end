@@ -1,5 +1,3 @@
-import { off } from "process";
-
 export interface Participant {
   offer: string;
   chainID: number;

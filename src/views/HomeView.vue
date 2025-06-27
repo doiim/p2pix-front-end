@@ -25,7 +25,8 @@ user.setSellerView(false);
 // States
 const { loadingLock, walletAddress, networkName } = user;
 const flowStep = ref<Step>(Step.Search);
-const pixTarget = ref<string>();
+const participantID = ref<string>();
+const sellerAddress = ref<`0x${string}` | undefined>();
 const tokenAmount = ref<number>();
 const lockID = ref<string>("");
 const loadingRelease = ref<boolean>(false);
@@ -37,7 +38,7 @@ const confirmBuyClick = async (
   selectedDeposit: ValidDeposit,
   tokenValue: number
 ) => {
-  pixTarget.value = selectedDeposit.pixKey;
+  participantID.value = selectedDeposit.participantID;
   tokenAmount.value = tokenValue;
 
   if (selectedDeposit) {
@@ -78,7 +79,7 @@ const checkForUnreleasedLocks = async (): Promise<void> => {
   if (lock) {
     lockID.value = lock.lockID;
     tokenAmount.value = lock.amount;
-    pixTarget.value = lock.sellerAddress;
+    sellerAddress.value = lock.sellerAddress;
     showModal.value = true;
   } else {
     flowStep.value = Step.Search;
@@ -91,7 +92,7 @@ if (paramLockID) {
   if (lockToRedirect) {
     lockID.value = lockToRedirect.lockID;
     tokenAmount.value = lockToRedirect.amount;
-    pixTarget.value = lockToRedirect.sellerAddress;
+    sellerAddress.value = lockToRedirect.sellerAddress;
     flowStep.value = Step.Buy;
   } else {
     flowStep.value = Step.Search;
@@ -134,8 +135,6 @@ onMounted(async () => {
     />
     <div v-if="flowStep == Step.Buy">
       <QrCodeComponent
-        :sellerId="String(pixTarget)"
-        :amount="tokenAmount || 0"
         :lockID="lockID"
         @pix-validated="releaseTransaction"
         v-if="!loadingLock"

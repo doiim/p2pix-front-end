@@ -5,7 +5,7 @@ export type ValidDeposit = {
   blockNumber: number;
   remaining: number;
   seller: string;
-  pixKey: string;
+  participantID: string;
   network: NetworkEnum;
   open?: boolean;
 };

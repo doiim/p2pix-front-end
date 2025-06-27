@@ -7,7 +7,7 @@ export const MockValidDeposits: ValidDeposit[] = [
     token: "1",
     remaining: 70,
     seller: "mockedSellerAddress",
-    pixKey: "123456789",
+    participantID: "123456789",
     network: NetworkEnum.sepolia,
   },
   {
@@ -15,7 +15,7 @@ export const MockValidDeposits: ValidDeposit[] = [
     token: "2",
     remaining: 200,
     seller: "mockedSellerAddress",
-    pixKey: "123456789",
+    participantID: "123456789",
     network: NetworkEnum.sepolia,
   },
   {
@@ -23,7 +23,7 @@ export const MockValidDeposits: ValidDeposit[] = [
     token: "3",
     remaining: 1250,
     seller: "mockedSellerAddress",
-    pixKey: "123456789",
+    participantID: "123456789",
     network: NetworkEnum.sepolia,
   },
   {
@@ -31,7 +31,7 @@ export const MockValidDeposits: ValidDeposit[] = [
     token: "4",
     remaining: 4000,
     seller: "mockedSellerAddress",
-    pixKey: "123456789",
+    participantID: "123456789",
     network: NetworkEnum.sepolia,
   },
   {
@@ -39,7 +39,7 @@ export const MockValidDeposits: ValidDeposit[] = [
     token: "5",
     remaining: 2000,
     seller: "mockedSellerAddress",
-    pixKey: "123456789",
+    participantID: "123456789",
     network: NetworkEnum.sepolia,
   },
 ];
