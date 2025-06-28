@@ -24,7 +24,6 @@ const openItem = (index: number) => {
   faq.value[selectedSection.value].items[index].content = marked(
     faq.value[selectedSection.value].items[index].content
   );
-  console.log(marked(faq.value[selectedSection.value].items[index].content));
 };
 </script>
 

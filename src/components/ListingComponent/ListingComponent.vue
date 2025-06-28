@@ -160,9 +160,10 @@ showInitialItems();
 
 <template>
   <div
-    class="main-container max-w-md flex justify-center items-center min-h-[200px]"
+    class="main-container max-w-md flex justify-center items-center min-h-[200px] w-16 h-16"
     v-if="loadingWalletTransactions"
   >
+    Carregando ofertas...
     <SpinnerComponent width="8" height="8"></SpinnerComponent>
   </div>
   <div class="main-container max-w-md" v-else>

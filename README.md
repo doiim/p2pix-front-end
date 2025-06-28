@@ -116,3 +116,5 @@ curl -X POST \
 https://api.studio.thegraph.com/query/113713/p-2-pix/sepolia
 
 https://api.studio.thegraph.com/query/113713/p-2-pix/1
+
+curl --request POST --url 'https://api.hm.bb.com.br/testes-portal-desenvolvedor/v1/boletos-pix/pagar?gw-app-key=95cad3f03fd9013a9d15005056825665' --header 'content-type: application/json' --data '{"pix":"00020101021226070503***63041654" }'

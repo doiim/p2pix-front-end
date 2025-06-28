@@ -1,6 +1,15 @@
 import { getContract } from "./provider";
 import { getTokenAddress } from "./addresses";
-import { parseEther } from "viem";
+import {
+  bytesToHex,
+  encodeAbiParameters,
+  keccak256,
+  parseAbiParameters,
+  parseEther,
+  stringToBytes,
+  stringToHex,
+  toBytes,
+} from "viem";
 import type { TokenEnum } from "@/model/NetworkEnum";
 
 export const addLock = async (
@@ -54,18 +63,26 @@ export const withdrawDeposit = async (
   return receipt.status === "success";
 };
 
-export const releaseLock = async (solicitation: any): Promise<any> => {
+export const releaseLock = async (
+  lockID: string,
+  pixtarget: string,
+  signature: string
+): Promise<any> => {
   const { address, abi, wallet, client, account } = await getContract();
 
+  console.log("Releasing lock", { lockID, pixtarget, signature });
   if (!wallet) {
     throw new Error("Wallet not connected");
   }
+
+  // Convert pixtarget to bytes32
+  const pixTimestamp = keccak256(stringToBytes(pixtarget));
 
   const { request } = await client.simulateContract({
     address: address as `0x${string}`,
     abi,
     functionName: "release",
-    args: [solicitation.lockId, solicitation.e2eId],
+    args: [BigInt(lockID), pixTimestamp, signature],
     account: account as `0x${string}`,
   });
 

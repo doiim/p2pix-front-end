@@ -58,20 +58,22 @@ const confirmBuyClick = async (
   }
 };
 
-const releaseTransaction = async (lockId: string) => {
+const releaseTransaction = async ({
+  pixTarget,
+  signature,
+}: {
+  pixTarget: string;
+  signature: string;
+}) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
-  const solicitation = await getSolicitation(lockId);
+  const release = await releaseLock(lockID.value, pixTarget, signature);
+  await release.wait();
 
-  if (solicitation.status) {
-    const release = await releaseLock(solicitation);
-    await release.wait();
-
-    await updateWalletStatus();
-    loadingRelease.value = false;
-  }
+  await updateWalletStatus();
+  loadingRelease.value = false;
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {

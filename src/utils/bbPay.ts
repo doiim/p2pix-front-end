@@ -22,7 +22,6 @@ export interface Offer {
 // https://apoio.developers.bb.com.br/sandbox/spec/665797498bb48200130fc32c
 
 export const createParticipant = async (participant: Participant) => {
-  console.log("Creating participant", participant);
   const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/register`, {
     method: "POST",
     headers: {
@@ -49,7 +48,6 @@ export const createParticipant = async (participant: Participant) => {
 };
 
 export const createSolicitation = async (offer: Offer) => {
-  console.log("Creating solicitation", offer);
   const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/request`, {
     method: "POST",
     headers: {
@@ -68,14 +66,10 @@ export const getSolicitation = async (id: string) => {
     `${import.meta.env.VITE_APP_API_URL}/release/${id}`
   );
 
-  const obj: any = response.json();
+  const obj: any = await response.json();
 
   return {
-    id: obj.numeroSolicitacao,
-    lockId: obj.codigoConciliacaoSolicitacao,
-    amount: obj.valorSolicitacao,
-    qrcode: obj.pix.textoQrCode,
-    status: obj.valorSomatorioPagamentosEfetivados >= obj.valorSolicitacao,
-    signature: obj.assinatura,
+    pixTarget: obj.pixTarget,
+    signature: obj.signature,
   };
 };

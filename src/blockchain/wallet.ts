@@ -118,7 +118,6 @@ export const listAllTransactionByWalletAddress = async (
   });
 
   const data = await response.json();
-  console.log("Subgraph data:", data);
   // Convert all transactions to common WalletTransaction format
   const transactions: WalletTransaction[] = [];
 

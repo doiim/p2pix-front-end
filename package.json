@@ -20,7 +20,6 @@
     "@web3-onboard/vue": "^2.9.0",
     "alchemy-sdk": "^2.3.0",
     "axios": "^1.2.1",
-    "crc": "^3.8.0",
     "marked": "^4.2.12",
     "qrcode": "^1.5.1",
     "viem": "^2.31.3",

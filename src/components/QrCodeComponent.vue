@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
+import { ref, onMounted, onUnmounted } from "vue";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import CustomModal from "@/components//CustomModal/CustomModal.vue";
-import { createSolicitation, type Offer } from "@/utils/bbPay";
+import SpinnerComponent from "@/components/SpinnerComponent.vue";
+import { createSolicitation, getSolicitation, type Offer } from "@/utils/bbPay";
 import { getSellerParticipantId } from "@/blockchain/wallet";
 import { hexToString } from "viem";
 import { getUnreleasedLockById } from "@/blockchain/events";
+import QRCode from "qrcode";
 
 // Props
 interface Props {
@@ -15,13 +17,69 @@ interface Props {
 const props = defineProps<Props>();
 
 const qrCode = ref<string>("");
-const isPixValid = ref<boolean>(false);
+const qrCodeSvg = ref<string>("");
 const showWarnModal = ref<boolean>(true);
+const pixTarget = ref<string>("");
 const releaseSignature = ref<string>("");
 const solicitationData = ref<any>(null);
+const pollingInterval = ref<NodeJS.Timeout | null>(null);
+
+// Function to generate QR code SVG
+const generateQrCodeSvg = async (text: string) => {
+  try {
+    const svgString = await QRCode.toString(text, {
+      type: "svg",
+      width: 192, // 48 * 4 for better quality
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#FFFFFF",
+      },
+    });
+    qrCodeSvg.value = svgString;
+  } catch (error) {
+    console.error("Error generating QR code SVG:", error);
+  }
+};
 
 // Emits
 const emit = defineEmits(["pixValidated"]);
+
+// Function to check solicitation status
+const checkSolicitationStatus = async () => {
+  if (!solicitationData.value?.numeroSolicitacao) {
+    return;
+  }
+
+  try {
+    const response = await getSolicitation(
+      solicitationData.value.numeroSolicitacao
+    );
+
+    if (response.signature) {
+      pixTarget.value = response.pixTarget;
+      releaseSignature.value = response.signature;
+      // Stop polling when payment is confirmed
+      if (pollingInterval.value) {
+        clearInterval(pollingInterval.value);
+        pollingInterval.value = null;
+      }
+    }
+  } catch (error) {
+    console.error("Error checking solicitation status:", error);
+  }
+};
+
+// Function to start polling
+const startPolling = () => {
+  // Clear any existing interval
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value);
+  }
+
+  // Start new polling interval (10 seconds)
+  pollingInterval.value = setInterval(checkSolicitationStatus, 10000);
+};
 
 onMounted(async () => {
   try {
@@ -45,9 +103,22 @@ onMounted(async () => {
     // Update qrCode if the response contains QR code data
     if (response?.informacoesPIX?.textoQrCode) {
       qrCode.value = response.informacoesPIX?.textoQrCode;
+      // Generate SVG QR code
+      await generateQrCodeSvg(qrCode.value);
     }
+
+    // Start polling for solicitation status
+    startPolling();
   } catch (error) {
     console.error("Error creating solicitation:", error);
+  }
+});
+
+// Clean up interval on component unmount
+onUnmounted(() => {
+  if (pollingInterval.value) {
+    clearInterval(pollingInterval.value);
+    pollingInterval.value = null;
   }
 });
 </script>
@@ -69,7 +140,17 @@ onMounted(async () => {
       <div
         class="flex-col items-center justify-center flex w-full bg-white sm:p-8 p-4 rounded-lg break-normal"
       >
-        <img alt="Qr code image" :src="qrCode" class="w-48 h-48" />
+        <div
+          v-if="qrCodeSvg"
+          v-html="qrCodeSvg"
+          class="w-48 h-48 flex items-center justify-center"
+        ></div>
+        <div
+          v-else
+          class="w-48 h-48 flex items-center justify-center rounded-lg"
+        >
+          <SpinnerComponent width="8" height="8"></SpinnerComponent>
+        </div>
         <span class="text-center font-bold">Código pix</span>
         <div class="break-words w-4/5">
           <span class="text-center text-xs">
@@ -85,9 +166,13 @@ onMounted(async () => {
         />
       </div>
       <CustomButton
-        :is-disabled="isPixValid == false"
-        :text="'Enviar para a rede'"
-        @button-clicked="emit('pixValidated', releaseSignature)"
+        :is-disabled="releaseSignature === ''"
+        :text="
+          releaseSignature ? 'Enviar para a rede' : 'Validando pagamento...'
+        "
+        @button-clicked="
+          emit('pixValidated', { pixTarget, signature: releaseSignature })
+        "
       />
     </div>
     <CustomModal

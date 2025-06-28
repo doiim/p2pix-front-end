@@ -48,19 +48,15 @@ const callWithdraw = async (amount: string) => {
 const getWalletTransactions = async () => {
   user.setLoadingWalletTransactions(true);
   if (walletAddress.value) {
-    console.log("Will fetch all required data...");
     const walletDeposits = await listValidDepositTransactionsByWalletAddress(
       walletAddress.value
     );
-    console.log("Fetched deposits");
 
     const allUserTransactions = await listAllTransactionByWalletAddress(
       walletAddress.value
     );
-    console.log("Fetched all transactions");
 
     activeLockAmount.value = await getActiveLockAmount(walletAddress.value);
-    console.log("Fetched active lock amount");
 
     if (walletDeposits) {
       depositList.value = walletDeposits;
