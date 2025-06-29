@@ -1,8 +1,9 @@
 import type { ValidDeposit } from "@/model/ValidDeposit";
+import type { Address } from "viem";
 
 const verifyNetworkLiquidity = (
   tokenValue: number,
-  walletAddress: string,
+  walletAddress: Address,
   validDepositList: ValidDeposit[]
 ): ValidDeposit[] => {
   const filteredDepositList = validDepositList

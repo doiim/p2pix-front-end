@@ -12,6 +12,7 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getUnreleasedLockById } from "@/blockchain/events";
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
 import { getSolicitation } from "@/utils/bbPay";
+import type { Address } from "viem";
 
 enum Step {
   Search,
@@ -26,7 +27,7 @@ user.setSellerView(false);
 const { loadingLock, walletAddress, networkName } = user;
 const flowStep = ref<Step>(Step.Search);
 const participantID = ref<string>();
-const sellerAddress = ref<`0x${string}` | undefined>();
+const sellerAddress = ref<Address>();
 const tokenAmount = ref<number>();
 const lockID = ref<string>("");
 const loadingRelease = ref<boolean>(false);
@@ -47,7 +48,7 @@ const confirmBuyClick = async (
 
     await addLock(selectedDeposit.seller, selectedDeposit.token, tokenValue)
       .then((_lockID) => {
-        lockID.value = _lockID;
+        lockID.value = String(_lockID);
       })
       .catch((err) => {
         console.log(err);
@@ -69,7 +70,7 @@ const releaseTransaction = async ({
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
-  const release = await releaseLock(lockID.value, pixTarget, signature);
+  const release = await releaseLock(BigInt(lockID.value), pixTarget, signature);
   await release.wait();
 
   await updateWalletStatus();
@@ -77,9 +78,11 @@ const releaseTransaction = async ({
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
+  if (!walletAddress.value)
+    throw new Error("Wallet not connected");
   const lock = await checkUnreleasedLock(walletAddress.value);
   if (lock) {
-    lockID.value = lock.lockID;
+    lockID.value = String(lock.lockID);
     tokenAmount.value = lock.amount;
     sellerAddress.value = lock.sellerAddress;
     showModal.value = true;
@@ -90,9 +93,9 @@ const checkForUnreleasedLocks = async (): Promise<void> => {
 };
 
 if (paramLockID) {
-  const lockToRedirect = await getUnreleasedLockById(paramLockID as string);
+  const lockToRedirect = await getUnreleasedLockById(paramLockID);
   if (lockToRedirect) {
-    lockID.value = lockToRedirect.lockID;
+    lockID.value = String(lockToRedirect.lockID);
     tokenAmount.value = lockToRedirect.amount;
     sellerAddress.value = lockToRedirect.sellerAddress;
     flowStep.value = Step.Buy;

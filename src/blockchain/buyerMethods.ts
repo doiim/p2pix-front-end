@@ -9,14 +9,15 @@ import {
   stringToBytes,
   stringToHex,
   toBytes,
+  type Address,
 } from "viem";
 import type { TokenEnum } from "@/model/NetworkEnum";
 
 export const addLock = async (
-  sellerAddress: string,
-  tokenAddress: string,
+  sellerAddress: Address,
+  tokenAddress: Address,
   amount: number
-): Promise<string> => {
+): Promise<bigint> => {
   const { address, abi, wallet, client, account } = await getContract();
   const parsedAmount = parseEther(amount.toString());
 
@@ -24,17 +25,20 @@ export const addLock = async (
     throw new Error("Wallet not connected");
   }
 
-  const { request } = await client.simulateContract({
-    address: address as `0x${string}`,
+  const { result, request } = await client.simulateContract({
+    address,
     abi,
     functionName: "lock",
-    args: [sellerAddress, tokenAddress as `0x${string}`, parsedAmount, [], []],
-    account: account as `0x${string}`,
+    args: [sellerAddress, tokenAddress, parsedAmount, [], []],
+    account,
   });
   const hash = await wallet.writeContract(request);
   const receipt = await client.waitForTransactionReceipt({ hash });
 
-  return receipt.status === "success" ? receipt.logs[0].topics[2] ?? "" : "";
+  if (!receipt.status)
+    throw new Error("Transaction failed: " + receipt.transactionHash);
+
+  return result;
 };
 
 export const withdrawDeposit = async (
@@ -50,11 +54,11 @@ export const withdrawDeposit = async (
   const tokenAddress = getTokenAddress(token);
 
   const { request } = await client.simulateContract({
-    address: address as `0x${string}`,
+    address,
     abi,
     functionName: "withdraw",
-    args: [tokenAddress as `0x${string}`, parseEther(amount), []],
-    account: account as `0x${string}`,
+    args: [tokenAddress, parseEther(amount), []],
+    account
   });
 
   const hash = await wallet.writeContract(request);
@@ -64,7 +68,7 @@ export const withdrawDeposit = async (
 };
 
 export const releaseLock = async (
-  lockID: string,
+  lockID: bigint,
   pixtarget: string,
   signature: string
 ): Promise<any> => {
@@ -76,14 +80,14 @@ export const releaseLock = async (
   }
 
   // Convert pixtarget to bytes32
-  const pixTimestamp = keccak256(stringToBytes(pixtarget));
+  const pixTimestamp = keccak256(stringToHex(pixtarget, { size: 32 }) );
 
   const { request } = await client.simulateContract({
-    address: address as `0x${string}`,
+    address,
     abi,
     functionName: "release",
-    args: [BigInt(lockID), pixTimestamp, signature],
-    account: account as `0x${string}`,
+    args: [BigInt(lockID), pixTimestamp, stringToHex(signature)],
+    account
   });
 
   const hash = await wallet.writeContract(request);

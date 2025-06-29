@@ -1,14 +1,15 @@
-import { formatEther } from "viem";
+import { formatEther, hexToString, type Address } from "viem";
 import { useUser } from "@/composables/useUser";
 
 import { getPublicClient, getWalletClient, getContract } from "./provider";
 import { getTokenAddress } from "./addresses";
 
-import { getValidDeposits } from "./events";
+import { getValidDeposits, getUnreleasedLockById } from "./events";
 
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
+import { LockStatus } from "@/model/LockStatus";
 import { getNetworkSubgraphURL } from "@/model/NetworkEnum";
 
 export const updateWalletStatus = async (): Promise<void> => {
@@ -31,7 +32,7 @@ export const updateWalletStatus = async (): Promise<void> => {
 };
 
 export const listValidDepositTransactionsByWalletAddress = async (
-  walletAddress: string
+  walletAddress: Address
 ): Promise<ValidDeposit[]> => {
   const user = useUser();
   const walletDeposits = await getValidDeposits(
@@ -49,19 +50,19 @@ export const listValidDepositTransactionsByWalletAddress = async (
   return [];
 };
 
-const getLockStatus = async (id: bigint): Promise<number> => {
+const getLockStatus = async (id: bigint): Promise<LockStatus> => {
   const { address, abi, client } = await getContract();
-  const result = await client.readContract({
-    address: address as `0x${string}`,
+  const [ sortedIDs , status ] = await client.readContract({
+    address,
     abi,
     functionName: "getLocksStatus",
     args: [[id]],
   });
-  return (result as any)[1][0] as number;
+  return status[0];
 };
 
 export const listAllTransactionByWalletAddress = async (
-  walletAddress: string
+  walletAddress: Address
 ): Promise<WalletTransaction[]> => {
   const user = useUser();
 
@@ -131,7 +132,7 @@ export const listAllTransactionByWalletAddress = async (
         seller: deposit.seller,
         buyer: "",
         event: "DepositAdded",
-        lockStatus: -1,
+        lockStatus: undefined,
         transactionHash: deposit.transactionHash,
       });
     }
@@ -161,13 +162,13 @@ export const listAllTransactionByWalletAddress = async (
   if (data.data?.lockReleaseds) {
     for (const release of data.data.lockReleaseds) {
       transactions.push({
-        token: "", // Subgraph doesn't provide token in this event, we could enhance this later
+        token: undefined, // Subgraph doesn't provide token in this event, we could enhance this later
         blockNumber: parseInt(release.blockNumber),
         amount: -1, // Amount not available in this event
         seller: "",
         buyer: release.buyer,
         event: "LockReleased",
-        lockStatus: -1,
+        lockStatus: undefined,
         transactionHash: release.transactionHash,
         transactionID: release.lockId.toString(),
       });
@@ -184,7 +185,7 @@ export const listAllTransactionByWalletAddress = async (
         seller: withdrawal.seller,
         buyer: "",
         event: "DepositWithdrawn",
-        lockStatus: -1,
+        lockStatus: undefined,
         transactionHash: withdrawal.transactionHash,
       });
     }
@@ -196,7 +197,7 @@ export const listAllTransactionByWalletAddress = async (
 
 // get wallet's release transactions
 export const listReleaseTransactionByWalletAddress = async (
-  walletAddress: string
+  walletAddress: Address
 ) => {
   const user = useUser();
   const network = user.networkName.value;
@@ -260,7 +261,7 @@ export const listReleaseTransactionByWalletAddress = async (
     .filter((decoded: any) => decoded !== null);
 };
 
-const listLockTransactionByWalletAddress = async (walletAddress: string) => {
+const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
   const user = useUser();
   const network = user.networkName.value;
 
@@ -329,7 +330,7 @@ const listLockTransactionByWalletAddress = async (walletAddress: string) => {
   }
 };
 
-const listLockTransactionBySellerAddress = async (sellerAddress: string) => {
+const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
   const user = useUser();
   const network = user.networkName.value;
 
@@ -401,7 +402,7 @@ const listLockTransactionBySellerAddress = async (sellerAddress: string) => {
 };
 
 export const checkUnreleasedLock = async (
-  walletAddress: string
+  walletAddress: Address
 ): Promise<UnreleasedLock | undefined> => {
   const { address, abi, client } = await getContract();
   const addedLocks = await listLockTransactionByWalletAddress(walletAddress);
@@ -410,50 +411,23 @@ export const checkUnreleasedLock = async (
 
   const lockIds = addedLocks.map((lock: any) => lock.args.lockID);
 
-  const lockStatus = await client.readContract({
-    address: address as `0x${string}`,
+  const [ sortedIDs, status ] = await client.readContract({
+    address,
     abi,
     functionName: "getLocksStatus",
     args: [lockIds],
   });
 
-  const lockStatusResult = lockStatus as [bigint[], number[]];
-  const unreleasedLockId = lockStatusResult[1].findIndex(
-    (status: number) => status == 1
+  const unreleasedLockId = status.findIndex(
+    (status: LockStatus) => status == LockStatus.Active
   );
-
-  if (unreleasedLockId !== -1) {
-    const lockID = lockStatusResult[0][unreleasedLockId];
-
-    const lock = await client.readContract({
-      address: address as `0x${string}`,
-      abi,
-      functionName: "mapLocks",
-      args: [lockID],
-    });
-
-    const lockData = lock as [
-      bigint,
-      string,
-      string,
-      bigint,
-      string,
-      string,
-      string
-    ];
-    const amount = formatEther(lockData[0]);
-
-    return {
-      lockID: lockID.toString(),
-      amount: Number(amount),
-      sellerAddress: lockData[1] as `0x${string}`,
-      tokenAddress: lockData[4] as `0x${string}`,
-    };
-  }
+  
+  if (unreleasedLockId !== -1)
+    return getUnreleasedLockById(sortedIDs[unreleasedLockId]);
 };
 
 export const getActiveLockAmount = async (
-  walletAddress: string
+  walletAddress: Address
 ): Promise<number> => {
   const { address, abi, client } = await getContract(true);
   const lockSeller = await listLockTransactionBySellerAddress(walletAddress);
@@ -462,20 +436,19 @@ export const getActiveLockAmount = async (
 
   const lockIds = lockSeller.map((lock: any) => lock.args.lockID);
 
-  const lockStatus = await client.readContract({
-    address: address as `0x${string}`,
+  const [ sortedIDs, status ] = await client.readContract({
+    address,
     abi,
     functionName: "getLocksStatus",
     args: [lockIds],
   });
 
-  const lockStatusResult = lockStatus as [bigint[], number[]];
-  const mapLocksRequests = lockStatusResult[0].map((id: bigint) =>
+  const mapLocksRequests = status.map((id: LockStatus) =>
     client.readContract({
-      address: address as `0x${string}`,
+      address: address,
       abi,
       functionName: "mapLocks",
-      args: [id],
+      args: [BigInt(id)],
     })
   );
 
@@ -484,7 +457,7 @@ export const getActiveLockAmount = async (
   });
 
   return mapLocksResults.reduce((total: number, lock: any, index: number) => {
-    if (lockStatusResult[1][index] === 1) {
+    if (status[index] === 1) {
       return total + Number(formatEther(lock.amount));
     }
     return total;
@@ -492,16 +465,16 @@ export const getActiveLockAmount = async (
 };
 
 export const getSellerParticipantId = async (
-  sellerAddress: string,
-  tokenAddress: string
+  sellerAddress: Address,
+  tokenAddress: Address
 ): Promise<string> => {
   const { address, abi, client } = await getContract();
 
   const participantId = await client.readContract({
-    address: address as `0x${string}`,
+    address,
     abi,
     functionName: "getPixTarget",
     args: [sellerAddress, tokenAddress],
   });
-  return participantId as string;
+  return hexToString(participantId);
 };

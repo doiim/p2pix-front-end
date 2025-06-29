@@ -3,8 +3,9 @@ import { NetworkEnum, TokenEnum } from "../model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { Participant } from "../utils/bbPay";
 import { NetworkById } from "@/model/Networks";
+import type { Address } from "viem"
 
-const walletAddress = ref("");
+const walletAddress = ref<Address | null>(null);
 const balance = ref("");
 const networkId = ref(11155111);
 const networkName = ref(NetworkEnum.sepolia);
@@ -19,7 +20,7 @@ const sellerId = ref("");
 
 export function useUser() {
   // Actions become regular functions
-  const setWalletAddress = (address: string) => {
+  const setWalletAddress = (address: Address | null) => {
     walletAddress.value = address;
   };
 
