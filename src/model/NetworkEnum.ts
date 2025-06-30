@@ -3,13 +3,13 @@ export enum NetworkEnum {
   rootstock = 31,
 }
 
-export const getNetworkSubgraphURL = (network: NetworkEnum | number) => {
-  const networkMap: Record<number, string> = {
+export const getNetworkSubgraphURL = (network: NetworkEnum) => {
+  const networkMap: Record<NetworkEnum, string> = {
     [NetworkEnum.sepolia]: import.meta.env.VITE_SEPOLIA_SUBGRAPH_URL || "",
     [NetworkEnum.rootstock]: import.meta.env.VITE_RSK_SUBGRAPH_URL || "",
   };
 
-  return networkMap[typeof network === "number" ? network : network] || "";
+  return networkMap[network] || "";
 };
 
 export enum TokenEnum {

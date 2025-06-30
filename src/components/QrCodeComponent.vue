@@ -5,7 +5,6 @@ import CustomModal from "@/components//CustomModal/CustomModal.vue";
 import SpinnerComponent from "@/components/SpinnerComponent.vue";
 import { createSolicitation, getSolicitation, type Offer } from "@/utils/bbPay";
 import { getSellerParticipantId } from "@/blockchain/wallet";
-import { hexToString } from "viem";
 import { getUnreleasedLockById } from "@/blockchain/events";
 import QRCode from "qrcode";
 
@@ -84,17 +83,17 @@ const startPolling = () => {
 onMounted(async () => {
   try {
     const { tokenAddress, sellerAddress, amount } = await getUnreleasedLockById(
-      props.lockID
+      BigInt(props.lockID)
     );
 
     const participantId = await getSellerParticipantId(
-      sellerAddress as `0x${string}`,
+      sellerAddress,
       tokenAddress
     );
 
     const offer: Offer = {
       amount,
-      sellerId: hexToString(participantId as `0x${string}`, { size: 32 }),
+      sellerId: participantId,
     };
 
     const response = await createSolicitation(offer);

@@ -3,7 +3,7 @@ import { getTokenAddress, getP2PixAddress } from "./addresses";
 import { parseEther, toHex } from "viem";
 import { sepolia, rootstock } from "viem/chains";
 
-import mockToken from "../utils/smart_contract_files/MockToken.json";
+import { mockTokenAbi } from "./abi";
 import { useUser } from "@/composables/useUser";
 import { createParticipant } from "@/utils/bbPay";
 import type { Participant } from "@/utils/bbPay";
@@ -25,23 +25,20 @@ const approveTokens = async (participant: Participant): Promise<any> => {
 
   // Check if the token is already approved
   const allowance = await publicClient.readContract({
-    address: tokenAddress as `0x${string}`,
-    abi: mockToken.abi,
+    address: tokenAddress,
+    abi: mockTokenAbi,
     functionName: "allowance",
     args: [account, getP2PixAddress()],
   });
 
-  if ((allowance as bigint) < parseEther(participant.offer.toString())) {
+  if ( allowance < parseEther(participant.offer.toString()) ) {
     // Approve tokens
     const chain = user.networkId.value === sepolia.id ? sepolia : rootstock;
     const hash = await walletClient.writeContract({
-      address: tokenAddress as `0x${string}`,
-      abi: mockToken.abi,
+      address: tokenAddress,
+      abi: mockTokenAbi,
       functionName: "approve",
-      args: [
-        getP2PixAddress() as `0x${string}`,
-        parseEther(participant.offer.toString()),
-      ],
+      args: [getP2PixAddress(), parseEther(participant.offer.toString())],
       account,
       chain,
     });
@@ -70,13 +67,13 @@ const addDeposit = async (): Promise<any> => {
   }
   const chain = user.networkId.value === sepolia.id ? sepolia : rootstock;
   const hash = await walletClient.writeContract({
-    address: address as `0x${string}`,
+    address,
     abi,
     functionName: "deposit",
     args: [
       user.networkId.value + "-" + sellerId.id,
       toHex("", { size: 32 }),
-      getTokenAddress(user.selectedToken.value) as `0x${string}`,
+      getTokenAddress(user.selectedToken.value),
       parseEther(user.seller.value.offer.toString()),
       true,
     ],

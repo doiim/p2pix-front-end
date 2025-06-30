@@ -1,8 +1,8 @@
 import { Address } from "viem";
 
 export type UnreleasedLock = {
-  lockID: string;
-  sellerAddress?: Address;
+  lockID: bigint;
+  sellerAddress: Address;
   tokenAddress: Address;
   amount: number;
 };

@@ -1,12 +1,14 @@
 import { useUser } from "@/composables/useUser";
-import { formatEther, toHex, type PublicClient } from "viem";
+import { formatEther, toHex, stringToHex } from "viem";
+import type { PublicClient, Address } from "viem";
 
-import p2pix from "@/utils/smart_contract_files/P2PIX.json";
 import { getContract } from "./provider";
-import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getP2PixAddress, getTokenAddress } from "./addresses";
-import { getNetworkSubgraphURL, NetworkEnum } from "@/model/NetworkEnum";
+import { p2PixAbi } from "./abi"
+import type { ValidDeposit } from "@/model/ValidDeposit";
+import { getNetworkSubgraphURL, NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
+import type { LockStatus } from "@/model/LockStatus"
 
 const getNetworksLiquidity = async (): Promise<void> => {
   const user = useUser();
@@ -36,7 +38,7 @@ const getParticipantID = async (
   const { address, abi, client } = await getContract();
 
   const participantIDHex = await client.readContract({
-    address: address as `0x${string}`,
+    address,
     abi,
     functionName: "getPixTarget",
     args: [seller, token],
@@ -59,15 +61,15 @@ const getParticipantID = async (
 };
 
 const getValidDeposits = async (
-  token: string,
+  token: Address,
   network: NetworkEnum,
-  contractInfo?: { client: any; address: string }
+  contractInfo?: { client: PublicClient; address: Address }
 ): Promise<ValidDeposit[]> => {
   let client: PublicClient, abi;
 
   if (contractInfo) {
     ({ client } = contractInfo);
-    abi = p2pix.abi;
+    abi = p2PixAbi;
   } else {
     ({ abi, client } = await getContract(true));
   }
@@ -100,11 +102,11 @@ const getValidDeposits = async (
   const depositData = await depositLogs.json();
   const depositAddeds = depositData.data.depositAddeds;
   const uniqueSellers = depositAddeds.reduce(
-    (acc: Record<string, boolean>, deposit: any) => {
+    (acc: Record<Address, boolean>, deposit: any) => {
       acc[deposit.seller] = true;
       return acc;
     },
-    {} as Record<string, boolean>
+    {} as Record<Address, boolean>
   );
 
   if (!contractInfo) {
@@ -114,10 +116,10 @@ const getValidDeposits = async (
 
   const depositList: { [key: string]: ValidDeposit } = {};
 
-  const sellersList = Object.keys(uniqueSellers);
+  const sellersList = Object.keys(uniqueSellers) as Address[];
   // Use multicall to batch all getBalance requests
   const balanceCalls = sellersList.map((seller) => ({
-    address: getP2PixAddress(network) as `0x${string}`,
+    address: getP2PixAddress(network),
     abi,
     functionName: "getBalance",
     args: [seller, token],
@@ -133,10 +135,10 @@ const getValidDeposits = async (
 
     if (!mappedBalance.error && mappedBalance.result) {
       const validDeposit: ValidDeposit = {
-        token: token,
+        token,
         blockNumber: 0,
         remaining: Number(formatEther(mappedBalance.result as bigint)),
-        seller: seller,
+        seller,
         network,
         participantID: "",
       };
@@ -147,34 +149,22 @@ const getValidDeposits = async (
 };
 
 const getUnreleasedLockById = async (
-  lockID: string
+  lockID: bigint
 ): Promise<UnreleasedLock> => {
   const { address, abi, client } = await getContract();
 
-  const lock = await client.readContract({
-    address: address as `0x${string}`,
+  const [ , , , amount, token, seller ] = await client.readContract({
+    address,
     abi,
     functionName: "mapLocks",
-    args: [BigInt(lockID)],
+    args: [lockID],
   });
 
-  // Type the lock result as an array (based on the smart contract structure)
-  const lockData = lock as [
-    bigint,
-    string,
-    string,
-    bigint,
-    string,
-    string,
-    string
-  ];
-  const amount = formatEther(lockData[3]);
-
   return {
-    lockID: lockID,
-    amount: Number(amount),
-    tokenAddress: lockData[4] as `0x${string}`,
-    sellerAddress: lockData[6] as `0x${string}`,
+    lockID,
+    amount: Number(formatEther(amount)),
+    tokenAddress: token,
+    sellerAddress: seller,
   };
 };
 

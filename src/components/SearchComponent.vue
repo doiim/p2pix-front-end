@@ -90,6 +90,8 @@ const handleSelectedToken = (token: TokenEnum): void => {
 // Verify if there is a valid deposit to buy
 const verifyLiquidity = (): void => {
   enableConfirmButton.value = false;
+  if (!walletAddress.value)
+    return;
   const selDeposits = verifyNetworkLiquidity(
     tokenValue.value,
     walletAddress.value,

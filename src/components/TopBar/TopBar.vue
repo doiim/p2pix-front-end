@@ -57,6 +57,8 @@ watch(connectedChain, (newVal: any) => {
 });
 
 const formatWalletAddress = (): string => {
+  if (!walletAddress.value)
+    throw new Error("Wallet not connected");
   const walletAddressLength = walletAddress.value.length;
   const initialText = walletAddress.value.substring(0, 5);
   const finalText = walletAddress.value.substring(
@@ -67,7 +69,7 @@ const formatWalletAddress = (): string => {
 };
 
 const disconnectUser = async (): Promise<void> => {
-  user.setWalletAddress("");
+  user.setWalletAddress(null);
   await disconnectWallet({ label: connectedWallet.value?.label || "" });
   closeMenu();
 };

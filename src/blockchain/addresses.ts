@@ -1,9 +1,9 @@
 import { useUser } from "@/composables/useUser";
 import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
-import { createPublicClient, http } from "viem";
+import { createPublicClient, http, type Address } from "viem";
 import { sepolia, rootstock } from "viem/chains";
 
-const Tokens: { [key in NetworkEnum]: { [key in TokenEnum]: string } } = {
+const Tokens: { [key in NetworkEnum]: { [key in TokenEnum]: Address } } = {
   [NetworkEnum.sepolia]: {
     BRZ: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
     // BRX: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
@@ -14,7 +14,7 @@ const Tokens: { [key in NetworkEnum]: { [key in TokenEnum]: string } } = {
   },
 };
 
-export const getTokenByAddress = (address: string) => {
+export const getTokenByAddress = (address: Address) => {
   const user = useUser();
   const networksTokens = Tokens[user.networkName.value];
   for (const [token, tokenAddress] of Object.entries(networksTokens)) {
@@ -28,23 +28,23 @@ export const getTokenByAddress = (address: string) => {
 export const getTokenAddress = (
   token: TokenEnum,
   network?: NetworkEnum
-): `0x${string}` => {
+): Address => {
   const user = useUser();
   return Tokens[network ? network : user.networkName.value][
     token
-  ] as `0x${string}`;
+  ];
 };
 
-export const getP2PixAddress = (network?: NetworkEnum): `0x${string}` => {
+export const getP2PixAddress = (network?: NetworkEnum): Address => {
   const user = useUser();
-  const possibleP2PixAddresses: { [key in NetworkEnum]: string } = {
+  const possibleP2PixAddresses: { [key in NetworkEnum]: Address } = {
     [NetworkEnum.sepolia]: "0xb7cD135F5eFD9760981e02E2a898790b688939fe",
     [NetworkEnum.rootstock]: "0x98ba35eb14b38D6Aa709338283af3e922476dE34",
   };
 
   return possibleP2PixAddresses[
     network ? network : user.networkName.value
-  ] as `0x${string}`;
+  ];
 };
 
 export const getProviderUrl = (network?: NetworkEnum): string => {
