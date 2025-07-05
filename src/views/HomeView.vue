@@ -59,18 +59,15 @@ const confirmBuyClick = async (
   }
 };
 
-const releaseTransaction = async ({
-  pixTarget,
-  signature,
-}: {
-  pixTarget: string;
-  signature: string;
+const releaseTransaction = async (params: {
+  pixTimestamp: `0x${string}`&{lenght:34},
+  signature: `0x${string}`,
 }) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
-  const release = await releaseLock(BigInt(lockID.value), pixTarget, signature);
+  const release = await releaseLock(BigInt(lockID.value), params.pixTimestamp, params.signature);
   await release.wait();
 
   await updateWalletStatus();
