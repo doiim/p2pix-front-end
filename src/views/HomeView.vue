@@ -68,7 +68,6 @@ const releaseTransaction = async (params: {
   loadingRelease.value = true;
 
   const release = await releaseLock(BigInt(lockID.value), params.pixTimestamp, params.signature);
-  await release.wait();
 
   await updateWalletStatus();
   loadingRelease.value = false;

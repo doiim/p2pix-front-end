@@ -10,6 +10,7 @@ import {
   stringToHex,
   toBytes,
   type Address,
+  type TransactionReceipt,
 } from "viem";
 import type { TokenEnum } from "@/model/NetworkEnum";
 
@@ -71,7 +72,7 @@ export const releaseLock = async (
   lockID: bigint,
   pixTimestamp: `0x${string}`&{lenght:34},
   signature: `0x${string}`
-): Promise<any> => {
+): Promise<TransactionReceipt> => {
   const { address, abi, wallet, client, account } = await getContract();
 
   if (!wallet) {
