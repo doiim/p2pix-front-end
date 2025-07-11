@@ -10,6 +10,7 @@ import {
   stringToHex,
   toBytes,
   type Address,
+  type TransactionReceipt,
 } from "viem";
 import type { TokenEnum } from "@/model/NetworkEnum";
 
@@ -69,24 +70,20 @@ export const withdrawDeposit = async (
 
 export const releaseLock = async (
   lockID: bigint,
-  pixtarget: string,
-  signature: string
-): Promise<any> => {
+  pixTimestamp: `0x${string}`&{lenght:34},
+  signature: `0x${string}`
+): Promise<TransactionReceipt> => {
   const { address, abi, wallet, client, account } = await getContract();
 
-  console.log("Releasing lock", { lockID, pixtarget, signature });
   if (!wallet) {
     throw new Error("Wallet not connected");
   }
-
-  // Convert pixtarget to bytes32
-  const pixTimestamp = keccak256(stringToHex(pixtarget, { size: 32 }) );
 
   const { request } = await client.simulateContract({
     address,
     abi,
     functionName: "release",
-    args: [BigInt(lockID), pixTimestamp, stringToHex(signature)],
+    args: [BigInt(lockID), pixTimestamp, signature],
     account
   });
 

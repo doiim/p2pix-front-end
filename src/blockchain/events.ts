@@ -32,8 +32,8 @@ const getNetworksLiquidity = async (): Promise<void> => {
 };
 
 const getParticipantID = async (
-  seller: string,
-  token: string
+  seller: Address,
+  token: Address
 ): Promise<string> => {
   const { address, abi, client } = await getContract();
 

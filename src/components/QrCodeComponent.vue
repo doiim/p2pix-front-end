@@ -18,7 +18,7 @@ const props = defineProps<Props>();
 const qrCode = ref<string>("");
 const qrCodeSvg = ref<string>("");
 const showWarnModal = ref<boolean>(true);
-const pixTarget = ref<string>("");
+const pixTimestamp = ref<string>("");
 const releaseSignature = ref<string>("");
 const solicitationData = ref<any>(null);
 const pollingInterval = ref<NodeJS.Timeout | null>(null);
@@ -56,7 +56,7 @@ const checkSolicitationStatus = async () => {
     );
 
     if (response.signature) {
-      pixTarget.value = response.pixTarget;
+      pixTimestamp.value = response.pixTimestamp;
       releaseSignature.value = response.signature;
       // Stop polling when payment is confirmed
       if (pollingInterval.value) {
@@ -170,7 +170,7 @@ onUnmounted(() => {
           releaseSignature ? 'Enviar para a rede' : 'Validando pagamento...'
         "
         @button-clicked="
-          emit('pixValidated', { pixTarget, signature: releaseSignature })
+          emit('pixValidated', { pixTimestamp, signature: releaseSignature })
         "
       />
     </div>
