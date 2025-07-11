@@ -1,18 +1,41 @@
 {
   "extends": "@vue/tsconfig/tsconfig.web.json",
-  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
+  "include": [
+    "env.d.ts",
+    "src/**/*",
+    "src/**/*.vue",
+    "scripts"
+  ],
   "compilerOptions": {
     "baseUrl": ".",
+    "strict": true,
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": [
+        "./src/*"
+      ]
     },
-    "types": ["jest", "node"],
-    "resolveJsonModule": true
+    "types": [
+      "node"
+    ],
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "target": "esnext",
+    "module": "esnext",
+    "lib": [
+      "esnext",
+      "dom"
+    ],
+    "preserveValueImports": false,
+    "importsNotUsedAsValues": "remove",
+    "verbatimModuleSyntax": false
   },
-
   "references": [
     {
       "path": "./tsconfig.config.json"
     }
+  ],
+  "exclude": [
+    "node_modules",
+    "./node_modules"
   ]
 }

@@ -1,34 +1,64 @@
 <script setup lang="ts">
-import { storeToRefs } from "pinia";
-import { useEtherStore } from "@/store/ether";
-import { ref } from "vue";
+import { ref, watch } from "vue";
+import { useUser } from "@/composables/useUser";
 import { onClickOutside } from "@vueuse/core";
 import { NetworkEnum } from "@/model/NetworkEnum";
-import { connectProvider, requestNetworkChange } from "@/blockchain/provider";
-import ethereumImage from "@/assets/ethereum.svg";
-import polygonImage from "@/assets/polygon.svg";
+import { getNetworkImage } from "@/utils/imagesPath";
+import { Networks } from "@/model/Networks";
 
-// Store reference
-const etherStore = useEtherStore();
+import { useOnboard } from "@web3-onboard/vue";
 
-const { walletAddress, sellerView } = storeToRefs(etherStore);
+import ChevronDown from "@/assets/chevronDown.svg";
+import TwitterIcon from "@/assets/twitterIcon.svg";
+import LinkedinIcon from "@/assets/linkedinIcon.svg";
+import GithubIcon from "@/assets/githubIcon.svg";
+import { connectProvider } from "@/blockchain/provider";
+
+// Use the new composable
+const user = useUser();
+const { walletAddress, sellerView, networkId } = user;
 
 const menuOpenToggle = ref<boolean>(false);
-const menuHoverToggle = ref<boolean>(false);
-
 const infoMenuOpenToggle = ref<boolean>(false);
 const currencyMenuOpenToggle = ref<boolean>(false);
-const currencyMenuHoverToggle = ref<boolean>(false);
 const infoMenuRef = ref<any>(null);
 const walletAddressRef = ref<any>(null);
 const currencyRef = ref<any>(null);
 
-//Methods
-const connectMetaMask = async (): Promise<void> => {
-  await connectProvider();
+const { connectedWallet, connectedChain, setChain, disconnectWallet } =
+  useOnboard();
+
+const connnectWallet = async (): Promise<void> => {
+  const { connectWallet } = useOnboard();
+  await connectWallet();
 };
 
+watch(connectedWallet, async (newVal: any) => {
+  connectProvider(newVal.provider);
+  const addresses = await newVal.provider.request({ method: "eth_accounts" });
+  user.setWalletAddress(addresses.shift());
+});
+
+watch(connectedChain, (newVal: any) => {
+  // Check if connected chain is valid, otherwise default to Sepolia (NetworkEnum.SEPOLIA)
+  if (
+    !newVal ||
+    !Object.values(Networks).some(
+      (network) => Number(network.chainId) === Number(newVal.id)
+    )
+  ) {
+    console.log(
+      "Invalid or unsupported network detected, defaulting to Sepolia"
+    );
+    user.setNetworkId(user.networkId.value);
+    return;
+  }
+  user.setNetworkId(newVal?.id);
+});
+
 const formatWalletAddress = (): string => {
+  if (!walletAddress.value)
+    throw new Error("Wallet not connected");
   const walletAddressLength = walletAddress.value.length;
   const initialText = walletAddress.value.substring(0, 5);
   const finalText = walletAddress.value.substring(
@@ -38,10 +68,10 @@ const formatWalletAddress = (): string => {
   return `${initialText}...${finalText}`;
 };
 
-const disconnectUser = (): void => {
-  etherStore.setWalletAddress("");
+const disconnectUser = async (): Promise<void> => {
+  user.setWalletAddress(null);
+  await disconnectWallet({ label: connectedWallet.value?.label || "" });
   closeMenu();
-  window.location.reload();
 };
 
 const closeMenu = (): void => {
@@ -50,28 +80,23 @@ const closeMenu = (): void => {
 
 const networkChange = async (network: NetworkEnum): Promise<void> => {
   currencyMenuOpenToggle.value = false;
-  const change = await requestNetworkChange(network);
-  if (change) etherStore.setNetworkName(network);
-};
-
-const getNetworkImage = (networkName: NetworkEnum): string => {
-  let validImages = {
-    Ethereum: ethereumImage,
-    Polygon: polygonImage,
-    Localhost: ethereumImage,
-  };
-
-  return validImages[networkName];
+  try {
+    await setChain({
+      chainId: Networks[network].chainId,
+      wallet: connectedWallet.value?.label || "",
+    });
+    user.setNetworkId(network);
+  } catch (error) {
+    console.log("Error changing network", error);
+  }
 };
 
 onClickOutside(walletAddressRef, () => {
-  menuHoverToggle.value = false;
   menuOpenToggle.value = false;
 });
 
 onClickOutside(currencyRef, () => {
   currencyMenuOpenToggle.value = false;
-  currencyMenuHoverToggle.value = false;
 });
 
 onClickOutside(infoMenuRef, () => {
@@ -84,91 +109,25 @@ onClickOutside(infoMenuRef, () => {
     <RouterLink :to="'/'" class="default-button">
       <img
         alt="P2Pix logo"
-        class="logo lg-view"
-        src="@/assets/logo.svg"
-        width="75"
+        class="logo hidden md:inline-block"
+        width="200"
         height="75"
+        src="@/assets/logo.svg?url"
       />
       <img
         alt="P2Pix logo"
-        class="logo sm-view w-10/12"
-        src="@/assets/logo2.svg"
+        class="logo inline-block md:hidden w-10/12"
         width="40"
         height="40"
+        src="@/assets/logo2.svg?url"
       />
     </RouterLink>
 
     <div class="flex sm:gap-4 gap-2 items-center">
       <div class="flex flex-col">
-        <div
-          v-show="infoMenuOpenToggle"
-          class="mt-10 absolute w-full text-gray-900 lg-view"
-        >
-          <div class="mt-2">
-            <div class="bg-white rounded-md z-10 -left-32 w-52">
-              <div class="menu-button gap-2 px-4 rounded-md cursor-pointer">
-                <span class="text-gray-900 py-4 text-end font-semibold text-sm">
-                  Documentação
-                </span>
-              </div>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
-              </div>
-              <RouterLink
-                :to="'/faq'"
-                class="menu-button gap-2 px-4 rounded-md cursor-pointer"
-              >
-                <span
-                  class="text-gray-900 py-4 text-end font-semibold text-sm whitespace-nowrap"
-                >
-                  Perguntas frequentes
-                </span>
-              </RouterLink>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
-              </div>
-              <div
-                class="sm:text-center sm:justify-center ml-8 sm:ml-0 gap-2 px-4 rounded-md float-right"
-              >
-                <div class="redirect_button flex mr-4">
-                  <div class="mr-6">
-                    <img
-                      alt="Twitter"
-                      width="20"
-                      height="20"
-                      src="@/assets/twitterIcon.svg"
-                      class="cursor-pointer"
-                      onclick="location.href = 'https://www.twitter.com/doiim';"
-                    />
-                  </div>
-                  <div class="mr-6">
-                    <img
-                      alt="Discord"
-                      width="20"
-                      height="20"
-                      src="@/assets/discordIcon.svg"
-                      class="cursor-pointer"
-                    />
-                  </div>
-                  <img
-                    alt="Github"
-                    width="20"
-                    height="20"
-                    src="@/assets/githubIcon.svg"
-                    class="cursor-pointer"
-                    onclick="location.href = 'https://github.com/doiim';"
-                  />
-                </div>
-              </div>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
-              </div>
-            </div>
-          </div>
-        </div>
-        <div
+        <button
           ref="infoMenuRef"
-          class="default-button lg-view cursor-pointer"
+          class="default-button hidden md:inline-block cursor-pointer"
           @click="
             [
               (infoMenuOpenToggle = !infoMenuOpenToggle),
@@ -178,41 +137,117 @@ onClickOutside(infoMenuRef, () => {
           "
         >
           <h1
-            class="text-gray-50 font-semibold sm:text-base"
+            class="topbar-text topbar-link"
             :style="{
               'border-bottom': infoMenuOpenToggle
                 ? '2px solid white'
-                : 'transparent',
+                : '2px solid transparent',
             }"
           >
             Menu
           </h1>
-        </div>
+        </button>
+        <transition name="dropdown">
+          <div
+            v-show="infoMenuOpenToggle"
+            class="mt-10 absolute w-full text-gray-900 hidden lg:inline-block"
+          >
+            <div class="mt-2">
+              <div class="bg-white rounded-md z-10 -left-36 w-52">
+                <div class="menu-button gap-2 px-4 rounded-md cursor-pointer">
+                  <span
+                    class="text-gray-900 py-4 text-end font-semibold text-sm"
+                  >
+                    Documentação
+                  </span>
+                </div>
+                <div class="w-full flex justify-center">
+                  <hr class="w-4/5" />
+                </div>
+                <RouterLink
+                  :to="'/faq'"
+                  class="menu-button gap-2 px-4 rounded-md cursor-pointer"
+                >
+                  <span
+                    class="text-gray-900 py-4 text-end font-semibold text-sm whitespace-nowrap"
+                  >
+                    Perguntas frequentes
+                  </span>
+                </RouterLink>
+                <div class="w-full flex justify-center">
+                  <hr class="w-4/5" />
+                </div>
+                <div
+                  class="sm:text-center sm:justify-center ml-8 sm:ml-0 gap-2 px-4 rounded-md"
+                >
+                  <div class="redirect_button flex justify-around">
+                    <a href="https://www.twitter.com/doiim">
+                      <img
+                        alt="Twitter"
+                        width="20"
+                        height="20"
+                        src="@/assets/twitterIcon.svg?url"
+                        class="cursor-pointer"
+                      />
+                    </a>
+                    <a href="https://www.linkedin.com/company/doiim/">
+                      <img
+                        alt="LinkedIn"
+                        width="20"
+                        height="20"
+                        src="@/assets/linkedinIcon.svg?url"
+                        class="cursor-pointer"
+                        href="https://www.linkedin.com/company/doiim/"
+                      />
+                    </a>
+                    <a href="https://www.github.com/doiim">
+                      <img
+                        alt="Github"
+                        width="20"
+                        height="20"
+                        src="@/assets/githubIcon.svg?url"
+                        class="cursor-pointer"
+                      />
+                    </a>
+                  </div>
+                </div>
+                <div class="w-full flex justify-center">
+                  <hr class="w-4/5" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </transition>
       </div>
       <RouterLink
         :to="'/faq'"
         v-if="!walletAddress"
-        class="default-button sm-view"
+        class="default-button inline-block md:hidden"
       >
         FAQ
       </RouterLink>
       <RouterLink
         :to="sellerView ? '/' : '/seller'"
-        class="default-button sm:whitespace-normal whitespace-nowrap lg-view"
+        class="default-button whitespace-nowrap w-40 sm:w-44 md:w-36 hidden md:inline-block"
       >
-        {{ sellerView ? "Quero comprar" : "Quero vender" }}
+        <div class="topbar-text topbar-link text-center mx-auto inline-block">
+          {{ sellerView ? "Quero comprar" : "Quero vender" }}
+        </div>
       </RouterLink>
       <RouterLink
         :to="sellerView ? '/' : '/seller'"
         v-if="!walletAddress"
-        class="default-button sm:whitespace-normal whitespace-nowrap sm-view"
+        class="default-button sm:whitespace-normal whitespace-nowrap inline-block md:hidden w-40 sm:w-44 md:w-36"
       >
-        {{ sellerView ? "Quero comprar" : "Quero vender" }}
+        <div class="topbar-text topbar-link text-center mx-auto inline-block">
+          {{ sellerView ? "Quero comprar" : "Quero vender" }}
+        </div>
       </RouterLink>
-      <div class="flex flex-col" v-if="walletAddress">
+      <div class="flex flex-col relative" v-if="walletAddress">
         <div
           ref="currencyRef"
-          class="group top-bar-info cursor-pointer hover:bg-white h-10"
+          class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
+          :class="{ 'bg-gray-50': currencyMenuOpenToggle }"
           @click="
             [
               (currencyMenuOpenToggle = !currencyMenuOpenToggle),
@@ -220,84 +255,57 @@ onClickOutside(infoMenuRef, () => {
               (infoMenuOpenToggle = false),
             ]
           "
-          @mouseover="currencyMenuHoverToggle = true"
-          @mouseout="currencyMenuHoverToggle = false"
-          :style="{
-            backgroundColor: currencyMenuOpenToggle
-              ? '#F9F9F9'
-              : currencyMenuHoverToggle
-              ? '#F9F9F9'
-              : 'transparent',
-          }"
         >
           <img
             alt="Choosed network image"
-            :src="getNetworkImage(etherStore.networkName)"
+            :src="getNetworkImage(NetworkEnum[user.networkName.value])"
+            height="24"
+            width="24"
           />
           <span
-            class="default-text group-hover:text-gray-900 lg-view"
-            :style="{
-              color: currencyMenuOpenToggle
-                ? '#000000'
-                : currencyMenuHoverToggle
-                ? '#000000'
-                : 'rgb(249 250 251)',
-            }"
+            class="default-text hidden sm:inline-block text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap text-ellipsis overflow-hidden"
+            :class="{ '!text-gray-900': currencyMenuOpenToggle }"
           >
-            {{ etherStore.networkName }}
+            {{
+              Networks[user.networkName.value]
+                ? Networks[user.networkName.value].chainName
+                : "Invalid Chain"
+            }}
           </span>
-          <img
-            class="text-gray-900"
-            v-if="!currencyMenuHoverToggle && !currencyMenuOpenToggle"
-            alt="Chevron Down"
-            src="@/assets/chevronDown.svg"
-          />
-          <img
-            v-if="currencyMenuOpenToggle"
-            alt="Chevron Up"
-            src="@/assets/chevronUp.svg"
-          />
-          <img
-            v-if="currencyMenuHoverToggle && !currencyMenuOpenToggle"
-            alt="Chevron Down Black"
-            src="@/assets/chevronDownBlack.svg"
-          />
+          <div
+            class="transition-all duration-500 ease-in-out mt-1"
+            :class="{ 'scale-y-[-1]': currencyMenuOpenToggle }"
+          >
+            <ChevronDown
+              viewBox="0 0 16 16"
+              class="h-4 w-4 text-white group-hover:text-gray-900"
+              :class="{ '!text-gray-900': currencyMenuOpenToggle }"
+            />
+          </div>
         </div>
-        <div
-          v-show="currencyMenuOpenToggle"
-          class="mt-10 pl-3 absolute w-full text-gray-900 lg-view"
-        >
-          <div class="mt-2">
-            <div class="bg-white rounded-md z-10">
+        <transition name="dropdown">
+          <div
+            v-show="currencyMenuOpenToggle"
+            class="mt-10 absolute text-gray-900 min-w-max left-0 hidden md:inline-block"
+          >
+            <div
+              class="mt-2 bg-white rounded-md border border-gray-300 drop-shadow-md shadow-md overflow-clip"
+            >
               <div
-                class="menu-button gap-2 px-4 rounded-md cursor-pointer"
-                @click="networkChange(NetworkEnum.ethereum)"
+                v-for="(chainData, network) in Networks"
+                :key="network"
+                class="menu-button p-4 gap-2 cursor-pointer hover:bg-gray-200 flex items-center !justify-start whitespace-nowrap transition-colors duration-150 ease-in-out"
+                @click="networkChange(network)"
               >
                 <img
-                  alt="Ethereum image"
+                  :alt="chainData.chainName + ' image'"
                   width="20"
                   height="20"
-                  src="@/assets/ethereum.svg"
+                  :src="getNetworkImage(NetworkEnum[network])"
+                  class="mr-2 ml-1"
                 />
-                <span class="text-gray-900 py-4 text-end font-semibold text-sm">
-                  Ethereum
-                </span>
-              </div>
-              <div class="w-full flex justify-center">
-                <hr class="w-4/5" />
-              </div>
-              <div
-                class="menu-button gap-2 px-4 rounded-md cursor-pointer"
-                @click="networkChange(NetworkEnum.polygon)"
-              >
-                <img
-                  alt="Polygon image"
-                  width="20"
-                  height="20"
-                  src="@/assets/polygon.svg"
-                />
-                <span class="text-gray-900 py-4 text-end font-semibold text-sm">
-                  Polygon
+                <span class="text-gray-900 font-semibold text-sm">
+                  {{ chainData.chainName }}
                 </span>
               </div>
               <div class="w-full flex justify-center">
@@ -305,29 +313,30 @@ onClickOutside(infoMenuRef, () => {
               </div>
             </div>
           </div>
-        </div>
+        </transition>
       </div>
       <button
         type="button"
         v-if="!walletAddress"
-        class="border-amber-500 border-2 rounded default-button lg-view"
-        @click="connectMetaMask()"
+        class="border-amber-500 border-2 rounded default-button hidden md:inline-block"
+        @click="connnectWallet()"
       >
         Conectar carteira
       </button>
       <button
         type="button"
         v-if="!walletAddress"
-        class="border-amber-500 border-2 rounded default-button sm-view"
-        @click="connectMetaMask()"
+        class="border-amber-500 border-2 rounded default-button inline-block md:hidden"
+        @click="connnectWallet()"
       >
         Conectar
       </button>
       <div v-if="walletAddress" class="account-info">
-        <div class="flex flex-col">
+        <div class="flex flex-col relative">
           <div
             ref="walletAddressRef"
-            class="top-bar-info cursor-pointer h-10"
+            class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
+            :class="{ 'bg-gray-50': menuOpenToggle }"
             @click="
               [
                 (menuOpenToggle = !menuOpenToggle),
@@ -335,74 +344,61 @@ onClickOutside(infoMenuRef, () => {
                 (infoMenuOpenToggle = false),
               ]
             "
-            @mouseover="menuHoverToggle = true"
-            @mouseout="menuHoverToggle = false"
-            :style="{
-              backgroundColor: menuOpenToggle
-                ? '#F9F9F9'
-                : menuHoverToggle
-                ? '#F9F9F9'
-                : 'transparent',
-            }"
           >
-            <img alt="Account image" src="@/assets/account.svg" />
+            <img alt="Account image" src="@/assets/account.svg?url" />
             <span
-              class="default-text"
-              :style="{
-                color: menuOpenToggle
-                  ? '#000000'
-                  : menuHoverToggle
-                  ? '#000000'
-                  : 'rgb(249 250 251)',
-              }"
+              class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out truncate text-ellipsis"
+              :class="{ '!text-gray-900': menuOpenToggle }"
             >
               {{ formatWalletAddress() }}
             </span>
-            <img
-              class="text-gray-900"
-              v-if="!menuHoverToggle && !menuOpenToggle"
-              alt="Chevron Down"
-              src="@/assets/chevronDown.svg"
-            />
-            <img
-              v-if="menuOpenToggle"
-              alt="Chevron Up"
-              src="@/assets/chevronUp.svg"
-            />
-            <img
-              v-if="menuHoverToggle && !menuOpenToggle"
-              alt="Chevron Down Black"
-              src="@/assets/chevronDownBlack.svg"
-            />
+            <div
+              class="transition-all duration-500 ease-in-out mt-1"
+              :class="{ 'scale-y-[-1]': menuOpenToggle }"
+            >
+              <ChevronDown
+                viewBox="0 0 16 16"
+                class="h-4 w-4 text-white group-hover:text-gray-900"
+                :class="{ '!text-gray-900': menuOpenToggle }"
+              />
+            </div>
           </div>
-          <div
-            v-show="menuOpenToggle"
-            class="mt-10 absolute w-full text-gray-900 lg-view"
-          >
-            <div class="pl-4 mt-2">
-              <div class="bg-white rounded-md z-10">
-                <div class="menu-button" @click="closeMenu()">
-                  <RouterLink to="/manage_bids" class="redirect_button">
+          <transition name="dropdown">
+            <div
+              v-show="menuOpenToggle"
+              class="mt-10 absolute w-full text-gray-900 hidden md:inline-block"
+            >
+              <div class="pl-4 mt-2">
+                <div
+                  class="bg-white rounded-md z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
+                >
+                  <RouterLink
+                    to="/manage_bids"
+                    class="redirect_button menu-button"
+                    @click="closeMenu()"
+                  >
                     Gerenciar Ofertas
                   </RouterLink>
-                </div>
-                <div class="w-full flex justify-center">
-                  <hr class="w-4/5" />
-                </div>
-                <div class="menu-button" @click="disconnectUser">
-                  <RouterLink to="/" class="redirect_button">
+                  <div class="w-full flex justify-center">
+                    <hr class="w-4/5" />
+                  </div>
+                  <RouterLink
+                    to="/"
+                    class="redirect_button menu-button"
+                    @click="disconnectUser"
+                  >
                     Desconectar
                   </RouterLink>
                 </div>
               </div>
             </div>
-          </div>
+          </transition>
         </div>
       </div>
     </div>
     <div
       v-show="menuOpenToggle"
-      class="mobile-menu fixed w-4/5 text-gray-900 sm-view"
+      class="mobile-menu fixed w-4/5 text-gray-900 inline-block md:hidden"
     >
       <div class="pl-4 mt-2 h-full">
         <div class="bg-white rounded-md z-10 h-full">
@@ -433,74 +429,53 @@ onClickOutside(infoMenuRef, () => {
           <div class="w-full flex justify-center">
             <hr class="w-4/5" />
           </div>
-          <div class="menu-button pb-10">
-            <div class="redirect_button flex">
-              <img
-                alt="Twitter"
-                width="20"
-                height="20"
-                src="@/assets/twitterIcon.svg"
-                class="mr-6"
-                onclick="location.href = 'https://www.twitter.com/doiim';"
-              />
-              <img
-                alt="Discord"
-                width="20"
-                height="20"
-                src="@/assets/discordIcon.svg"
-                class="mr-6"
-              />
-              <img
-                alt="Github"
-                width="20"
-                height="20"
-                src="@/assets/githubIcon.svg"
-                onclick="location.href = 'https://github.com/doiim';"
-              />
-            </div>
+          <div class="redirect_button mx-10">
+            <a
+              href="https://www.twitter.com/doiim/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <TwitterIcon alt="Twitter" width="20" height="20" />
+            </a>
+            <a
+              href="https://www.linkedin.com/company/doiim/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <LinkedinIcon alt="LinkedIn" width="20" height="20" />
+            </a>
+            <a
+              href="https://github.com/doiim/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <GithubIcon alt="Github" width="20" height="20" />
+            </a>
           </div>
         </div>
       </div>
     </div>
     <div
       v-show="currencyMenuOpenToggle"
-      class="mobile-menu fixed w-4/5 text-gray-900 sm-view"
+      class="mobile-menu fixed w-4/5 text-gray-900 inline-block md:hidden"
     >
       <div class="pl-4 mt-2 h-full">
         <div class="bg-white rounded-md z-10 h-full">
           <div
-            class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2"
-            @click="networkChange(NetworkEnum.ethereum)"
+            v-for="(chainData, network) in Networks"
+            :key="network"
+            class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2 px-4"
+            @click="networkChange(network)"
           >
             <img
-              alt="Ethereum image"
+              :alt="chainData.chainName + 'image'"
               width="20"
               height="20"
-              src="@/assets/ethereum.svg"
+              :src="getNetworkImage(NetworkEnum[network])"
             />
             <span class="text-gray-900 py-4 text-end font-bold text-sm">
-              Ethereum
+              {{ chainData.chainName }}
             </span>
-          </div>
-          <div class="w-full flex justify-center">
-            <hr class="w-4/5" />
-          </div>
-          <div
-            class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2"
-            @click="networkChange(NetworkEnum.polygon)"
-          >
-            <img
-              alt="Polygon image"
-              width="20"
-              height="20"
-              src="@/assets/polygon.svg"
-            />
-            <span class="text-gray-900 py-4 text-end font-bold text-sm">
-              Polygon
-            </span>
-          </div>
-          <div class="w-full flex justify-center pb-12">
-            <hr class="w-4/5" />
           </div>
         </div>
       </div>
@@ -517,6 +492,13 @@ header {
   @apply sm:px-4 px-3 py-2 rounded text-gray-50 font-semibold sm:text-base text-xs hover:bg-transparent;
 }
 
+.topbar-text {
+  @apply text-gray-50 font-semibold sm:text-base mt-0.5 transition-all duration-500;
+}
+.topbar-link {
+  @apply mt-0.5 hover:border-b-2 border-b-2 border-transparent hover:!border-white;
+}
+
 .account-info {
   @apply flex items-center gap-6;
 }
@@ -526,42 +508,24 @@ header {
 }
 
 .top-bar-info {
-  @apply flex justify-between gap-2 px-4 py-2 border-amber-500 border-2 sm:rounded rounded-lg items-center;
+  @apply flex justify-between items-center gap-2 px-4 py-2 border-amber-500 border-2 sm:rounded rounded-lg;
 }
 
 .redirect_button {
-  @apply py-5 text-gray-900 sm:font-semibold font-bold sm:text-xs text-sm w-full;
+  @apply py-5 px-4 text-gray-900 flex sm:font-semibold font-bold sm:text-xs text-sm justify-between;
 }
 
 .menu-button {
-  @apply flex sm:text-center sm:justify-center hover:bg-gray-200 ml-8 sm:ml-0;
+  @apply flex sm:text-center sm:justify-center hover:bg-gray-200 hover:rounded-lg w-full;
 }
 
 a:hover {
   @apply bg-gray-200 rounded;
 }
 
-.lg-view {
-  display: inline-block;
-}
-
-.sm-view {
-  display: none;
-}
-
 .mobile-menu {
   margin-top: 1400px;
   bottom: 0px;
   height: auto;
-}
-
-@media screen and (max-width: 500px) {
-  .lg-view {
-    display: none;
-  }
-
-  .sm-view {
-    display: inline-block;
-  }
 }
 </style>

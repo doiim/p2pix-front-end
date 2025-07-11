@@ -1,17 +1,15 @@
 <script setup lang="ts">
-import { withdrawDeposit } from "@/blockchain/buyerMethods";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
-import { useEtherStore } from "@/store/ether";
-import { storeToRefs } from "pinia";
+import { useUser } from "@/composables/useUser";
 import { ref, watch, onMounted } from "vue";
 import SpinnerComponent from "../SpinnerComponent.vue";
 import { decimalCount } from "@/utils/decimalCount";
 import { debounce } from "@/utils/debounce";
 import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";
 
-const etherStore = useEtherStore();
+const user = useUser();
 
 // props
 const props = defineProps<{
@@ -22,8 +20,9 @@ const props = defineProps<{
 
 const emit = defineEmits(["depositWithdrawn"]);
 
-const { loadingWalletTransactions } = storeToRefs(etherStore);
-const remaining = ref<number>(0.0);
+const { loadingWalletTransactions } = user;
+
+const remaining = ref<number>(0);
 const itemsToShow = ref<WalletTransaction[]>([]);
 const withdrawAmount = ref<string>("");
 const withdrawButtonOpacity = ref<number>(0.6);
@@ -84,8 +83,7 @@ watch(withdrawAmount, (): void => {
 });
 
 const getRemaining = (): number => {
-  if (props.validDeposits instanceof Array) {
-    // Here we are getting only the first element of the list because
+  if (props.validDeposits.length > 0) {
     // in this release only the BRL token is being used.
     const deposit = props.validDeposits[0];
     remaining.value = deposit ? deposit.remaining : 0;
@@ -95,7 +93,7 @@ const getRemaining = (): number => {
 };
 
 const getExplorer = (): string => {
-  return etherStore.networkName == NetworkEnum.ethereum
+  return user.networkName.value == NetworkEnum.sepolia
     ? "Etherscan"
     : "Polygonscan";
 };
@@ -106,8 +104,8 @@ const showInitialItems = (): void => {
 
 const openEtherscanUrl = (transactionHash: string): void => {
   const networkUrl =
-    etherStore.networkName == NetworkEnum.ethereum
-      ? "goerli.etherscan.io"
+    user.networkName.value == NetworkEnum.sepolia
+      ? "sepolia.etherscan.io"
       : "mumbai.polygonscan.com";
   const url = `https://${networkUrl}/tx/${transactionHash}`;
   window.open(url, "_blank");
@@ -161,10 +159,14 @@ showInitialItems();
 </script>
 
 <template>
-  <div class="blur-container" v-if="loadingWalletTransactions">
+  <div
+    class="main-container max-w-md flex justify-center items-center min-h-[200px] w-16 h-16"
+    v-if="loadingWalletTransactions"
+  >
+    Carregando ofertas...
     <SpinnerComponent width="8" height="8"></SpinnerComponent>
   </div>
-  <div class="blur-container" v-if="!loadingWalletTransactions">
+  <div class="main-container max-w-md" v-else>
     <div
       class="w-full bg-white p-4 sm:p-6 rounded-lg"
       v-if="props.validDeposits.length > 0"
@@ -175,11 +177,13 @@ showInitialItems();
             Saldo disponível
           </p>
           <p class="text-xl leading-7 font-semibold text-gray-900">
-            {{ getRemaining() }} BRZ
+            {{ getRemaining() }} {{ user.selectedToken.value }}
           </p>
           <div class="flex gap-2 w-32 sm:w-56" v-if="activeLockAmount != 0">
             <span class="text-xs font-normal text-gray-400" ref="infoText">{{
-              `com ${activeLockAmount.toFixed(2)} BRZ em lock`
+              `com ${activeLockAmount.toFixed(2)} ${
+                user.selectedToken.value
+              } em lock`
             }}</span>
             <div
               class="absolute mt-[2px] md-view"
@@ -187,7 +191,7 @@ showInitialItems();
             >
               <img
                 alt="info image"
-                src="@/assets/info.svg"
+                src="@/assets/info.svg?url"
                 aria-describedby="tooltip"
                 ref="reference"
                 @mouseover="showInfoTooltip = true"
@@ -213,7 +217,7 @@ showInitialItems();
           >
             <img
               alt="Withdraw image"
-              src="@/assets/withdraw.svg"
+              src="@/assets/withdraw.svg?url"
               class="w-3 h-3 sm:w-4 sm:h-4"
             />
             <span class="last-release-info">Sacar</span>
@@ -260,7 +264,7 @@ showInitialItems();
           >
             <img
               alt="Withdraw image"
-              src="@/assets/withdraw.svg"
+              src="@/assets/withdraw.svg?url"
               class="w-3 h-3 sm:w-4 sm:h-4"
             />
             <span class="last-release-info">Sacar</span>
@@ -282,10 +286,10 @@ showInitialItems();
             class="text-xl sm:text-xl leading-7 font-semibold text-gray-900"
           >
             {{ item.amount }}
-            BRZ
+            <!-- {{ getTokenByAddress(item.token) }} -->
           </span>
         </div>
-        <div>
+        <div class="flex flex-col items-center justify-center">
           <div
             class="bg-amber-300 status-text"
             v-if="getEventName(item.event) == 'Reserva' && item.lockStatus == 1"
@@ -315,7 +319,7 @@ showInitialItems();
             <span class="last-release-info">{{ getExplorer() }}</span>
             <img
               alt="Redirect image"
-              src="@/assets/redirect.svg"
+              src="@/assets/redirect.svg?url"
               class="w-3 h-3 sm:w-4 sm:h-4"
             />
           </div>
@@ -386,10 +390,6 @@ p {
   @apply text-white text-center;
 }
 
-.blur-container {
-  @apply flex flex-col justify-center items-center px-4 py-3 sm:px-8 sm:py-6 gap-4 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md w-auto;
-}
-
 .grid-container {
   @apply grid grid-cols-4 grid-flow-row items-center px-8 py-6 gap-4 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-10 w-auto;
 }
@@ -412,6 +412,7 @@ p {
 }
 
 input[type="number"] {
+  appearance: textfield;
   -moz-appearance: textfield;
 }
 

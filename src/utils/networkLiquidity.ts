@@ -1,23 +1,40 @@
 import type { ValidDeposit } from "@/model/ValidDeposit";
+import type { Address } from "viem";
 
 const verifyNetworkLiquidity = (
   tokenValue: number,
-  walletAddress: string,
+  walletAddress: Address,
   validDepositList: ValidDeposit[]
-): ValidDeposit | undefined => {
-  const element = validDepositList.find((element) => {
-    const remaining = element.remaining;
-    if (
-      tokenValue!! <= remaining &&
-      tokenValue!! != 0 &&
-      element.seller !== walletAddress
-    ) {
-      return true;
-    }
-    return false;
-  });
+): ValidDeposit[] => {
+  const filteredDepositList = validDepositList
+    .filter((element) => {
+      const remaining = element.remaining;
+      if (
+        tokenValue!! <= remaining &&
+        tokenValue!! != 0 &&
+        element.seller !== walletAddress
+      ) {
+        return true;
+      }
+      return false;
+    })
+    .sort((a, b) => {
+      return b.remaining - a.remaining;
+    });
 
-  return element;
+  const uniqueNetworkDeposits = filteredDepositList.reduce(
+    (acc: ValidDeposit[], current) => {
+      const existingNetwork = acc.find(
+        (deposit) => deposit.network === current.network
+      );
+      if (!existingNetwork) {
+        acc.push(current);
+      }
+      return acc;
+    },
+    []
+  );
+  return uniqueNetworkDeposits;
 };
 
 export { verifyNetworkLiquidity };

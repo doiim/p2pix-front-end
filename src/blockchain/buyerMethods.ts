@@ -1,100 +1,95 @@
-import { useEtherStore } from "@/store/ether";
+import { getContract } from "./provider";
+import { getTokenAddress } from "./addresses";
+import {
+  bytesToHex,
+  encodeAbiParameters,
+  keccak256,
+  parseAbiParameters,
+  parseEther,
+  stringToBytes,
+  stringToHex,
+  toBytes,
+  type Address,
+} from "viem";
+import type { TokenEnum } from "@/model/NetworkEnum";
 
-import { getContract, getProvider } from "./provider";
-import { getP2PixAddress, getTokenAddress } from "./addresses";
-
-import p2pix from "@/utils/smart_contract_files/P2PIX.json";
-
-import { BigNumber, ethers } from "ethers";
-import { parseEther } from "ethers/lib/utils";
-
-const addLock = async (
-  seller: string,
-  token: string,
+export const addLock = async (
+  sellerAddress: Address,
+  tokenAddress: Address,
   amount: number
-): Promise<string> => {
-  const etherStore = useEtherStore();
+): Promise<bigint> => {
+  const { address, abi, wallet, client, account } = await getContract();
+  const parsedAmount = parseEther(amount.toString());
 
-  const p2pContract = getContract();
+  if (!wallet) {
+    throw new Error("Wallet not connected");
+  }
 
-  const lock = await p2pContract.lock(
-    seller,
-    token,
-    etherStore.walletAddress, // String "0x70997970C51812dc3A010C7d01b50e0d17dc79C8" (Example)
-    ethers.constants.AddressZero, // String "0x0000000000000000000000000000000000000000"
-    0,
-    parseEther(String(amount)), // BigNumber
-    [],
-    []
-  );
+  const { result, request } = await client.simulateContract({
+    address,
+    abi,
+    functionName: "lock",
+    args: [sellerAddress, tokenAddress, parsedAmount, [], []],
+    account,
+  });
+  const hash = await wallet.writeContract(request);
+  const receipt = await client.waitForTransactionReceipt({ hash });
 
-  const lock_rec = await lock.wait();
-  const [t] = lock_rec.events;
+  if (!receipt.status)
+    throw new Error("Transaction failed: " + receipt.transactionHash);
 
-  return String(t.args.lockID);
+  return result;
 };
 
-const releaseLock = async (
-  pixKey: number,
-  amount: number,
-  e2eId: string,
-  lockId: string
+export const withdrawDeposit = async (
+  amount: string,
+  token: TokenEnum
+): Promise<boolean> => {
+  const { address, abi, wallet, client, account } = await getContract();
+
+  if (!wallet) {
+    throw new Error("Wallet not connected");
+  }
+
+  const tokenAddress = getTokenAddress(token);
+
+  const { request } = await client.simulateContract({
+    address,
+    abi,
+    functionName: "withdraw",
+    args: [tokenAddress, parseEther(amount), []],
+    account
+  });
+
+  const hash = await wallet.writeContract(request);
+  const receipt = await client.waitForTransactionReceipt({ hash });
+
+  return receipt.status === "success";
+};
+
+export const releaseLock = async (
+  lockID: bigint,
+  pixtarget: string,
+  signature: string
 ): Promise<any> => {
-  const mockBacenSigner = new ethers.Wallet(
-    "0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
-  );
+  const { address, abi, wallet, client, account } = await getContract();
 
-  const messageToSign = ethers.utils.solidityKeccak256(
-    ["uint160", "uint256", "bytes32"],
-    [
-      pixKey,
-      parseEther(String(amount)),
-      ethers.utils.formatBytes32String(e2eId),
-    ]
-  );
+  console.log("Releasing lock", { lockID, pixtarget, signature });
+  if (!wallet) {
+    throw new Error("Wallet not connected");
+  }
 
-  const messageHashBytes = ethers.utils.arrayify(messageToSign);
-  const flatSig = await mockBacenSigner.signMessage(messageHashBytes);
-  const provider = getProvider();
+  // Convert pixtarget to bytes32
+  const pixTimestamp = keccak256(stringToHex(pixtarget, { size: 32 }) );
 
-  const sig = ethers.utils.splitSignature(flatSig);
+  const { request } = await client.simulateContract({
+    address,
+    abi,
+    functionName: "release",
+    args: [BigInt(lockID), pixTimestamp, stringToHex(signature)],
+    account
+  });
 
-  const signer = provider.getSigner();
-  const p2pContract = new ethers.Contract(getP2PixAddress(), p2pix.abi, signer);
-
-  const release = await p2pContract.release(
-    BigNumber.from(lockId),
-    ethers.constants.AddressZero,
-    ethers.utils.formatBytes32String(e2eId),
-    sig.r,
-    sig.s,
-    sig.v
-  );
-  await release.wait();
-
-  return release;
+  const hash = await wallet.writeContract(request);
+  return client.waitForTransactionReceipt({ hash });
 };
-
-const cancelDeposit = async (depositId: BigNumber): Promise<any> => {
-  const contract = getContract();
-
-  const cancel = await contract.cancelDeposit(depositId);
-  await cancel.wait();
-
-  return cancel;
-};
-
-const withdrawDeposit = async (amount: string): Promise<any> => {
-  const contract = getContract();
-
-  const withdraw = await contract.withdraw(
-    getTokenAddress(),
-    parseEther(String(amount)),
-    []
-  );
-  await withdraw.wait();
-
-  return withdraw;
-};
-
-export { cancelDeposit, withdrawDeposit, addLock, releaseLock };

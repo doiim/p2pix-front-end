@@ -24,7 +24,6 @@ const openItem = (index: number) => {
   faq.value[selectedSection.value].items[index].content = marked(
     faq.value[selectedSection.value].items[index].content
   );
-  console.log(marked(faq.value[selectedSection.value].items[index].content));
 };
 </script>
 
@@ -34,7 +33,7 @@ const openItem = (index: number) => {
       <span class="text font-extrabold text-5xl max-w-[50rem]"
         >Perguntas Frequentes
       </span>
-      <span class="text text-xl font-medium text-base max-w-[40rem]"
+      <span class="text font-medium text-base max-w-[40rem]"
         >Não conseguiu uma resposta para sua dúvida? Acesse a comunidade do
         Discord para falar diretamente conosco.</span
       >
@@ -61,13 +60,13 @@ const openItem = (index: number) => {
           <div class="flex cursor-pointer" @click="openItem(index)">
             <img
               alt="plus"
-              src="@/assets/plus.svg"
+              src="@/assets/plus.svg?url"
               class="mr-3"
               v-if="!item.isOpen"
             />
             <img
               alt="plus"
-              src="@/assets/minus.svg"
+              src="@/assets/minus.svg?url"
               class="mr-3"
               v-if="item.isOpen"
             />
@@ -133,12 +132,5 @@ h4 {
 
 .text {
   @apply text-white text-center;
-}
-.blur-container-row {
-  @apply flex flex-row justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 w-1/3;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 w-1/3;
 }
 </style>

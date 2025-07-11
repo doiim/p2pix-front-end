@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { useEtherStore } from "@/store/ether";
-import { storeToRefs } from "pinia";
+import { ref, onMounted, watch } from "vue";
+import { useUser } from "@/composables/useUser";
 import ListingComponent from "@/components/ListingComponent/ListingComponent.vue";
 import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
 import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
-import { ref, watch, onMounted } from "vue";
 import {
   listValidDepositTransactionsByWalletAddress,
   listAllTransactionByWalletAddress,
@@ -16,9 +15,8 @@ import type { WalletTransaction } from "@/model/WalletTransaction";
 
 import router from "@/router/index";
 
-const etherStore = useEtherStore();
-
-const { walletAddress, networkName } = storeToRefs(etherStore);
+const user = useUser();
+const { walletAddress, networkName, selectedToken } = user;
 const loadingWithdraw = ref<boolean>(false);
 const showAlert = ref<boolean>(false);
 
@@ -31,7 +29,7 @@ const callWithdraw = async (amount: string) => {
     loadingWithdraw.value = true;
     let withdraw;
     try {
-      withdraw = await withdrawDeposit(amount);
+      withdraw = await withdrawDeposit(amount, selectedToken.value);
     } catch {
       loadingWithdraw.value = false;
     }
@@ -48,7 +46,7 @@ const callWithdraw = async (amount: string) => {
 };
 
 const getWalletTransactions = async () => {
-  etherStore.setLoadingWalletTransactions(true);
+  user.setLoadingWalletTransactions(true);
   if (walletAddress.value) {
     const walletDeposits = await listValidDepositTransactionsByWalletAddress(
       walletAddress.value
@@ -67,7 +65,7 @@ const getWalletTransactions = async () => {
       transactionsList.value = allUserTransactions;
     }
   }
-  etherStore.setLoadingWalletTransactions(false);
+  user.setLoadingWalletTransactions(false);
 };
 
 onMounted(async () => {
@@ -87,30 +85,32 @@ watch(networkName, async () => {
 </script>
 
 <template>
-  <CustomAlert
-    v-if="showAlert"
-    :type="'withdraw'"
-    @close-alert="showAlert = false"
-  />
-  <div class="page">
-    <div class="header" v-if="!loadingWithdraw && !walletAddress">
-      Por Favor Conecte Sua Carteira
-    </div>
-    <div class="header" v-if="!loadingWithdraw && walletAddress">
-      Gerenciar Ofertas
-    </div>
-    <div class="w-full max-w-4xl">
-      <ListingComponent
-        v-if="!loadingWithdraw && walletAddress"
-        :valid-deposits="depositList"
-        :wallet-transactions="transactionsList"
-        :active-lock-amount="activeLockAmount"
-        @deposit-withdrawn="callWithdraw"
-      ></ListingComponent>
-      <LoadingComponent
-        v-if="loadingWithdraw"
-        :message="'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'"
-      />
+  <div>
+    <CustomAlert
+      v-if="showAlert"
+      :type="'withdraw'"
+      @close-alert="showAlert = false"
+    />
+    <div class="page">
+      <div class="header" v-if="!loadingWithdraw && !walletAddress">
+        Por Favor Conecte Sua Carteira
+      </div>
+      <div class="header" v-if="!loadingWithdraw && walletAddress">
+        Gerenciar Ofertas
+      </div>
+      <div class="w-full max-w-4xl flex justify-center">
+        <ListingComponent
+          v-if="!loadingWithdraw && walletAddress"
+          :valid-deposits="depositList"
+          :wallet-transactions="transactionsList"
+          :active-lock-amount="activeLockAmount"
+          @deposit-withdrawn="callWithdraw"
+        ></ListingComponent>
+        <LoadingComponent
+          v-if="loadingWithdraw"
+          :message="'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'"
+        />
+      </div>
     </div>
   </div>
 </template>

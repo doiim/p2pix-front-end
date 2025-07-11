@@ -1,8 +1,15 @@
 <script setup lang="ts">
 import { ref } from "vue";
+import { useUser } from "@/composables/useUser";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { decimalCount } from "@/utils/decimalCount";
+import { getTokenImage } from "@/utils/imagesPath";
+import { useOnboard } from "@web3-onboard/vue";
+
+// Store
+const user = useUser();
+const { walletAddress } = user;
 
 // Reactive state
 const tokenValue = ref<number>(0);
@@ -12,6 +19,12 @@ const validDecimals = ref<boolean>(true);
 
 // Emits
 const emit = defineEmits(["tokenBuy"]);
+
+// Blockchain methods
+const connectAccount = async (): Promise<void> => {
+  const { connectWallet } = useOnboard();
+  await connectWallet();
+};
 
 // Debounce methods
 const handleInputEvent = (event: any): void => {
@@ -39,7 +52,7 @@ const handleInputEvent = (event: any): void => {
         tokens após realizar o Pix</span
       >
     </div>
-    <div class="blur-container">
+    <div class="main-container">
       <div
         class="flex flex-col w-full bg-white px-10 py-5 rounded-lg border-y-10"
       >
@@ -58,8 +71,14 @@ const handleInputEvent = (event: any): void => {
           <div
             class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
           >
-            <img alt="Token image" class="w-fit" src="@/assets/brz.svg" />
-            <span class="text-gray-900 text-lg w-fit" id="brz">BRZ</span>
+            <img
+              alt="Token image"
+              class="w-fit"
+              :src="getTokenImage(user.selectedToken.value)"
+            />
+            <span class="text-gray-900 text-lg w-fit" id="token">{{
+              user.selectedToken
+            }}</span>
           </div>
         </div>
 
@@ -71,13 +90,13 @@ const handleInputEvent = (event: any): void => {
           <div class="flex gap-2">
             <img
               alt="Polygon image"
-              src="@/assets/polygon.svg"
+              src="@/assets/polygon.svg?url"
               width="24"
               height="24"
             />
             <img
               alt="Ethereum image"
-              src="@/assets/ethereum.svg"
+              src="@/assets/ethereum.svg?url"
               width="24"
               height="24"
             />
@@ -94,9 +113,16 @@ const handleInputEvent = (event: any): void => {
           >
         </div>
       </div>
+
       <CustomButton
+        v-if="walletAddress"
         :text="'Conectar carteira'"
         @buttonClicked="emit('tokenBuy')"
+      />
+      <CustomButton
+        v-if="!walletAddress"
+        :text="'Conectar carteira'"
+        @buttonClicked="connectAccount()"
       />
     </div>
   </div>
@@ -123,14 +149,6 @@ const handleInputEvent = (event: any): void => {
 
 .text {
   @apply text-white text-center;
-}
-
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-10;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 
 input[type="number"]::-webkit-inner-spin-button,

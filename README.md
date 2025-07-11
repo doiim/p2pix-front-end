@@ -102,3 +102,19 @@ cd P2Pix-Front-End
 # Run docker-compose up command
 docker-compose up
 ```
+
+### Backend Communication
+
+Backend Repo: `https://gitea.kosmos.org/hueso/helpix`
+
+Backend Endpoint: `https://api.p2pix.co/release/1279331`
+
+curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer {api-key}" \
+  -d '{"query": "{ depositAddeds { id seller token amount } }"}' \
+https://api.studio.thegraph.com/query/113713/p-2-pix/sepolia
+
+https://api.studio.thegraph.com/query/113713/p-2-pix/1
+
+curl --request POST --url 'https://api.hm.bb.com.br/testes-portal-desenvolvedor/v1/boletos-pix/pagar?gw-app-key=95cad3f03fd9013a9d15005056825665' --header 'content-type: application/json' --data '{"pix":"00020101021226070503***63041654" }'

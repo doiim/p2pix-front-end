@@ -1,64 +1,70 @@
-import { useEtherStore } from "@/store/ether";
-import { NetworkEnum } from "@/model/NetworkEnum";
+import { useUser } from "@/composables/useUser";
+import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
+import { createPublicClient, http, type Address } from "viem";
+import { sepolia, rootstock } from "viem/chains";
 
-const getTokenAddress = (network?: NetworkEnum): string => {
-  const etherStore = useEtherStore();
-
-  const possibleTokenAddresses: { [key: string]: string } = {
-    Ethereum: "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00",
-    Polygon: "0xC86042E9F2977C62Da8c9dDF7F9c40fde4796A29",
-  };
-
-  return possibleTokenAddresses[network ? network : etherStore.networkName];
+const Tokens: { [key in NetworkEnum]: { [key in TokenEnum]: Address } } = {
+  [NetworkEnum.sepolia]: {
+    BRZ: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
+    // BRX: "0x3eBE67A2C7bdB2081CBd34ba3281E90377462289",
+  },
+  [NetworkEnum.rootstock]: {
+    BRZ: "0xfE841c74250e57640390f46d914C88d22C51e82e",
+    // BRX: "0xfE841c74250e57640390f46d914C88d22C51e82e",
+  },
 };
 
-const getP2PixAddress = (network?: NetworkEnum): string => {
-  const etherStore = useEtherStore();
-
-  const possibleP2PixAddresses: { [key: string]: string } = {
-    Ethereum: "0x2414817FF64A114d91eCFA16a834d3fCf69103d4",
-    Polygon: "0x4A2886EAEc931e04297ed336Cc55c4eb7C75BA00",
-  };
-
-  return possibleP2PixAddresses[network ? network : etherStore.networkName];
-};
-
-const getProviderUrl = (): string => {
-  const etherStore = useEtherStore();
-
-  const possibleProvidersUrls: { [key: string]: string } = {
-    Ethereum: import.meta.env.VITE_GOERLI_API_URL,
-    Polygon: import.meta.env.VITE_MUMBAI_API_URL,
-  };
-
-  return possibleProvidersUrls[etherStore.networkName];
-};
-
-const possibleChains: { [key: string]: NetworkEnum } = {
-  "0x5": NetworkEnum.ethereum,
-  "5": NetworkEnum.ethereum,
-  "0x13881": NetworkEnum.polygon,
-  "80001": NetworkEnum.polygon,
-};
-
-const network2Chain: { [key: string]: string } = {
-  Ethereum: "0x5",
-  Polygon: "0x13881",
-  Localhost: "0x7a69",
-};
-
-const isPossibleNetwork = (networkChain: string): boolean => {
-  if (Object.keys(possibleChains).includes(networkChain)) {
-    return true;
+export const getTokenByAddress = (address: Address) => {
+  const user = useUser();
+  const networksTokens = Tokens[user.networkName.value];
+  for (const [token, tokenAddress] of Object.entries(networksTokens)) {
+    if (tokenAddress.toLowerCase() === address.toLowerCase()) {
+      return token;
+    }
   }
-  return false;
+  return null;
 };
 
-export {
-  getTokenAddress,
-  getProviderUrl,
-  possibleChains,
-  network2Chain,
-  isPossibleNetwork,
-  getP2PixAddress,
+export const getTokenAddress = (
+  token: TokenEnum,
+  network?: NetworkEnum
+): Address => {
+  const user = useUser();
+  return Tokens[network ? network : user.networkName.value][
+    token
+  ];
+};
+
+export const getP2PixAddress = (network?: NetworkEnum): Address => {
+  const user = useUser();
+  const possibleP2PixAddresses: { [key in NetworkEnum]: Address } = {
+    [NetworkEnum.sepolia]: "0xb7cD135F5eFD9760981e02E2a898790b688939fe",
+    [NetworkEnum.rootstock]: "0x98ba35eb14b38D6Aa709338283af3e922476dE34",
+  };
+
+  return possibleP2PixAddresses[
+    network ? network : user.networkName.value
+  ];
+};
+
+export const getProviderUrl = (network?: NetworkEnum): string => {
+  const user = useUser();
+  const possibleProvidersUrls: { [key in NetworkEnum]: string } = {
+    [NetworkEnum.sepolia]: import.meta.env.VITE_SEPOLIA_API_URL,
+    [NetworkEnum.rootstock]: import.meta.env.VITE_RSK_API_URL,
+  };
+
+  return possibleProvidersUrls[network || user.networkName.value];
+};
+
+export const getProviderByNetwork = (network: NetworkEnum) => {
+  const chain = network === NetworkEnum.sepolia ? sepolia : rootstock;
+  return createPublicClient({
+    chain,
+    transport: http(getProviderUrl(network)),
+  });
+};
+
+export const isPossibleNetwork = (networkChain: NetworkEnum): boolean => {
+  return Number(networkChain) in NetworkEnum;
 };

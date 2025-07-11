@@ -1,126 +1,176 @@
-import { useEtherStore } from "@/store/ether";
-import { Contract, ethers } from "ethers";
+import { useUser } from "@/composables/useUser";
+import { formatEther, toHex, stringToHex } from "viem";
+import type { PublicClient, Address } from "viem";
 
-import p2pix from "@/utils/smart_contract_files/P2PIX.json";
-import { formatEther } from "ethers/lib/utils";
 import { getContract } from "./provider";
-import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getP2PixAddress, getTokenAddress } from "./addresses";
-import { NetworkEnum } from "@/model/NetworkEnum";
+import { p2PixAbi } from "./abi"
+import type { ValidDeposit } from "@/model/ValidDeposit";
+import { getNetworkSubgraphURL, NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
-import type { Pix } from "@/model/Pix";
+import type { LockStatus } from "@/model/LockStatus"
 
 const getNetworksLiquidity = async (): Promise<void> => {
-  const etherStore = useEtherStore();
+  const user = useUser();
+  user.setLoadingNetworkLiquidity(true);
 
-  const goerliProvider = new ethers.providers.JsonRpcProvider(
-    import.meta.env.VITE_GOERLI_API_URL,
-    5
-  ); // goerli provider
-  const mumbaiProvider = new ethers.providers.JsonRpcProvider(
-    import.meta.env.VITE_MUMBAI_API_URL,
-    80001
-  ); // mumbai provider
+  const depositLists: ValidDeposit[][] = [];
 
-  const p2pContractGoerli = new ethers.Contract(
-    getP2PixAddress(NetworkEnum.ethereum),
-    p2pix.abi,
-    goerliProvider
+  for (const network of Object.values(NetworkEnum).filter(
+    (v) => !isNaN(Number(v))
+  )) {
+    const deposits = await getValidDeposits(
+      getTokenAddress(user.selectedToken.value),
+      Number(network)
+    );
+    if (deposits) depositLists.push(deposits);
+  }
+
+  const allDeposits = depositLists.flat();
+  user.setDepositsValidList(allDeposits);
+  user.setLoadingNetworkLiquidity(false);
+};
+
+const getParticipantID = async (
+  seller: string,
+  token: string
+): Promise<string> => {
+  const { address, abi, client } = await getContract();
+
+  const participantIDHex = await client.readContract({
+    address,
+    abi,
+    functionName: "getPixTarget",
+    args: [seller, token],
+  });
+
+  // Remove '0x' prefix and convert hex to UTF-8 string
+  const hexString =
+    typeof participantIDHex === "string"
+      ? participantIDHex
+      : toHex(participantIDHex as bigint);
+  if (!hexString) throw new Error("Participant ID not found");
+  const bytes = new Uint8Array(
+    hexString
+      .slice(2)
+      .match(/.{1,2}/g)!
+      .map((byte: string) => parseInt(byte, 16))
   );
-  const p2pContractMumbai = new ethers.Contract(
-    getP2PixAddress(NetworkEnum.polygon),
-    p2pix.abi,
-    mumbaiProvider
-  );
-
-  etherStore.setLoadingNetworkLiquidity(true);
-  const depositListGoerli = await getValidDeposits(
-    getTokenAddress(NetworkEnum.ethereum),
-    p2pContractGoerli
-  );
-
-  const depositListMumbai = await getValidDeposits(
-    getTokenAddress(NetworkEnum.polygon),
-    p2pContractMumbai
-  );
-
-  etherStore.setDepositsValidListGoerli(depositListGoerli);
-  etherStore.setDepositsValidListMumbai(depositListMumbai);
-  etherStore.setLoadingNetworkLiquidity(false);
+  // Remove null bytes from the end of the string
+  return new TextDecoder().decode(bytes).replace(/\0/g, "");
 };
 
 const getValidDeposits = async (
-  token: string,
-  contract?: Contract
+  token: Address,
+  network: NetworkEnum,
+  contractInfo?: { client: PublicClient; address: Address }
 ): Promise<ValidDeposit[]> => {
-  let p2pContract: Contract;
+  let client: PublicClient, abi;
 
-  if (contract) {
-    p2pContract = contract;
+  if (contractInfo) {
+    ({ client } = contractInfo);
+    abi = p2PixAbi;
   } else {
-    p2pContract = getContract(true);
+    ({ abi, client } = await getContract(true));
   }
 
-  const filterDeposits = p2pContract.filters.DepositAdded(null);
-  const eventsDeposits = await p2pContract.queryFilter(filterDeposits);
+  // TODO: Remove this once we have a subgraph for rootstock
+  if (network === NetworkEnum.rootstock) return [];
 
-  if (!contract) p2pContract = getContract(); // get metamask provider contract
-  const depositList: { [key: string]: ValidDeposit } = {};
-
-  await Promise.all(
-    eventsDeposits.map(async (deposit) => {
-      // Get liquidity only for the selected token
-      if (deposit.args?.token != token) return null;
-
-      const mappedBalance = await p2pContract.getBalance(
-        deposit.args?.seller,
-        token
-      );
-
-      const mappedPixTarget = await p2pContract.getPixTarget(
-        deposit.args?.seller,
-        token
-      );
-
-      let validDeposit: ValidDeposit | null = null;
-
-      if (mappedBalance._hex) {
-        validDeposit = {
-          token: token,
-          blockNumber: deposit.blockNumber,
-          remaining: Number(formatEther(mappedBalance._hex)),
-          seller: deposit.args?.seller,
-          pixKey: Number(mappedPixTarget._hex),
-        };
+  const body = {
+    query: `
+      {
+        depositAddeds(where: { token: "${token}" }) {
+          seller
+          amount
+          blockTimestamp
+          blockNumber
+        }
       }
+  `,
+  };
 
-      if (validDeposit)
-        depositList[deposit.args?.seller + token] = validDeposit;
-    })
+  const depositLogs = await fetch(getNetworkSubgraphURL(network), {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  // remove doubles from sellers list
+  const depositData = await depositLogs.json();
+  const depositAddeds = depositData.data.depositAddeds;
+  const uniqueSellers = depositAddeds.reduce(
+    (acc: Record<Address, boolean>, deposit: any) => {
+      acc[deposit.seller] = true;
+      return acc;
+    },
+    {} as Record<Address, boolean>
   );
 
+  if (!contractInfo) {
+    // Get metamask provider contract
+    ({ abi, client } = await getContract(true));
+  }
+
+  const depositList: { [key: string]: ValidDeposit } = {};
+
+  const sellersList = Object.keys(uniqueSellers) as Address[];
+  // Use multicall to batch all getBalance requests
+  const balanceCalls = sellersList.map((seller) => ({
+    address: getP2PixAddress(network),
+    abi,
+    functionName: "getBalance",
+    args: [seller, token],
+  }));
+
+  const balanceResults = await client.multicall({
+    contracts: balanceCalls as any,
+  });
+
+  // Process results into the depositList
+  sellersList.forEach((seller, index) => {
+    const mappedBalance = balanceResults[index];
+
+    if (!mappedBalance.error && mappedBalance.result) {
+      const validDeposit: ValidDeposit = {
+        token,
+        blockNumber: 0,
+        remaining: Number(formatEther(mappedBalance.result as bigint)),
+        seller,
+        network,
+        participantID: "",
+      };
+      depositList[seller + token] = validDeposit;
+    }
+  });
   return Object.values(depositList);
 };
 
 const getUnreleasedLockById = async (
-  lockID: string
+  lockID: bigint
 ): Promise<UnreleasedLock> => {
-  const p2pContract = getContract();
-  const pixData: Pix = {
-    pixKey: "",
-  };
+  const { address, abi, client } = await getContract();
 
-  const lock = await p2pContract.mapLocks(lockID);
-
-  const pixTarget = lock.pixTarget;
-  const amount = formatEther(lock?.amount);
-  pixData.pixKey = String(Number(pixTarget));
-  pixData.value = Number(amount);
+  const [ , , , amount, token, seller ] = await client.readContract({
+    address,
+    abi,
+    functionName: "mapLocks",
+    args: [lockID],
+  });
 
   return {
-    lockID: lockID,
-    pix: pixData,
+    lockID,
+    amount: Number(formatEther(amount)),
+    tokenAddress: token,
+    sellerAddress: seller,
   };
 };
 
-export { getValidDeposits, getNetworksLiquidity, getUnreleasedLockById };
+export {
+  getValidDeposits,
+  getNetworksLiquidity,
+  getUnreleasedLockById,
+  getParticipantID,
+};

@@ -1,52 +1,61 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
+import { useUser } from "@/composables/useUser";
+import SpinnerComponent from "@/components/SpinnerComponent.vue";
 import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
-import { useEtherStore } from "@/store/ether";
-import { storeToRefs } from "pinia";
-import { connectProvider } from "@/blockchain/provider";
 import { verifyNetworkLiquidity } from "@/utils/networkLiquidity";
 import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { decimalCount } from "@/utils/decimalCount";
-import SpinnerComponent from "./SpinnerComponent.vue";
+import { getTokenImage } from "@/utils/imagesPath";
+import { onClickOutside } from "@vueuse/core";
+
+import { TokenEnum } from "@/model/NetworkEnum";
 
 // Store reference
-const etherStore = useEtherStore();
+const user = useUser();
+const selectTokenToggle = ref<boolean>(false);
 
 const {
   walletAddress,
   networkName,
-  depositsValidListGoerli,
-  depositsValidListMumbai,
+  selectedToken,
+  depositsValidList,
   loadingNetworkLiquidity,
-} = storeToRefs(etherStore);
+} = user;
+
+// html references
+const tokenDropdownRef = ref<any>(null);
 
 // Reactive state
 const tokenValue = ref<number>(0);
 const enableConfirmButton = ref<boolean>(false);
-const enableWalletButton = ref<boolean>(false);
 const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
-const selectedGoerliDeposit = ref<ValidDeposit>();
-const selectedMumbaiDeposit = ref<ValidDeposit>();
+const identification = ref<string>("");
+const selectedDeposits = ref<ValidDeposit[]>();
+
+import ChevronDown from "@/assets/chevronDown.svg";
+import { useOnboard } from "@web3-onboard/vue";
+import { getParticipantID } from "@/blockchain/events";
 
 // Emits
 const emit = defineEmits(["tokenBuy"]);
 
 // Blockchain methods
 const connectAccount = async (): Promise<void> => {
-  await connectProvider();
-
-  enableOrDisableConfirmButton();
+  const { connectWallet } = useOnboard();
+  await connectWallet();
 };
 
-const emitConfirmButton = (): void => {
-  const selectedDeposit =
-    networkName.value == NetworkEnum.ethereum
-      ? selectedGoerliDeposit.value
-      : selectedMumbaiDeposit.value;
-  emit("tokenBuy", selectedDeposit, tokenValue.value);
+const emitConfirmButton = async (): Promise<void> => {
+  const deposit = selectedDeposits.value?.find(
+    (d) => d.network === Number(networkName.value)
+  );
+  if (!deposit) return;
+  deposit.participantID = await getParticipantID(deposit.seller, deposit.token);
+  emit("tokenBuy", deposit, tokenValue.value);
 };
 
 // Debounce methods
@@ -65,47 +74,48 @@ const handleInputEvent = (event: any): void => {
   verifyLiquidity();
 };
 
+const openTokenSelection = (): void => {
+  selectTokenToggle.value = true;
+};
+
+onClickOutside(tokenDropdownRef, () => {
+  selectTokenToggle.value = false;
+});
+
+const handleSelectedToken = (token: TokenEnum): void => {
+  user.setSelectedToken(token);
+  selectTokenToggle.value = false;
+};
+
 // Verify if there is a valid deposit to buy
 const verifyLiquidity = (): void => {
   enableConfirmButton.value = false;
-  selectedGoerliDeposit.value = undefined;
-  selectedMumbaiDeposit.value = undefined;
-
-  if (tokenValue.value <= 0) {
-    enableWalletButton.value = false;
+  if (!walletAddress.value)
     return;
-  }
-
-  selectedGoerliDeposit.value = verifyNetworkLiquidity(
+  const selDeposits = verifyNetworkLiquidity(
     tokenValue.value,
     walletAddress.value,
-    depositsValidListGoerli.value
+    depositsValidList.value
   );
-  selectedMumbaiDeposit.value = verifyNetworkLiquidity(
-    tokenValue.value,
-    walletAddress.value,
-    depositsValidListMumbai.value
+  selectedDeposits.value = selDeposits;
+  hasLiquidity.value = !!selDeposits.find(
+    (d) => d.network === Number(networkName.value)
   );
-
   enableOrDisableConfirmButton();
-  if (selectedGoerliDeposit.value || selectedMumbaiDeposit.value) {
-    hasLiquidity.value = true;
-    enableWalletButton.value = true;
-  } else {
-    hasLiquidity.value = false;
-    enableWalletButton.value = true;
-  }
 };
 
 const enableOrDisableConfirmButton = (): void => {
-  if (selectedGoerliDeposit.value && networkName.value == NetworkEnum.ethereum)
-    enableConfirmButton.value = true;
-  else if (
-    selectedMumbaiDeposit.value &&
-    networkName.value == NetworkEnum.polygon
-  )
-    enableConfirmButton.value = true;
-  else enableConfirmButton.value = false;
+  if (!selectedDeposits.value) {
+    enableConfirmButton.value = false;
+    return;
+  }
+
+  if (!selectedDeposits.value.find((d) => d.network === networkName.value)) {
+    enableConfirmButton.value = false;
+    return;
+  }
+
+  enableConfirmButton.value = true;
 };
 
 watch(networkName, (): void => {
@@ -116,6 +126,16 @@ watch(networkName, (): void => {
 watch(walletAddress, (): void => {
   verifyLiquidity();
 });
+
+// Add form submission handler
+const handleSubmit = async (e: Event): Promise<void> => {
+  e.preventDefault();
+  if (walletAddress.value) {
+    await emitConfirmButton();
+  } else {
+    await connectAccount();
+  }
+};
 </script>
 
 <template>
@@ -131,7 +151,7 @@ watch(walletAddress, (): void => {
         tokens após realizar o Pix</span
       >
     </div>
-    <div class="blur-container">
+    <form class="main-container" @submit="handleSubmit">
       <div class="backdrop-blur -z-10 w-full h-full"></div>
       <div
         class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg border-y-10"
@@ -139,51 +159,98 @@ watch(walletAddress, (): void => {
         <div class="flex justify-between sm:w-full items-center">
           <input
             type="number"
-            class="border-none outline-none text-lg text-gray-900 w-3/4"
+            name="tokenAmount"
+            class="border-none outline-none text-lg text-gray-900"
             v-bind:class="{
               'font-semibold': tokenValue != undefined,
               'text-xl': tokenValue != undefined,
             }"
             @input="debounce(handleInputEvent, 500)($event)"
-            placeholder="0  "
+            placeholder="0"
             step=".01"
+            required
           />
-          <div
-            class="flex flex-row p-2 px-3 bg-gray-300 rounded-3xl min-w-fit gap-1"
-          >
-            <img
-              alt="Token image"
-              class="sm:w-fit w-4"
-              src="@/assets/brz.svg"
-            />
-            <span class="text-gray-900 sm:text-lg text-md w-fit" id="brz"
-              >BRZ</span
+          <div class="relative overflow-visible">
+            <button
+              ref="tokenDropdownRef"
+              class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
+              @click="openTokenSelection()"
             >
+              <img
+                alt="Token image"
+                class="sm:w-fit w-4"
+                :src="getTokenImage(selectedToken)"
+              />
+              <span
+                class="text-gray-900 sm:text-lg text-md font-medium"
+                id="token"
+                >{{ selectedToken }}</span
+              >
+              <ChevronDown
+                class="pr-4 sm:pr-0 transition-all duration-500 ease-in-out invert"
+                :class="{ 'scale-y-[-1]': selectTokenToggle }"
+                alt="Chevron Down"
+              />
+            </button>
+            <transition name="dropdown">
+              <div
+                v-if="selectTokenToggle"
+                class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
+              >
+                <div
+                  class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
+                >
+                  <div
+                    v-for="token in TokenEnum"
+                    :key="token"
+                    class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
+                    @click="handleSelectedToken(token)"
+                  >
+                    <img
+                      :alt="token + ' logo'"
+                      width="20"
+                      height="20"
+                      :src="getTokenImage(token)"
+                    />
+                    <span
+                      class="text-gray-900 py-4 text-end font-semibold text-sm"
+                    >
+                      {{ token }}
+                    </span>
+                  </div>
+                  <div class="w-full flex justify-center">
+                    <hr class="w-4/5" />
+                  </div>
+                </div>
+              </div>
+            </transition>
           </div>
         </div>
-
         <div class="custom-divide py-2 mb-2"></div>
-        <div
-          class="flex justify-between"
-          v-if="hasLiquidity && !loadingNetworkLiquidity"
-        >
+        <div class="flex justify-between" v-if="!loadingNetworkLiquidity">
           <p class="text-gray-500 font-normal text-sm w-auto">
             ~ R$ {{ tokenValue.toFixed(2) }}
           </p>
           <div class="flex gap-2">
             <img
-              alt="Polygon image"
-              src="@/assets/polygon.svg"
+              alt="Rootstock image"
+              src="@/assets/rootstock.svg?url"
               width="24"
               height="24"
-              v-if="selectedMumbaiDeposit"
+              v-if="
+                selectedDeposits &&
+                selectedDeposits.find((d) => d.network == NetworkEnum.rootstock)
+              "
             />
             <img
               alt="Ethereum image"
-              src="@/assets/ethereum.svg"
+              src="@/assets/ethereum.svg?url"
               width="24"
               height="24"
-              v-if="selectedGoerliDeposit"
+              v-if="
+                selectedDeposits &&
+                selectedDeposits.find((d) => d.network == NetworkEnum.sepolia)
+              "
             />
           </div>
         </div>
@@ -206,26 +273,43 @@ watch(walletAddress, (): void => {
         </div>
         <div
           class="flex justify-center"
-          v-else-if="!hasLiquidity && !loadingNetworkLiquidity"
+          v-else-if="
+            !hasLiquidity && !loadingNetworkLiquidity && tokenValue > 0
+          "
         >
           <span class="text-red-500 font-normal text-sm"
-            >Atualmente não há liquidez nas redes para sua demanda</span
+            >Atualmente não há liquidez nas rede selecionada para sua
+            demanda</span
           >
         </div>
       </div>
-      <CustomButton
-        v-if="!walletAddress"
-        :text="'Conectar carteira'"
-        :is-disabled="!enableWalletButton"
-        @buttonClicked="connectAccount()"
-      />
+
+      <div
+        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg border-y-10"
+      >
+        <input
+          type="text"
+          v-model="identification"
+          maxlength="14"
+          :pattern="'^\\d{11}$|^\\d{14}$'"
+          class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full"
+          placeholder="Digite seu CPF ou CNPJ (somente números)"
+          required
+        />
+      </div>
+
+      <!-- Action buttons -->
       <CustomButton
         v-if="walletAddress"
-        :text="'Confirmar compra'"
-        :is-disabled="!enableConfirmButton"
-        @buttonClicked="emitConfirmButton()"
+        type="submit"
+        text="Confirmar Oferta"
       />
-    </div>
+      <CustomButton
+        v-else
+        text="Conectar carteira"
+        @buttonClicked="connectAccount()"
+      />
+    </form>
   </div>
 </template>
 
@@ -252,10 +336,6 @@ watch(walletAddress, (): void => {
   @apply text-white text-center;
 }
 
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 mt-10;
-}
-
 input[type="number"] {
   -moz-appearance: textfield;
 }
@@ -263,5 +343,11 @@ input[type="number"] {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
+}
+
+.custom-button {
+  @apply w-full py-3 px-6 rounded-lg font-semibold text-white bg-indigo-600 
+         hover:bg-indigo-700 disabled:bg-gray-400 disabled:cursor-not-allowed
+         transition-colors duration-200;
 }
 </style>

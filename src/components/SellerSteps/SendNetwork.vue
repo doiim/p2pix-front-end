@@ -6,8 +6,9 @@ const emit = defineEmits(["sendNetwork"]);
 
 // props and store references
 const props = defineProps({
-  pixKey: String,
+  sellerId: String,
   offer: Number,
+  selectedToken: String,
 });
 </script>
 
@@ -19,24 +20,26 @@ const props = defineProps({
         >Envie sua oferta para a rede
       </span>
       <span
-        class="text text-xl font-normal sm:text-base text-xs sm:max-w-[30rem] max-w-[22rem]"
+        class="text font-normal sm:text-base text-xs sm:max-w-[30rem] max-w-[22rem]"
         >Após a confirmação sua oferta estará disponível para outros usuários.
         Caso deseje retirar a oferta, será necessário aguardar 24h para receber
         os tokens de volta.</span
       >
     </div>
-    <div class="blur-container">
+    <div class="main-container">
       <div
         class="flex flex-col w-full bg-white px-10 py-5 rounded-lg border-y-10"
       >
         <div>
           <p>Tokens ofertados</p>
-          <p class="text-2xl text-gray-900">{{ props.offer }} BRZ</p>
+          <p class="text-2xl text-gray-900">
+            {{ props.offer }} {{ props.selectedToken }}
+          </p>
         </div>
         <div class="my-3">
           <p>Chave Pix</p>
           <p class="text-xl text-gray-900 break-words">
-            {{ props.pixKey }}
+            {{ props.sellerId }}
           </p>
         </div>
         <div class="mb-5">
@@ -72,16 +75,8 @@ p {
   @apply text-white text-center;
 }
 
-.blur-container {
-  @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-8 sm:w-1/3;
-}
-
 .last-deposit-info {
   @apply font-medium text-base;
-}
-
-input[type="number"] {
-  -moz-appearance: textfield;
 }
 
 input[type="number"]::-webkit-inner-spin-button,

@@ -1,44 +1,88 @@
-import { getContract, getProvider } from "./provider";
+import { getContract, getPublicClient, getWalletClient } from "./provider";
 import { getTokenAddress, getP2PixAddress } from "./addresses";
-import { parseEther } from "ethers/lib/utils";
+import { parseEther, toHex } from "viem";
+import { sepolia, rootstock } from "viem/chains";
 
-import { ethers } from "ethers";
+import { mockTokenAbi } from "./abi";
+import { useUser } from "@/composables/useUser";
+import { createParticipant } from "@/utils/bbPay";
+import type { Participant } from "@/utils/bbPay";
 
-import mockToken from "../utils/smart_contract_files/MockToken.json";
+const approveTokens = async (participant: Participant): Promise<any> => {
+  const user = useUser();
+  const publicClient = getPublicClient();
+  const walletClient = getWalletClient();
 
-const approveTokens = async (tokenQty: string): Promise<any> => {
-  const provider = getProvider();
-  const signer = provider.getSigner();
+  if (!publicClient || !walletClient) {
+    throw new Error("Clients not initialized");
+  }
 
-  const tokenContract = new ethers.Contract(
-    getTokenAddress(),
-    mockToken.abi,
-    signer
-  );
+  user.setSeller(participant);
+  const [account] = await walletClient.getAddresses();
 
-  const apprv = await tokenContract.approve(
-    getP2PixAddress(),
-    parseEther(tokenQty)
-  );
+  // Get token address
+  const tokenAddress = getTokenAddress(user.selectedToken.value);
 
-  await apprv.wait();
-  return apprv;
+  // Check if the token is already approved
+  const allowance = await publicClient.readContract({
+    address: tokenAddress,
+    abi: mockTokenAbi,
+    functionName: "allowance",
+    args: [account, getP2PixAddress()],
+  });
+
+  if ( allowance < parseEther(participant.offer.toString()) ) {
+    // Approve tokens
+    const chain = user.networkId.value === sepolia.id ? sepolia : rootstock;
+    const hash = await walletClient.writeContract({
+      address: tokenAddress,
+      abi: mockTokenAbi,
+      functionName: "approve",
+      args: [getP2PixAddress(), parseEther(participant.offer.toString())],
+      account,
+      chain,
+    });
+
+    await publicClient.waitForTransactionReceipt({ hash });
+    return true;
+  }
+  return true;
 };
 
-const addDeposit = async (tokenQty: string, pixKey: string): Promise<any> => {
-  const p2pContract = getContract();
+const addDeposit = async (): Promise<any> => {
+  const { address, abi, client } = await getContract();
+  const walletClient = getWalletClient();
+  const user = useUser();
 
-  const deposit = await p2pContract.deposit(
-    getTokenAddress(),
-    parseEther(tokenQty),
-    pixKey,
-    true,
-    ethers.utils.formatBytes32String("")
-  );
+  if (!walletClient) {
+    throw new Error("Wallet client not initialized");
+  }
 
-  await deposit.wait();
+  const [account] = await walletClient.getAddresses();
 
-  return deposit;
+  const sellerId = await createParticipant(user.seller.value);
+  user.setSellerId(sellerId.id);
+  if (!sellerId.id) {
+    throw new Error("Failed to create participant");
+  }
+  const chain = user.networkId.value === sepolia.id ? sepolia : rootstock;
+  const hash = await walletClient.writeContract({
+    address,
+    abi,
+    functionName: "deposit",
+    args: [
+      user.networkId.value + "-" + sellerId.id,
+      toHex("", { size: 32 }),
+      getTokenAddress(user.selectedToken.value),
+      parseEther(user.seller.value.offer.toString()),
+      true,
+    ],
+    account,
+    chain,
+  });
+
+  const receipt = await client.waitForTransactionReceipt({ hash });
+  return receipt;
 };
 
 export { approveTokens, addDeposit };
