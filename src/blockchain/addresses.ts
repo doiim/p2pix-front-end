@@ -1,7 +1,7 @@
 import { useUser } from "@/composables/useUser";
 import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
 import { createPublicClient, http, type Address } from "viem";
-import { sepolia, rootstock } from "viem/chains";
+import { sepolia, rootstockTestnet } from "viem/chains";
 
 const Tokens: { [key in NetworkEnum]: { [key in TokenEnum]: Address } } = {
   [NetworkEnum.sepolia]: {
@@ -58,7 +58,7 @@ export const getProviderUrl = (network?: NetworkEnum): string => {
 };
 
 export const getProviderByNetwork = (network: NetworkEnum) => {
-  const chain = network === NetworkEnum.sepolia ? sepolia : rootstock;
+  const chain = network === NetworkEnum.sepolia ? sepolia : rootstockTestnet;
   return createPublicClient({
     chain,
     transport: http(getProviderUrl(network)),
