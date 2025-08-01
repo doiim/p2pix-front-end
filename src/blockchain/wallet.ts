@@ -1,4 +1,4 @@
-import { formatEther, hexToString, type Address } from "viem";
+import { formatEther, type Address } from "viem";
 import { useUser } from "@/composables/useUser";
 
 import { getPublicClient, getWalletClient, getContract } from "./provider";
@@ -462,19 +462,4 @@ export const getActiveLockAmount = async (
     }
     return total;
   }, 0);
-};
-
-export const getSellerParticipantId = async (
-  sellerAddress: Address,
-  tokenAddress: Address
-): Promise<string> => {
-  const { address, abi, client } = await getContract();
-
-  const participantId = await client.readContract({
-    address,
-    abi,
-    functionName: "getPixTarget",
-    args: [sellerAddress, tokenAddress],
-  });
-  return hexToString(participantId);
 };

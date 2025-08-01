@@ -4,7 +4,7 @@ import CustomButton from "@/components/CustomButton/CustomButton.vue";
 import CustomModal from "@/components//CustomModal/CustomModal.vue";
 import SpinnerComponent from "@/components/SpinnerComponent.vue";
 import { createSolicitation, getSolicitation, type Offer } from "@/utils/bbPay";
-import { getSellerParticipantId } from "@/blockchain/wallet";
+import { getParticipantID } from "@/blockchain/events";
 import { getUnreleasedLockById } from "@/blockchain/events";
 import QRCode from "qrcode";
 
@@ -86,7 +86,7 @@ onMounted(async () => {
       BigInt(props.lockID)
     );
 
-    const participantId = await getSellerParticipantId(
+    const participantId = await getParticipantID(
       sellerAddress,
       tokenAddress
     );
