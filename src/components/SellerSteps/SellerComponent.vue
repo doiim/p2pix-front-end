@@ -34,6 +34,7 @@ const accountType = ref<string>("");
 const selectTokenToggle = ref<boolean>(false);
 const savingsVariation = ref<string>("");
 const errors = ref<{ [key: string]: string }>({});
+const isApprovingTokens = ref<boolean>(false);
 
 // Bank selection
 const bankSearchQuery = ref<string>("");
@@ -64,23 +65,29 @@ const connectAccount = async (): Promise<void> => {
   await connectWallet();
 };
 
-const handleSubmit = (e: Event): void => {
+const handleSubmit = async (e: Event): Promise<void> => {
   e.preventDefault();
 
-  const processedIdentification = postProcessKey(identification.value);
+  try {
+    isApprovingTokens.value = true;
 
-  const data: Participant = {
-    offer: offer.value,
-    chainID: user.networkId.value,
-    identification: processedIdentification,
-    bankIspb: selectedBank.value?.ISPB,
-    accountType: accountType.value,
-    account: account.value,
-    branch: branch.value,
-    savingsVariation: savingsVariation.value || "",
-  };
+    const processedIdentification = postProcessKey(identification.value);
 
-  emit("approveTokens", data);
+    const data: Participant = {
+      offer: offer.value,
+      chainID: user.networkId.value,
+      identification: processedIdentification,
+      bankIspb: selectedBank.value?.ISPB,
+      accountType: accountType.value,
+      account: account.value,
+      branch: branch.value,
+      savingsVariation: savingsVariation.value || "",
+    };
+
+    emit("approveTokens", data);
+  } finally {
+    isApprovingTokens.value = false;
+  }
 };
 
 // Token selection
@@ -294,7 +301,12 @@ const handleSelectedToken = (token: TokenEnum): void => {
         />
       </Transition>
       <!-- Action buttons -->
-      <CustomButton v-if="walletAddress" type="submit" text="Aprovar tokens" />
+      <CustomButton
+        v-if="walletAddress"
+        type="submit"
+        text="Aprovar tokens"
+        :isLoading="isApprovingTokens"
+      />
       <CustomButton
         v-else
         text="Conectar carteira"

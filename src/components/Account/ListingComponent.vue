@@ -4,10 +4,10 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import { useUser } from "@/composables/useUser";
 import { ref, watch, onMounted } from "vue";
-import SpinnerComponent from "../SpinnerComponent.vue";
 import { decimalCount } from "@/utils/decimalCount";
 import { debounce } from "@/utils/debounce";
 import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";
+import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
 
 const user = useUser();
 
@@ -160,11 +160,11 @@ showInitialItems();
 
 <template>
   <div
-    class="main-container max-w-md flex justify-center items-center min-h-[200px] w-16 h-16"
+    class="main-container max-w-md flex flex-col justify-center items-center min-h-[200px] gap-3"
     v-if="loadingWalletTransactions"
   >
-    Carregando ofertas...
-    <SpinnerComponent width="8" height="8"></SpinnerComponent>
+    <SpinnerComponent width="8" height="8" color="fill-white" />
+    <span class="text-white text-lg font-semibold">Carregando ofertas...</span>
   </div>
   <div class="main-container max-w-md" v-else>
     <div
@@ -349,7 +349,7 @@ showInitialItems();
     >
       <button
         type="button"
-        class="text-white font-semibold"
+        class="text-white font-semibold border-2 border-amber-300 rounded-lg px-6 py-2 hover:bg-amber-300 hover:text-gray-900 transition-all duration-200"
         @click="loadMore()"
       >
         Carregar mais

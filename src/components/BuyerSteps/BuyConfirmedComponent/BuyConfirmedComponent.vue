@@ -5,12 +5,12 @@ import {
   listAllTransactionByWalletAddress,
   listValidDepositTransactionsByWalletAddress,
 } from "@/blockchain/wallet";
-import CustomButton from "@/components/CustomButton/CustomButton.vue";
+import CustomButton from "@/components/ui/CustomButton/CustomButton.vue";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import { useUser } from "@/composables/useUser";
 import { onMounted, ref, watch } from "vue";
-import ListingComponent from "../ListingComponent/ListingComponent.vue";
+import ListingComponent from "../../Account/ListingComponent/ListingComponent.vue";
 
 // props
 const props = defineProps<{

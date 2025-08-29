@@ -31,6 +31,7 @@ const props = defineProps({
           <span class="text-black font-medium text-sm lg:px-12 px-4 mt-4">
             {{ $props.message }}
           </span>
+          <div class="spinner mt-4"></div>
         </div>
       </div>
     </div>
@@ -58,6 +59,24 @@ const props = defineProps({
 
 .text {
   @apply text-white text-center;
+}
+
+.spinner {
+  width: 48px;
+  height: 48px;
+  border: 4px solid #f3f4f6;
+  border-top: 4px solid #f59e0b;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 input[type="number"] {

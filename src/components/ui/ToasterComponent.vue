@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { useOnboard } from "@web3-onboard/vue";
-import { Networks } from "../model/Networks";
+import { Networks } from "@/model/Networks";
 import { useUser } from "@/composables/useUser";
 
 const { connectedWallet } = useOnboard();

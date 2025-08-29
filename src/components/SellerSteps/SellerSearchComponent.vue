@@ -16,9 +16,20 @@ const tokenValue = ref<number>(0);
 const enableSelectButton = ref<boolean>(false);
 const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
+const isProcessingTokenBuy = ref<boolean>(false);
 
 // Emits
 const emit = defineEmits(["tokenBuy"]);
+
+// Handle token buy with loading state
+const handleTokenBuy = async (): Promise<void> => {
+  try {
+    isProcessingTokenBuy.value = true;
+    emit("tokenBuy");
+  } finally {
+    isProcessingTokenBuy.value = false;
+  }
+};
 
 // Blockchain methods
 const connectAccount = async (): Promise<void> => {
@@ -109,15 +120,17 @@ const handleInputEvent = (event: any): void => {
         </div>
         <div class="flex pt-2 justify-center" v-else-if="!hasLiquidity">
           <span class="text-red-500 font-normal text-sm"
-            >Atualmente não há liquidez nas redes para sua demanda</span
+            >Atualmente não há liquidez na rede selecionada para sua
+            demanda</span
           >
         </div>
       </div>
 
       <CustomButton
         v-if="walletAddress"
-        :text="'Conectar carteira'"
-        @buttonClicked="emit('tokenBuy')"
+        :text="'Confirmar seleção'"
+        :isLoading="isProcessingTokenBuy"
+        @buttonClicked="handleTokenBuy()"
       />
       <CustomButton
         v-if="!walletAddress"

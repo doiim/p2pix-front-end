@@ -1,17 +1,16 @@
 <script setup lang="ts">
-import SearchComponent from "@/components/SearchComponent.vue";
-import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
-import BuyConfirmedComponent from "@/components/BuyConfirmedComponent/BuyConfirmedComponent.vue";
+import SearchComponent from "@/components/BuyerSteps/SearchComponent.vue";
+import LoadingComponent from "@/components/ui/LoadingComponent/LoadingComponent.vue";
+import BuyConfirmedComponent from "@/components/BuyerSteps/BuyConfirmedComponent/BuyConfirmedComponent.vue";
 import { ref, onMounted, watch } from "vue";
 import { useUser } from "@/composables/useUser";
-import QrCodeComponent from "@/components/QrCodeComponent.vue";
+import QrCodeComponent from "@/components/BuyerSteps/QrCodeComponent.vue";
 import { addLock, releaseLock } from "@/blockchain/buyerMethods";
 import { updateWalletStatus, checkUnreleasedLock } from "@/blockchain/wallet";
 import { getNetworksLiquidity } from "@/blockchain/events";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getUnreleasedLockById } from "@/blockchain/events";
-import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
-import { getSolicitation } from "@/utils/bbPay";
+import CustomAlert from "@/components/ui/CustomAlert.vue";
 import type { Address } from "viem";
 
 enum Step {
@@ -60,22 +59,25 @@ const confirmBuyClick = async (
 };
 
 const releaseTransaction = async (params: {
-  pixTimestamp: `0x${string}`&{lenght:34},
-  signature: `0x${string}`,
+  pixTimestamp: `0x${string}` & { lenght: 34 };
+  signature: `0x${string}`;
 }) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
-  const release = await releaseLock(BigInt(lockID.value), params.pixTimestamp, params.signature);
+  await releaseLock(
+    BigInt(lockID.value),
+    params.pixTimestamp,
+    params.signature
+  );
 
   await updateWalletStatus();
   loadingRelease.value = false;
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
-  if (!walletAddress.value)
-    throw new Error("Wallet not connected");
+  if (!walletAddress.value) throw new Error("Wallet not connected");
   const lock = await checkUnreleasedLock(walletAddress.value);
   if (lock) {
     lockID.value = String(lock.lockID);

@@ -16,7 +16,7 @@ import { connectProvider } from "@/blockchain/provider";
 
 // Use the new composable
 const user = useUser();
-const { walletAddress, sellerView, networkId } = user;
+const { walletAddress, sellerView } = user;
 
 const menuOpenToggle = ref<boolean>(false);
 const infoMenuOpenToggle = ref<boolean>(false);
@@ -50,15 +50,14 @@ watch(connectedChain, (newVal: any) => {
     console.log(
       "Invalid or unsupported network detected, defaulting to Sepolia"
     );
-    user.setNetworkId(user.networkId.value);
+    user.setNetworkId(NetworkEnum.sepolia);
     return;
   }
   user.setNetworkId(newVal?.id);
 });
 
 const formatWalletAddress = (): string => {
-  if (!walletAddress.value)
-    throw new Error("Wallet not connected");
+  if (!walletAddress.value) throw new Error("Wallet not connected");
   const walletAddressLength = walletAddress.value.length;
   const initialText = walletAddress.value.substring(0, 5);
   const finalText = walletAddress.value.substring(

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useUser } from "@/composables/useUser";
-import SpinnerComponent from "@/components/SpinnerComponent.vue";
-import CustomButton from "@/components/CustomButton/CustomButton.vue";
+import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
+import CustomButton from "@/components/ui/CustomButton/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { verifyNetworkLiquidity } from "@/utils/networkLiquidity";
 import { NetworkEnum } from "@/model/NetworkEnum";
@@ -35,6 +35,7 @@ const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
 const identification = ref<string>("");
 const selectedDeposits = ref<ValidDeposit[]>();
+const isConfirmingOffer = ref<boolean>(false);
 
 import ChevronDown from "@/assets/chevronDown.svg";
 import { useOnboard } from "@web3-onboard/vue";
@@ -50,12 +51,20 @@ const connectAccount = async (): Promise<void> => {
 };
 
 const emitConfirmButton = async (): Promise<void> => {
-  const deposit = selectedDeposits.value?.find(
-    (d) => d.network === Number(networkName.value)
-  );
-  if (!deposit) return;
-  deposit.participantID = await getParticipantID(deposit.seller, deposit.token);
-  emit("tokenBuy", deposit, tokenValue.value);
+  try {
+    isConfirmingOffer.value = true;
+    const deposit = selectedDeposits.value?.find(
+      (d) => d.network === Number(networkName.value)
+    );
+    if (!deposit) return;
+    deposit.participantID = await getParticipantID(
+      deposit.seller,
+      deposit.token
+    );
+    emit("tokenBuy", deposit, tokenValue.value);
+  } finally {
+    isConfirmingOffer.value = false;
+  }
 };
 
 // Debounce methods
@@ -90,8 +99,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
 // Verify if there is a valid deposit to buy
 const verifyLiquidity = (): void => {
   enableConfirmButton.value = false;
-  if (!walletAddress.value)
-    return;
+  if (!walletAddress.value) return;
   const selDeposits = verifyNetworkLiquidity(
     tokenValue.value,
     walletAddress.value,
@@ -278,7 +286,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
           "
         >
           <span class="text-red-500 font-normal text-sm"
-            >Atualmente não há liquidez nas rede selecionada para sua
+            >Atualmente não há liquidez na rede selecionada para sua
             demanda</span
           >
         </div>
@@ -303,6 +311,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
         v-if="walletAddress"
         type="submit"
         text="Confirmar Oferta"
+        :isLoading="isConfirmingOffer"
       />
       <CustomButton
         v-else
