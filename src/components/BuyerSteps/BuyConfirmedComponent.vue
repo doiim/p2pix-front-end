@@ -5,7 +5,7 @@ import {
   listAllTransactionByWalletAddress,
   listValidDepositTransactionsByWalletAddress,
 } from "@/blockchain/wallet";
-import CustomButton from "@/components/ui/CustomButton/CustomButton.vue";
+import CustomButton from "@/components/ui/CustomButton.vue";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import { useUser } from "@/composables/useUser";

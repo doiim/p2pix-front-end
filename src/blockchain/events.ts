@@ -1,14 +1,13 @@
 import { useUser } from "@/composables/useUser";
-import { formatEther, toHex, stringToHex } from "viem";
+import { formatEther, toHex } from "viem";
 import type { PublicClient, Address } from "viem";
 
 import { getContract } from "./provider";
 import { getP2PixAddress, getTokenAddress } from "./addresses";
-import { p2PixAbi } from "./abi"
+import { p2PixAbi } from "./abi";
 import type { ValidDeposit } from "@/model/ValidDeposit";
-import { getNetworkSubgraphURL, NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
+import { getNetworkSubgraphURL, NetworkEnum } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
-import type { LockStatus } from "@/model/LockStatus"
 
 const getNetworksLiquidity = async (): Promise<void> => {
   const user = useUser();
@@ -153,7 +152,7 @@ const getUnreleasedLockById = async (
 ): Promise<UnreleasedLock> => {
   const { address, abi, client } = await getContract();
 
-  const [ , , , amount, token, seller ] = await client.readContract({
+  const [, , , amount, token, seller] = await client.readContract({
     address,
     abi,
     functionName: "mapLocks",

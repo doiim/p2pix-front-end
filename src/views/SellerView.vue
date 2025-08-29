@@ -3,7 +3,7 @@ import { ref } from "vue";
 
 import SellerComponent from "@/components/SellerSteps/SellerComponent.vue";
 import SendNetwork from "@/components/SellerSteps/SendNetwork.vue";
-import LoadingComponent from "@/components/ui/LoadingComponent/LoadingComponent.vue";
+import LoadingComponent from "@/components/ui/LoadingComponent.vue";
 import { useUser } from "@/composables/useUser";
 import { approveTokens, addDeposit } from "@/blockchain/sellerMethods";
 import CustomAlert from "@/components/ui/CustomAlert.vue";

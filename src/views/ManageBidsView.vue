@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from "vue";
 import { useUser } from "@/composables/useUser";
-import ListingComponent from "@/components/Account/ListingComponent/ListingComponent.vue";
-import LoadingComponent from "@/components/ui/LoadingComponent/LoadingComponent.vue";
+import ListingComponent from "@/components/Account/ListingComponent.vue";
+import LoadingComponent from "@/components/ui/LoadingComponent.vue";
 import CustomAlert from "@/components/ui/CustomAlert.vue";
 import {
   listValidDepositTransactionsByWalletAddress,

@@ -30,9 +30,7 @@ export const getTokenAddress = (
   network?: NetworkEnum
 ): Address => {
   const user = useUser();
-  return Tokens[network ? network : user.networkName.value][
-    token
-  ];
+  return Tokens[network ? network : user.networkName.value][token];
 };
 
 export const getP2PixAddress = (network?: NetworkEnum): Address => {
@@ -42,9 +40,7 @@ export const getP2PixAddress = (network?: NetworkEnum): Address => {
     [NetworkEnum.rootstock]: "0x57Dcba05980761169508886eEdc6f5E7EC0411Dc",
   };
 
-  return possibleP2PixAddresses[
-    network ? network : user.networkName.value
-  ];
+  return possibleP2PixAddresses[network ? network : user.networkName.value];
 };
 
 export const getProviderUrl = (network?: NetworkEnum): string => {

@@ -1,10 +1,6 @@
 import { getContract } from "./provider";
 import { getTokenAddress } from "./addresses";
-import {
-  parseEther,
-  type Address,
-  type TransactionReceipt,
-} from "viem";
+import { parseEther, type Address, type TransactionReceipt } from "viem";
 import type { TokenEnum } from "@/model/NetworkEnum";
 
 export const addLock = async (
@@ -52,7 +48,7 @@ export const withdrawDeposit = async (
     abi,
     functionName: "withdraw",
     args: [tokenAddress, parseEther(amount), []],
-    account
+    account,
   });
 
   const hash = await wallet.writeContract(request);
@@ -63,7 +59,7 @@ export const withdrawDeposit = async (
 
 export const releaseLock = async (
   lockID: bigint,
-  pixTimestamp: `0x${string}`&{lenght:34},
+  pixTimestamp: `0x${string}` & { lenght: 34 },
   signature: `0x${string}`
 ): Promise<TransactionReceipt> => {
   const { address, abi, wallet, client, account } = await getContract();
@@ -77,7 +73,7 @@ export const releaseLock = async (
     abi,
     functionName: "release",
     args: [BigInt(lockID), pixTimestamp, signature],
-    account
+    account,
   });
 
   const hash = await wallet.writeContract(request);

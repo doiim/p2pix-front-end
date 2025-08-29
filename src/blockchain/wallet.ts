@@ -52,7 +52,7 @@ export const listValidDepositTransactionsByWalletAddress = async (
 
 const getLockStatus = async (id: bigint): Promise<LockStatus> => {
   const { address, abi, client } = await getContract();
-  const [ sortedIDs , status ] = await client.readContract({
+  const [, status] = await client.readContract({
     address,
     abi,
     functionName: "getLocksStatus",
@@ -411,7 +411,7 @@ export const checkUnreleasedLock = async (
 
   const lockIds = addedLocks.map((lock: any) => lock.args.lockID);
 
-  const [ sortedIDs, status ] = await client.readContract({
+  const [sortedIDs, status] = await client.readContract({
     address,
     abi,
     functionName: "getLocksStatus",
@@ -421,7 +421,7 @@ export const checkUnreleasedLock = async (
   const unreleasedLockId = status.findIndex(
     (status: LockStatus) => status == LockStatus.Active
   );
-  
+
   if (unreleasedLockId !== -1)
     return getUnreleasedLockById(sortedIDs[unreleasedLockId]);
 };
@@ -436,7 +436,7 @@ export const getActiveLockAmount = async (
 
   const lockIds = lockSeller.map((lock: any) => lock.args.lockID);
 
-  const [ sortedIDs, status ] = await client.readContract({
+  const [, status] = await client.readContract({
     address,
     abi,
     functionName: "getLocksStatus",

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue";
 import { useUser } from "@/composables/useUser";
-import CustomButton from "@/components/CustomButton/CustomButton.vue";
+import CustomButton from "@/components/ui/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { decimalCount } from "@/utils/decimalCount";
 import { getTokenImage } from "@/utils/imagesPath";

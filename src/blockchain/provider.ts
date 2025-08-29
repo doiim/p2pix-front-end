@@ -15,13 +15,15 @@ import { useUser } from "@/composables/useUser";
 let walletClient: WalletClient | null = null;
 
 const getPublicClient = (): PublicClient => {
-    const user = useUser();
-    const rpcUrl = getProviderUrl();
-    return createPublicClient({
-      chain:
-        Number(user.networkName.value) === sepolia.id ? sepolia : rootstockTestnet,
-      transport: http(rpcUrl),
-    });
+  const user = useUser();
+  const rpcUrl = getProviderUrl();
+  return createPublicClient({
+    chain:
+      Number(user.networkName.value) === sepolia.id
+        ? sepolia
+        : rootstockTestnet,
+    transport: http(rpcUrl),
+  });
 };
 
 const getWalletClient = (): WalletClient | null => {

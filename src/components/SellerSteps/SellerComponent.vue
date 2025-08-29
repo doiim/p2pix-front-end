@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue";
 import { useUser } from "@/composables/useUser";
-import CustomButton from "@/components/CustomButton/CustomButton.vue";
+import CustomButton from "@/components/ui/CustomButton.vue";
 import { postProcessKey } from "@/utils/pixKeyFormat";
 import { TokenEnum } from "@/model/NetworkEnum";
 import { getTokenImage } from "@/utils/imagesPath";

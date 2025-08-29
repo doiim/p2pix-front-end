@@ -10,7 +10,7 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import { useUser } from "@/composables/useUser";
 import { onMounted, ref, watch } from "vue";
-import ListingComponent from "../../Account/ListingComponent/ListingComponent.vue";
+import ListingComponent from "../../Account/ListingComponent.vue";
 
 // props
 const props = defineProps<{

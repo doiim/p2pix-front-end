@@ -31,9 +31,10 @@ const approveTokens = async (participant: Participant): Promise<any> => {
     args: [account, getP2PixAddress()],
   });
 
-  if ( allowance < parseEther(participant.offer.toString()) ) {
+  if (allowance < parseEther(participant.offer.toString())) {
     // Approve tokens
-    const chain = user.networkId.value === sepolia.id ? sepolia : rootstockTestnet;
+    const chain =
+      user.networkId.value === sepolia.id ? sepolia : rootstockTestnet;
     const hash = await walletClient.writeContract({
       address: tokenAddress,
       abi: mockTokenAbi,
@@ -65,7 +66,8 @@ const addDeposit = async (): Promise<any> => {
   if (!sellerId.id) {
     throw new Error("Failed to create participant");
   }
-  const chain = user.networkId.value === sepolia.id ? sepolia : rootstockTestnet;
+  const chain =
+    user.networkId.value === sepolia.id ? sepolia : rootstockTestnet;
   const hash = await walletClient.writeContract({
     address,
     abi,

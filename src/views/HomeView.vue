@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import SearchComponent from "@/components/BuyerSteps/SearchComponent.vue";
-import LoadingComponent from "@/components/ui/LoadingComponent/LoadingComponent.vue";
-import BuyConfirmedComponent from "@/components/BuyerSteps/BuyConfirmedComponent/BuyConfirmedComponent.vue";
+import LoadingComponent from "@/components/ui/LoadingComponent.vue";
+import BuyConfirmedComponent from "@/components/BuyerSteps/BuyConfirmedComponent.vue";
 import { ref, onMounted, watch } from "vue";
 import { useUser } from "@/composables/useUser";
 import QrCodeComponent from "@/components/BuyerSteps/QrCodeComponent.vue";

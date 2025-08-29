@@ -2,7 +2,7 @@
 import { useRoute } from "vue-router";
 import TopBar from "@/components/ui/TopBar.vue";
 import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
-import ToasterComponent from "@/components/ui/Toast/ToasterComponent.vue";
+import ToasterComponent from "@/components/ui/ToasterComponent.vue";
 import { init, useOnboard } from "@web3-onboard/vue";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { Networks } from "@/model/Networks";
