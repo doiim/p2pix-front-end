@@ -3,11 +3,12 @@ import { NetworkEnum, TokenEnum } from "../model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { Participant } from "../utils/bbPay";
 import type { Address } from "viem"
+import { DEFAULT_NETWORK, getNetworkConfig } from "@/config/networks";
 
 const walletAddress = ref<Address | null>(null);
 const balance = ref("");
-const networkId = ref(11155111);
-const networkName = ref(NetworkEnum.sepolia);
+const networkId = ref(parseInt(getNetworkConfig(DEFAULT_NETWORK).chainId, 16));
+const networkName = ref(DEFAULT_NETWORK);
 const selectedToken = ref(TokenEnum.BRZ);
 const loadingLock = ref(false);
 const sellerView = ref(false);
@@ -32,7 +33,7 @@ export function useUser() {
   };
 
   const setNetworkId = (network: string | number) => {
-    networkName.value = Number(network) as NetworkEnum || NetworkEnum.sepolia;
+    networkName.value = Number(network) as NetworkEnum || DEFAULT_NETWORK;
     networkId.value = Number(network);
   };
 

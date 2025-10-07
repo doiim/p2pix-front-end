@@ -1,7 +1,7 @@
 import { getContract, getPublicClient, getWalletClient } from "./provider";
 import { getTokenAddress, getP2PixAddress } from "./addresses";
 import { parseEther, toHex } from "viem";
-import { sepolia, rootstockTestnet } from "viem/chains";
+import { getViemChain } from "@/config/networks";
 
 import { mockTokenAbi } from "./abi";
 import { useUser } from "@/composables/useUser";
@@ -33,7 +33,7 @@ const approveTokens = async (participant: Participant): Promise<any> => {
 
   if ( allowance < parseEther(participant.offer.toString()) ) {
     // Approve tokens
-    const chain = user.networkId.value === sepolia.id ? sepolia : rootstockTestnet;
+    const chain = getViemChain(user.networkName.value);
     const hash = await walletClient.writeContract({
       address: tokenAddress,
       abi: mockTokenAbi,
@@ -65,7 +65,7 @@ const addDeposit = async (): Promise<any> => {
   if (!sellerId.id) {
     throw new Error("Failed to create participant");
   }
-  const chain = user.networkId.value === sepolia.id ? sepolia : rootstockTestnet;
+  const chain = getViemChain(user.networkName.value);
   const hash = await walletClient.writeContract({
     address,
     abi,

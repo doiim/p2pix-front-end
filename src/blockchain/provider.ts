@@ -9,17 +9,18 @@ import {
   PublicClient,
   WalletClient,
 } from "viem";
-import { sepolia, rootstockTestnet } from "viem/chains";
 import { useUser } from "@/composables/useUser";
+import { getViemChain } from "@/config/networks";
 
 let walletClient: WalletClient | null = null;
 
 const getPublicClient = (): PublicClient => {
     const user = useUser();
     const rpcUrl = getProviderUrl();
+    const chain = getViemChain(user.networkName.value);
+    
     return createPublicClient({
-      chain:
-        Number(user.networkName.value) === sepolia.id ? sepolia : rootstockTestnet,
+      chain,
       transport: http(rpcUrl),
     });
 };
@@ -45,8 +46,7 @@ const getContract = async (onlyRpcProvider = false) => {
 
 const connectProvider = async (p: any): Promise<void> => {
   const user = useUser();
-  const chain =
-    Number(user.networkName.value) === sepolia.id ? sepolia : rootstockTestnet;
+  const chain = getViemChain(user.networkName.value);
 
   const [account] = await p!.request({ method: "eth_requestAccounts" });
 
