@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, watch } from "vue";
 import { useUser } from "@/composables/useUser";
-import SpinnerComponent from "@/components/SpinnerComponent.vue";
-import CustomButton from "@/components/CustomButton/CustomButton.vue";
+import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
+import CustomButton from "@/components/ui/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { verifyNetworkLiquidity } from "@/utils/networkLiquidity";
 import { NetworkEnum } from "@/model/NetworkEnum";

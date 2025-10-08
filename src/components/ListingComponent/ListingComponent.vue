@@ -4,7 +4,7 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import { useUser } from "@/composables/useUser";
 import { ref, watch, onMounted } from "vue";
-import SpinnerComponent from "../SpinnerComponent.vue";
+import SpinnerComponent from "../ui/SpinnerComponent.vue";
 import { decimalCount } from "@/utils/decimalCount";
 import { debounce } from "@/utils/debounce";
 import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";

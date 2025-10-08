@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import CustomButton from "@/components/CustomButton/CustomButton.vue";
+import CustomButton from "@/components/ui/CustomButton.vue";
 
 // Emits
 const emit = defineEmits(["sendNetwork"]);

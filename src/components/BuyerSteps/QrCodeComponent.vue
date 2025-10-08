@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import CustomButton from "@/components/CustomButton/CustomButton.vue";
-import CustomModal from "@/components//CustomModal/CustomModal.vue";
-import SpinnerComponent from "@/components/SpinnerComponent.vue";
+import CustomButton from "@/components/ui/CustomButton.vue";
+import CustomModal from "@/components/ui/CustomModal.vue";
+import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
 import { createSolicitation, getSolicitation, type Offer } from "@/utils/bbPay";
 import { getParticipantID } from "@/blockchain/events";
 import { getUnreleasedLockById } from "@/blockchain/events";
