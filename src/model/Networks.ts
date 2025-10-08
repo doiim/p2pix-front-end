@@ -1,4 +1,5 @@
 import { NetworkEnum } from "@/model/NetworkEnum";
+import { getNetworkConfig } from "@/config/networks";
 
 export interface NetworkConfig {
   chainId: string;
@@ -8,19 +9,20 @@ export interface NetworkConfig {
   blockExplorerUrl?: string;
 }
 
+// Mapeamento para compatibilidade com código existente
 export const Networks: { [key in NetworkEnum]: NetworkConfig } = {
   [NetworkEnum.sepolia]: {
-    chainId: "0xAA36A7",
-    chainName: "Sepolia Testnet",
-    token: "ETH",
-    rpcUrl: import.meta.env.VITE_SEPOLIA_API_URL,
-    blockExplorerUrl: "https://sepolia.etherscan.io",
+    chainId: getNetworkConfig(NetworkEnum.sepolia).chainId,
+    chainName: getNetworkConfig(NetworkEnum.sepolia).chainName,
+    token: getNetworkConfig(NetworkEnum.sepolia).token,
+    rpcUrl: getNetworkConfig(NetworkEnum.sepolia).rpcUrl,
+    blockExplorerUrl: getNetworkConfig(NetworkEnum.sepolia).blockExplorerUrl,
   },
   [NetworkEnum.rootstock]: {
-    chainId: "0x1F",
-    chainName: "Rootstock Testnet",
-    token: "tRBTC",
-    rpcUrl: import.meta.env.VITE_ROOTSTOCK_API_URL,
-    blockExplorerUrl: "https://explorer.testnet.rsk.co",
+    chainId: getNetworkConfig(NetworkEnum.rootstock).chainId,
+    chainName: getNetworkConfig(NetworkEnum.rootstock).chainName,
+    token: getNetworkConfig(NetworkEnum.rootstock).token,
+    rpcUrl: getNetworkConfig(NetworkEnum.rootstock).rpcUrl,
+    blockExplorerUrl: getNetworkConfig(NetworkEnum.rootstock).blockExplorerUrl,
   },
 };
