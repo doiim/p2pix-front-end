@@ -22,6 +22,8 @@ const pixTimestamp = ref<string>("");
 const releaseSignature = ref<string>("");
 const solicitationData = ref<any>(null);
 const pollingInterval = ref<NodeJS.Timeout | null>(null);
+const copyFeedback = ref<boolean>(false);
+const copyFeedbackTimeout = ref<NodeJS.Timeout | null>(null);
 
 // Function to generate QR code SVG
 const generateQrCodeSvg = async (text: string) => {
@@ -80,6 +82,29 @@ const startPolling = () => {
   pollingInterval.value = setInterval(checkSolicitationStatus, 10000);
 };
 
+
+const copyToClipboard = async () => {
+  if (!qrCode.value) {
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(qrCode.value);
+
+    if (copyFeedbackTimeout.value) {
+      clearTimeout(copyFeedbackTimeout.value);
+    }
+
+    copyFeedback.value = true;
+
+    copyFeedbackTimeout.value = setTimeout(() => {
+      copyFeedback.value = false;
+    }, 2000);
+  } catch (error) {
+    console.error("Error copying to clipboard:", error);
+  }
+};
+
 onMounted(async () => {
   try {
     const { tokenAddress, sellerAddress, amount } = await getUnreleasedLockById(
@@ -119,6 +144,10 @@ onUnmounted(() => {
     clearInterval(pollingInterval.value);
     pollingInterval.value = null;
   }
+  if (copyFeedbackTimeout.value) {
+    clearTimeout(copyFeedbackTimeout.value);
+    copyFeedbackTimeout.value = null;
+  }
 });
 </script>
 
@@ -156,13 +185,24 @@ onUnmounted(() => {
             {{ qrCode }}
           </span>
         </div>
-        <img
-          alt="Copy PIX code"
-          src="@/assets/copyPix.svg?url"
-          width="16"
-          height="16"
-          class="pt-2 lg:mb-5 cursor-pointer"
-        />
+        <div class="flex flex-col items-center gap-1">
+          <img
+            alt="Copy PIX code"
+            src="@/assets/copyPix.svg?url"
+            width="16"
+            height="16"
+            class="pt-2 cursor-pointer hover:opacity-70 transition-opacity"
+            @click="copyToClipboard"
+          />
+          <transition name="fade">
+            <span
+              v-if="copyFeedback"
+              class="text-xs text-emerald-500 font-semibold"
+            >
+              Código copiado!
+            </span>
+          </transition>
+        </div>
       </div>
       <CustomButton
         :is-disabled="releaseSignature === ''"
@@ -239,5 +279,16 @@ input[type="number"] {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
+}
+
+/* Fade transition for copy feedback */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>
