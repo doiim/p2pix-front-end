@@ -4,6 +4,8 @@ import { ref, watch, onMounted, computed } from "vue";
 import { debounce } from "@/utils/debounce";
 import { decimalCount } from "@/utils/decimalCount";
 import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";
+import IconButton from "../ui/IconButton.vue";
+import withdrawIcon from "@/assets/withdraw.svg?url";
 
 const props = defineProps<{
   validDeposits: ValidDeposit[];
@@ -16,8 +18,6 @@ const emit = defineEmits<{
 }>();
 
 const withdrawAmount = ref<string>("");
-const withdrawButtonOpacity = ref<number>(0.6);
-const withdrawButtonCursor = ref<string>("not-allowed");
 const isCollapsibleOpen = ref<boolean>(false);
 const validDecimals = ref<boolean>(true);
 const validWithdrawAmount = ref<boolean>(true);
@@ -77,26 +77,6 @@ const cancelWithdraw = () => {
   enableConfirmButton.value = false;
 };
 
-watch(enableConfirmButton, (): void => {
-  if (!enableConfirmButton.value) {
-    withdrawButtonOpacity.value = 0.7;
-    withdrawButtonCursor.value = "not-allowed";
-  } else {
-    withdrawButtonOpacity.value = 1;
-    withdrawButtonCursor.value = "pointer";
-  }
-});
-
-watch(withdrawAmount, (): void => {
-  if (!withdrawAmount.value || !enableConfirmButton.value) {
-    withdrawButtonOpacity.value = 0.7;
-    withdrawButtonCursor.value = "not-allowed";
-  } else {
-    withdrawButtonOpacity.value = 1;
-    withdrawButtonCursor.value = "pointer";
-  }
-});
-
 onMounted(() => {
   useFloating(reference, floating, {
     placement: "right",
@@ -150,17 +130,14 @@ onMounted(() => {
         </div>
       </div>
       <div v-show="!isCollapsibleOpen" class="flex justify-end items-center">
-        <div
-          class="flex gap-2 cursor-pointer items-center justify-self-center border-2 p-2 border-amber-300 rounded-md"
+        <IconButton
+          text="Sacar"
+          :icon="withdrawIcon"
+          variant="outline"
+          size="md"
+          :full-width="false"
           @click="openWithdrawForm"
-        >
-          <img
-            alt="Withdraw image"
-            src="@/assets/withdraw.svg?url"
-            class="w-3 h-3 sm:w-4 sm:h-4"
-          />
-          <span class="last-release-info">Sacar</span>
-        </div>
+        />
       </div>
     </div>
     <div class="pt-5">
@@ -191,22 +168,20 @@ onMounted(() => {
       >
         <h1
           @click="cancelWithdraw"
-          class="text-black font-medium cursor-pointer"
+          class="text-black font-medium cursor-pointer hover:text-gray-600 transition-colors"
         >
           Cancelar
         </h1>
 
-        <div
-          class="withdraw-button flex gap-2 items-center justify-self-center border-2 p-2 border-amber-300 rounded-md"
+        <IconButton
+          text="Sacar"
+          :icon="withdrawIcon"
+          variant="outline"
+          size="md"
+          :full-width="false"
+          :disabled="!enableConfirmButton"
           @click="callWithdraw"
-        >
-          <img
-            alt="Withdraw image"
-            src="@/assets/withdraw.svg?url"
-            class="w-3 h-3 sm:w-4 sm:h-4"
-          />
-          <span class="last-release-info">Sacar</span>
-        </div>
+        />
       </div>
     </div>
   </div>
@@ -217,17 +192,8 @@ p {
   @apply text-gray-900;
 }
 
-.last-release-info {
-  @apply font-medium text-xs sm:text-sm text-gray-900 justify-self-center;
-}
-
 .tooltip {
   @apply bg-white text-gray-900 font-medium text-xs md:text-base px-3 py-2 rounded border-2 border-emerald-500 left-5 top-[-3rem];
-}
-
-.withdraw-button {
-  opacity: v-bind(withdrawButtonOpacity);
-  cursor: v-bind(withdrawButtonCursor);
 }
 
 input[type="number"] {

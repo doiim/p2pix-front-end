@@ -2,6 +2,7 @@
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
 import { computed } from "vue";
+import StatusBadge, { type StatusType } from "../ui/StatusBadge.vue";
 
 const props = defineProps<{
   transaction: WalletTransaction;
@@ -30,20 +31,20 @@ const explorerName = computed(() => {
   return props.networkName === NetworkEnum.sepolia ? "Etherscan" : "Polygonscan";
 });
 
-const statusInfo = computed(() => {
+const statusType = computed((): StatusType => {
   if (eventName.value === "Reserva") {
     switch (props.transaction.lockStatus) {
       case 1:
-        return { text: "Em Aberto", color: "bg-amber-300" };
+        return "open";
       case 2:
-        return { text: "Expirado", color: "bg-[#94A3B8]" };
+        return "expired";
       case 3:
-        return { text: "Finalizado", color: "bg-emerald-300" };
+        return "completed";
       default:
-        return { text: "Finalizado", color: "bg-emerald-300" };
+        return "completed";
     }
   }
-  return { text: "Finalizado", color: "bg-emerald-300" };
+  return "completed";
 });
 
 const showExplorerLink = computed(() => {
@@ -71,8 +72,8 @@ const handleExplorerClick = () => {
         </span>
       </div>
       <div class="flex flex-col items-center justify-center">
-        <div :class="[statusInfo.color, 'status-text']">
-          {{ statusInfo.text }}
+        <div class="mb-2 mt-4">
+          <StatusBadge :status="statusType" />
         </div>
         <div
           v-if="showExplorerLink"
@@ -109,10 +110,6 @@ const handleExplorerClick = () => {
 <style scoped>
 .item-container {
   @apply flex justify-between items-center;
-}
-
-.status-text {
-  @apply text-xs sm:text-base font-medium text-gray-900 rounded-lg text-center mb-2 px-2 py-1 mt-4;
 }
 
 .last-release-info {

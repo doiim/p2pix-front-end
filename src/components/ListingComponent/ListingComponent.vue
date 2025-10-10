@@ -97,14 +97,14 @@ showInitialItems();
     >
       <button
         type="button"
-        class="text-white font-semibold border-2 border-amber-300 rounded-lg px-4 py-2 hover:bg-amber-300/10 transition-colors"
+        class="text-white font-semibold border-2 border-amber-300 rounded-lg px-4 py-2 hover:bg-amber-300/10 transition-colors cursor-pointer"
         @click="loadMore()"
       >
         Carregar mais
       </button>
-      <span class="text-gray-300">
-        ({{ itemsToShow.length }} de {{ props.walletTransactions.length }}
-        transações )
+      <span class="text-gray-300 text-sm">
+        {{ itemsToShow.length }} de {{ props.walletTransactions.length }}
+        transações
       </span>
     </div>
 
