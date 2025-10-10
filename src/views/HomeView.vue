@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import SearchComponent from "@/components/SearchComponent.vue";
-import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
-import BuyConfirmedComponent from "@/components/BuyConfirmedComponent/BuyConfirmedComponent.vue";
+import SearchComponent from "@/components/BuyerSteps/BuyerSearchComponent.vue";
+import LoadingComponent from "@/components/ui/LoadingComponent.vue";
+import BuyConfirmedComponent from "@/components/BuyerSteps/BuyConfirmedComponent.vue";
 import { ref, onMounted, watch } from "vue";
 import { useUser } from "@/composables/useUser";
-import QrCodeComponent from "@/components/QrCodeComponent.vue";
+import QrCodeComponent from "@/components/BuyerSteps/QrCodeComponent.vue";
 import { addLock, releaseLock } from "@/blockchain/buyerMethods";
 import { updateWalletStatus, checkUnreleasedLock } from "@/blockchain/wallet";
 import { getNetworksLiquidity } from "@/blockchain/events";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getUnreleasedLockById } from "@/blockchain/events";
-import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
+import CustomAlert from "@/components/ui/CustomAlert.vue";
 import { getSolicitation } from "@/utils/bbPay";
 import type { Address } from "viem";
 

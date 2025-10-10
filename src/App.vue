@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
 import TopBar from "@/components/TopBar/TopBar.vue";
-import SpinnerComponent from "@/components/SpinnerComponent.vue";
-import ToasterComponent from "@/components/ToasterComponent.vue";
+import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
+import ToasterComponent from "@/components/ui/ToasterComponent.vue";
 import { init, useOnboard } from "@web3-onboard/vue";
 import injectedModule from "@web3-onboard/injected-wallets";
 import { Networks } from "@/model/Networks";
