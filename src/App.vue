@@ -5,21 +5,19 @@ import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
 import ToasterComponent from "@/components/ui/ToasterComponent.vue";
 import { init, useOnboard } from "@web3-onboard/vue";
 import injectedModule from "@web3-onboard/injected-wallets";
-import { Networks } from "@/model/Networks";
-import { NetworkEnum } from "@/model/NetworkEnum";
+import { Networks, DEFAULT_NETWORK } from "@/config/networks";
 import { ref } from "vue";
 
 const route = useRoute();
 const injected = injectedModule();
-const targetNetwork = ref(NetworkEnum.sepolia);
+const targetNetwork = ref(DEFAULT_NETWORK);
 
 const web3Onboard = init({
   wallets: [injected],
   chains: Object.entries(Networks).map(([, network]) => ({
-    id: network.chainId,
-    token: network.token,
-    label: network.chainName,
-    rpcUrl: network.rpcUrl,
+    id: network.id,
+    label: network.nativeCurrency.symbol,
+    rpcUrl: network.rpcUrls.default.http[0],
   })),
   connect: {
     autoConnectLastWallet: true,

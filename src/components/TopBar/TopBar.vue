@@ -2,10 +2,8 @@
 import { ref, watch } from "vue";
 import { useUser } from "@/composables/useUser";
 import { onClickOutside } from "@vueuse/core";
-import { NetworkEnum } from "@/model/NetworkEnum";
 import { getNetworkImage } from "@/utils/imagesPath";
-import { Networks } from "@/model/Networks";
-
+import { Networks } from "@/config/networks";
 import { useOnboard } from "@web3-onboard/vue";
 
 import ChevronDown from "@/assets/chevronDown.svg";
@@ -13,10 +11,12 @@ import TwitterIcon from "@/assets/twitterIcon.svg";
 import LinkedinIcon from "@/assets/linkedinIcon.svg";
 import GithubIcon from "@/assets/githubIcon.svg";
 import { connectProvider } from "@/blockchain/provider";
+import { DEFAULT_NETWORK } from "@/config/networks";
+import type { NetworkConfig } from "@/model/NetworkEnum";
 
 // Use the new composable
 const user = useUser();
-const { walletAddress, sellerView, networkId } = user;
+const { walletAddress, sellerView, network } = user;
 
 const menuOpenToggle = ref<boolean>(false);
 const infoMenuOpenToggle = ref<boolean>(false);
@@ -40,20 +40,20 @@ watch(connectedWallet, async (newVal: any) => {
 });
 
 watch(connectedChain, (newVal: any) => {
-  // Check if connected chain is valid, otherwise default to Sepolia (NetworkEnum.SEPOLIA)
+  // Check if connected chain is valid, otherwise default to Sepolia
   if (
     !newVal ||
     !Object.values(Networks).some(
-      (network) => Number(network.chainId) === Number(newVal.id)
+      (network) => network.id === Number(newVal.id)
     )
   ) {
     console.log(
       "Invalid or unsupported network detected, defaulting to Sepolia"
     );
-    user.setNetworkId(user.networkId.value);
+    user.setNetwork(DEFAULT_NETWORK);
     return;
   }
-  user.setNetworkId(newVal?.id);
+  user.setNetworkById(newVal?.id);
 });
 
 const formatWalletAddress = (): string => {
@@ -78,14 +78,14 @@ const closeMenu = (): void => {
   menuOpenToggle.value = false;
 };
 
-const networkChange = async (network: NetworkEnum): Promise<void> => {
+const networkChange = async (network: NetworkConfig): Promise<void> => {
   currencyMenuOpenToggle.value = false;
   try {
     await setChain({
-      chainId: Networks[network].chainId,
+      chainId: String(network.id),
       wallet: connectedWallet.value?.label || "",
     });
-    user.setNetworkId(network);
+    user.setNetwork(network);
   } catch (error) {
     console.log("Error changing network", error);
   }
@@ -258,7 +258,7 @@ onClickOutside(infoMenuRef, () => {
         >
           <img
             alt="Choosed network image"
-            :src="getNetworkImage(NetworkEnum[user.networkName.value])"
+            :src="getNetworkImage(network.name)"
             height="24"
             width="24"
           />
@@ -267,9 +267,7 @@ onClickOutside(infoMenuRef, () => {
             :class="{ '!text-gray-900': currencyMenuOpenToggle }"
           >
             {{
-              Networks[user.networkName.value]
-                ? Networks[user.networkName.value].chainName
-                : "Invalid Chain"
+              user.network.value.name || "Invalid Chain"
             }}
           </span>
           <div
@@ -292,20 +290,20 @@ onClickOutside(infoMenuRef, () => {
               class="mt-2 bg-white rounded-md border border-gray-300 drop-shadow-md shadow-md overflow-clip"
             >
               <div
-                v-for="(chainData, network) in Networks"
-                :key="network"
+                v-for="network in Networks"
+                :key="network.id"
                 class="menu-button p-4 gap-2 cursor-pointer hover:bg-gray-200 flex items-center !justify-start whitespace-nowrap transition-colors duration-150 ease-in-out"
                 @click="networkChange(network)"
               >
                 <img
-                  :alt="chainData.chainName + ' image'"
+                  :alt="network.name + ' image'"
                   width="20"
                   height="20"
-                  :src="getNetworkImage(NetworkEnum[network])"
+                  :src="getNetworkImage(network.name)"
                   class="mr-2 ml-1"
                 />
                 <span class="text-gray-900 font-semibold text-sm">
-                  {{ chainData.chainName }}
+                  {{ network.name }}
                 </span>
               </div>
               <div class="w-full flex justify-center">
@@ -462,19 +460,19 @@ onClickOutside(infoMenuRef, () => {
       <div class="pl-4 mt-2 h-full">
         <div class="bg-white rounded-md z-10 h-full">
           <div
-            v-for="(chainData, network) in Networks"
-            :key="network"
+            v-for="network in Networks"
+            :key="network.id"
             class="menu-button gap-2 sm:px-4 rounded-md cursor-pointer py-2 px-4"
             @click="networkChange(network)"
           >
             <img
-              :alt="chainData.chainName + 'image'"
+              :alt="network.name + 'image'"
               width="20"
               height="20"
-              :src="getNetworkImage(NetworkEnum[network])"
+              :src="getNetworkImage(network.name)"
             />
             <span class="text-gray-900 py-4 text-end font-bold text-sm">
-              {{ chainData.chainName }}
+              {{ network.name }}
             </span>
           </div>
         </div>

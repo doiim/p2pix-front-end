@@ -1,20 +1,20 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
 import { useOnboard } from "@web3-onboard/vue";
-import { Networks } from "@/model/Networks";
+import { Networks } from "@/config/networks";
 import { useUser } from "@/composables/useUser";
 
 const { connectedWallet } = useOnboard();
 const user = useUser();
-const { networkId, networkName } = user;
+const { network } = user;
 
 const isWrongNetwork = ref(false);
-const targetNetworkName = computed(() => Networks[networkName.value].chainName);
+const targetNetworkName = computed(() => network.value.name);
 
 const checkNetwork = () => {
   if (connectedWallet.value) {
     const chainId = connectedWallet.value.chains[0].id;
-    isWrongNetwork.value = Number(chainId) !== networkId.value;
+    isWrongNetwork.value = Number(chainId) !== network.value.id;
   } else {
     isWrongNetwork.value = false; // No wallet connected yet
   }
@@ -27,7 +27,7 @@ const switchNetwork = async () => {
         method: "wallet_switchEthereumChain",
         params: [
           {
-            chainId: Networks[networkName.value].chainId,
+            chainId: network.value.id,
           },
         ],
       });
@@ -39,7 +39,7 @@ const switchNetwork = async () => {
 
 onMounted(checkNetwork);
 watch(connectedWallet, checkNetwork);
-watch(networkId, checkNetwork, { immediate: true });
+watch(network, checkNetwork, { immediate: true });
 </script>
 
 <template>

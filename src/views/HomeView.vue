@@ -24,7 +24,7 @@ const user = useUser();
 user.setSellerView(false);
 
 // States
-const { loadingLock, walletAddress, networkName } = user;
+const { loadingLock, walletAddress, network } = user;
 const flowStep = ref<Step>(Step.Search);
 const participantID = ref<string>();
 const sellerAddress = ref<Address>();
@@ -103,7 +103,7 @@ if (paramLockID) {
     await checkForUnreleasedLocks();
   });
 
-  watch(networkName, async () => {
+  watch(network, async () => {
     if (walletAddress.value) await checkForUnreleasedLocks();
   });
 }
