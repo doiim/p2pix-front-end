@@ -23,11 +23,12 @@ const checkNetwork = () => {
 const switchNetwork = async () => {
   try {
     if (connectedWallet.value && connectedWallet.value.provider) {
+      let chainId = network.value.id.toString(16);
       await connectedWallet.value.provider.request({
         method: "wallet_switchEthereumChain",
         params: [
           {
-            chainId: network.value.id,
+            chainId: `0x${chainId}`,
           },
         ],
       });

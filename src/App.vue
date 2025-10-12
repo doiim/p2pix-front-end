@@ -14,9 +14,10 @@ const targetNetwork = ref(DEFAULT_NETWORK);
 
 const web3Onboard = init({
   wallets: [injected],
-  chains: Object.entries(Networks).map(([, network]) => ({
+  chains: Object.values(Networks).map((network) => ({
     id: network.id,
-    label: network.nativeCurrency.symbol,
+    token: network.nativeCurrency.symbol,
+    label: network.name,
     rpcUrl: network.rpcUrls.default.http[0],
   })),
   connect: {

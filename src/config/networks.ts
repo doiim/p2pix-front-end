@@ -12,7 +12,7 @@ export const Networks: {[key:string]: NetworkConfig} = {
     subgraphUrls: [import.meta.env.VITE_SEPOLIA_SUBGRAPH_URL]
   },
   rootstockTestnet: { ...rootstockTestnet,
-    rpcUrls: { default: { http: [import.meta.env.VITE_ROOTSTOCK_API_URL]}},
+    rpcUrls: { default: { http: [import.meta.env.VITE_RSK_API_URL]}},
     contracts: { ...rootstockTestnet.contracts,
       p2pix: {address:"0x57Dcba05980761169508886eEdc6f5E7EC0411Dc"} },
     tokens: {

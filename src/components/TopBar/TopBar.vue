@@ -80,9 +80,10 @@ const closeMenu = (): void => {
 
 const networkChange = async (network: NetworkConfig): Promise<void> => {
   currencyMenuOpenToggle.value = false;
+  const chainId = network.id.toString(16)
   try {
     await setChain({
-      chainId: String(network.id),
+      chainId: `0x${chainId}`,
       wallet: connectedWallet.value?.label || "",
     });
     user.setNetwork(network);
