@@ -1,7 +1,4 @@
-import { Networks } from "@/config/networks"
 import type { Chain, ChainContract } from "viem";
-
-export type NetworkEnum = keyof typeof Networks;
 
 export enum TokenEnum {
   BRZ = 'BRZ',
