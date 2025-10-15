@@ -233,7 +233,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
           <div class="flex gap-2">
             <img
               alt="Rootstock image"
-              src="@/assets/rootstock.svg?url"
+              src="@/assets/networks/rootstock.svg?url"
               width="24"
               height="24"
               v-if="
@@ -243,7 +243,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
             />
             <img
               alt="Ethereum image"
-              src="@/assets/ethereum.svg?url"
+              src="@/assets/networks/ethereum.svg?url"
               width="24"
               height="24"
               v-if="
