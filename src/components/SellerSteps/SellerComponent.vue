@@ -71,7 +71,7 @@ const handleSubmit = (e: Event): void => {
 
   const data: Participant = {
     offer: offer.value,
-    chainID: user.networkId.value,
+    chainID: user.network.value.id,
     identification: processedIdentification,
     bankIspb: selectedBank.value?.ISPB,
     accountType: accountType.value,

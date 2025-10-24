@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import type { WalletTransaction } from "@/model/WalletTransaction";
-import { NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
+import { TokenEnum } from "@/model/NetworkEnum";
 import { computed } from "vue";
 import StatusBadge, { type StatusType } from "../ui/StatusBadge.vue";
+import { Networks } from "@/config/networks";
 
 const props = defineProps<{
   transaction: WalletTransaction;
-  networkName: NetworkEnum;
+  networkName: keyof typeof Networks;
   selectedToken: TokenEnum;
 }>();
 
@@ -28,7 +29,7 @@ const eventName = computed(() => {
 });
 
 const explorerName = computed(() => {
-  return props.networkName === NetworkEnum.sepolia ? "Etherscan" : "Polygonscan";
+  return Networks[props.networkName].blockExplorers?.default.name;
 });
 
 const statusType = computed((): StatusType => {

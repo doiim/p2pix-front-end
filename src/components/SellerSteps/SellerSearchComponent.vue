@@ -90,13 +90,13 @@ const handleInputEvent = (event: any): void => {
           <div class="flex gap-2">
             <img
               alt="Polygon image"
-              src="@/assets/polygon.svg?url"
+              src="@/assets/networks/polygon.svg?url"
               width="24"
               height="24"
             />
             <img
               alt="Ethereum image"
-              src="@/assets/ethereum.svg?url"
+              src="@/assets/networks/ethereum.svg?url"
               width="24"
               height="24"
             />

@@ -1,5 +1,5 @@
-import { NetworkEnum } from "./NetworkEnum";
 import type { Address } from "viem";
+import type { NetworkConfig } from "@/model/NetworkEnum";
 
 export type ValidDeposit = {
   token: Address;
@@ -7,6 +7,6 @@ export type ValidDeposit = {
   remaining: number;
   seller: Address;
   participantID: string;
-  network: NetworkEnum;
+  network: NetworkConfig;
   open?: boolean;
 };
