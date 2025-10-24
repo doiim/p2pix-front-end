@@ -94,6 +94,10 @@ const getValidDeposits = async (
 
   // remove doubles from sellers list
   const depositData = await depositLogs.json();
+  if (!depositData.data) {
+    console.error("Error fetching deposit logs");
+    return [];
+  }
   const depositAddeds = depositData.data.depositAddeds;
   const uniqueSellers = depositAddeds.reduce(
     (acc: Record<Address, boolean>, deposit: any) => {
