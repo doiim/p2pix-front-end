@@ -238,7 +238,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
               height="24"
               v-if="
                 selectedDeposits &&
-                selectedDeposits.find((d) => d.network == Networks.rootstockTestnet)
+                selectedDeposits.find((d) => d.network == Networks.rootstock)
               "
             />
             <img

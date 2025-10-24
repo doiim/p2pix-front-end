@@ -6,10 +6,9 @@ import FormCard from '@/components/ui/FormCard.vue';
 import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import AnalyticsCard from '@/components/Explorer/AnalyticsCard.vue';
 import TransactionTable from '@/components/Explorer/TransactionTable.vue';
-import { getBlockExplorerUrl } from '@/config/networks';
 
 const user = useUser();
-const { networkName } = user;
+const { network } = user;
 
 const {
   searchAddress,
@@ -23,7 +22,7 @@ const {
   fetchUserActivity,
   fetchAnalytics,
   clearData
-} = useGraphQL(networkName.value);
+} = useGraphQL(network);
 
 const transactionTypes = [
   { key: 'all', label: 'Todas' },
@@ -45,7 +44,7 @@ watch(searchAddress, async (newAddress) => {
   }
 });
 
-watch(networkName, async () => {
+watch(network, async () => {
   clearData();
   await Promise.all([
     fetchAllActivity(),
@@ -150,7 +149,7 @@ onMounted(async () => {
 
         <TransactionTable 
           :transactions="transactions"
-          :network-explorer-url="getBlockExplorerUrl(networkName)"
+          :network-explorer-url="network.blockExplorers?.default.url || ''"
         />
       </FormCard>
     </div>

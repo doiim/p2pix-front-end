@@ -1,5 +1,7 @@
-import { ref, computed } from 'vue';
-import { NetworkEnum } from '@/model/NetworkEnum';
+import { NetworkConfig } from '@/model/NetworkEnum';
+import { ref, computed, type Ref } from 'vue';
+import { isTestnetEnvironment } from '@/config/networks';
+import { sepolia, rootstock, rootstockTestnet } from "viem/chains";
 
 export interface Transaction {
   id: string;
@@ -22,7 +24,7 @@ export interface AnalyticsData {
   totalReleases: string;
 }
 
-export function useGraphQL(networkName: NetworkEnum) {
+export function useGraphQL(network: Ref<NetworkConfig>) {
   const searchAddress = ref('');
   const selectedType = ref('all');
   const loading = ref(false);
@@ -38,19 +40,21 @@ export function useGraphQL(networkName: NetworkEnum) {
     totalReleases: '0'
   });
 
-  const getGraphQLUrl = (networkName: string) => {
-    switch (networkName) {
-      case 'sepolia':
-        return import.meta.env.VITE_SEPOLIA_SUBGRAPH_URL || 'https://api.studio.thegraph.com/query/113713/p-2-pix/sepolia';
-      case 'rootstockTestnet':
-        return import.meta.env.VITE_RSK_SUBGRAPH_URL || 'https://api.studio.thegraph.com/query/113713/p-2-pix/1';
+  const getGraphQLUrl = () => {
+    const rskNetworkName = isTestnetEnvironment() ? rootstockTestnet.name : rootstock.name;  
+    
+    switch (network.value.name) {
+      case sepolia.name:
+        return import.meta.env.VITE_SEPOLIA_SUBGRAPH_URL!;
+      case rskNetworkName:
+        return import.meta.env.VITE_RSK_SUBGRAPH_URL!;
       default:
-        return 'https://api.studio.thegraph.com/query/113713/p-2-pix/sepolia';
+        throw new Error(`Unsupported network: ${network.value.name}`);
     }
   };
 
   const executeQuery = async (query: string, variables: any = {}) => {
-    const url = getGraphQLUrl(networkName.toString());
+    const url = getGraphQLUrl();
     
     try {
       const response = await fetch(url, {
