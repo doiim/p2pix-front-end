@@ -33,7 +33,7 @@ const props = withDefaults(
 }
 
 .form-card:not(.no-border) {
-  @apply border-y-10;
+  @apply border-y;
 }
 
 .form-card.full-width {

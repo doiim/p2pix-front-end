@@ -155,6 +155,19 @@ onClickOutside(infoMenuRef, () => {
           >
             <div class="mt-2">
               <div class="bg-white rounded-md z-10 -left-36 w-52">
+                <RouterLink
+                  :to="'/explore'"
+                  class="menu-button gap-2 px-4 rounded-md cursor-pointer"
+                >
+                  <span
+                    class="text-gray-900 py-4 text-end font-semibold text-sm whitespace-nowrap"
+                  >
+                    Explorar Transações
+                  </span>
+                </RouterLink>
+                <div class="w-full flex justify-center">
+                  <hr class="w-4/5" />
+                </div>
                 <div class="menu-button gap-2 px-4 rounded-md cursor-pointer">
                   <span
                     class="text-gray-900 py-4 text-end font-semibold text-sm"
@@ -408,6 +421,9 @@ onClickOutside(infoMenuRef, () => {
             >
               {{ sellerView ? "Quero comprar" : "Quero vender" }}
             </RouterLink>
+          </div>
+          <div class="w-full flex justify-center">
+            <hr class="w-4/5" />
           </div>
           <div class="w-full flex justify-center">
             <hr class="w-4/5" />
