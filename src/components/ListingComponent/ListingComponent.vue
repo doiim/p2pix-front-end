@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import { useUser } from "@/composables/useUser";
@@ -32,10 +31,7 @@ const showInitialItems = (): void => {
 };
 
 const openEtherscanUrl = (transactionHash: string): void => {
-  const networkUrl =
-    user.networkName.value == NetworkEnum.sepolia
-      ? "sepolia.etherscan.io"
-      : "mumbai.polygonscan.com";
+  const networkUrl = user.network.value.blockExplorers?.default.url;
   const url = `https://${networkUrl}/tx/${transactionHash}`;
   window.open(url, "_blank");
 };
@@ -84,7 +80,7 @@ showInitialItems();
       :key="item.blockNumber"
       :selected-token="user.selectedToken.value"
       :transaction="item"
-      :network-name="user.networkName.value"
+      :network-name="user.network.value.name"
       @open-explorer="openEtherscanUrl"
     />
 

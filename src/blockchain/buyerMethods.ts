@@ -1,11 +1,10 @@
 import { getContract } from "./provider";
-import { getTokenAddress } from "./addresses";
+import { ChainContract } from "viem";
 import {
   parseEther,
   type Address,
   type TransactionReceipt,
 } from "viem";
-import type { TokenEnum } from "@/model/NetworkEnum";
 
 export const addLock = async (
   sellerAddress: Address,
@@ -37,7 +36,7 @@ export const addLock = async (
 
 export const withdrawDeposit = async (
   amount: string,
-  token: TokenEnum
+  token: Address
 ): Promise<boolean> => {
   const { address, abi, wallet, client, account } = await getContract();
 
@@ -45,13 +44,11 @@ export const withdrawDeposit = async (
     throw new Error("Wallet not connected");
   }
 
-  const tokenAddress = getTokenAddress(token);
-
   const { request } = await client.simulateContract({
     address,
     abi,
     functionName: "withdraw",
-    args: [tokenAddress, parseEther(amount), []],
+    args: [token, parseEther(amount), []],
     account
   });
 

@@ -1,16 +1,16 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { NetworkEnum } from "@/model/NetworkEnum";
-import { Networks } from "@/model/Networks";
+import { Networks } from "@/config/networks";
+import type { NetworkConfig } from "@/model/NetworkEnum";
 import { getNetworkImage } from "@/utils/imagesPath";
 import Dropdown, { type DropdownItem } from "./Dropdown.vue";
 
 const props = withDefaults(
   defineProps<{
-    modelValue: NetworkEnum;
+    modelValue: NetworkConfig;
     disabled?: boolean;
     size?: "sm" | "md" | "lg";
-    availableNetworks?: NetworkEnum[];
+    availableNetworks?: NetworkConfig[];
   }>(),
   {
     disabled: false,
@@ -19,21 +19,19 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  "update:modelValue": [value: NetworkEnum];
-  change: [value: NetworkEnum];
+  "update:modelValue": [value: NetworkConfig];
+  change: [value: NetworkConfig];
 }>();
 
-const networkItems = computed((): DropdownItem<NetworkEnum>[] => {
-  const networks = props.availableNetworks || (Object.values(NetworkEnum).filter(v => typeof v === 'number') as NetworkEnum[]);
-  
-  return networks.map((network) => ({
+const networkItems = computed((): DropdownItem<NetworkConfig>[] => {  
+  return Object.values(Networks).map((network) => ({
     value: network,
-    label: Networks[network]?.chainName || String(network),
-    icon: getNetworkImage(String(network)),
+    label: network.name,
+    icon: getNetworkImage(network.name),
   }));
 });
 
-const handleChange = (value: NetworkEnum) => {
+const handleChange = (value: NetworkConfig) => {
   emit("update:modelValue", value);
   emit("change", value);
 };

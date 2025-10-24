@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { NetworkEnum } from "@/model/NetworkEnum";
 import { getNetworkImage } from "@/utils/imagesPath";
+import type { NetworkConfig } from "@/model/NetworkEnum";
 
 const props = withDefaults(
   defineProps<{
-    networks: NetworkEnum[];
+    networks: NetworkConfig[];
     size?: "sm" | "md" | "lg";
     showLabel?: boolean;
   }>(),
@@ -24,8 +24,8 @@ const sizeMap = {
 const networkData = computed(() => {
   return props.networks.map((network) => ({
     network,
-    image: getNetworkImage(String(network)),
-    name: String(network),
+    image: getNetworkImage(network.name),
+    name: network.name,
   }));
 });
 </script>
@@ -34,7 +34,7 @@ const networkData = computed(() => {
   <div class="network-badges">
     <div
       v-for="data in networkData"
-      :key="data.network"
+      :key="data.network.id"
       class="network-badge"
       :title="data.name"
     >

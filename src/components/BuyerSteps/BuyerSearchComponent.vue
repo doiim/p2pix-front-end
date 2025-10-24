@@ -5,12 +5,11 @@ import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
 import CustomButton from "@/components/ui/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { verifyNetworkLiquidity } from "@/utils/networkLiquidity";
-import { NetworkEnum } from "@/model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { decimalCount } from "@/utils/decimalCount";
 import { getTokenImage } from "@/utils/imagesPath";
 import { onClickOutside } from "@vueuse/core";
-
+import { Networks } from "@/config/networks";
 import { TokenEnum } from "@/model/NetworkEnum";
 
 // Store reference
@@ -19,7 +18,7 @@ const selectTokenToggle = ref<boolean>(false);
 
 const {
   walletAddress,
-  networkName,
+  network,
   selectedToken,
   depositsValidList,
   loadingNetworkLiquidity,
@@ -51,7 +50,7 @@ const connectAccount = async (): Promise<void> => {
 
 const emitConfirmButton = async (): Promise<void> => {
   const deposit = selectedDeposits.value?.find(
-    (d) => d.network === Number(networkName.value)
+    (d) => d.network === network.value
   );
   if (!deposit) return;
   deposit.participantID = await getParticipantID(deposit.seller, deposit.token);
@@ -99,7 +98,7 @@ const verifyLiquidity = (): void => {
   );
   selectedDeposits.value = selDeposits;
   hasLiquidity.value = !!selDeposits.find(
-    (d) => d.network === Number(networkName.value)
+    (d) => d.network === network.value
   );
   enableOrDisableConfirmButton();
 };
@@ -110,7 +109,7 @@ const enableOrDisableConfirmButton = (): void => {
     return;
   }
 
-  if (!selectedDeposits.value.find((d) => d.network === networkName.value)) {
+  if (!selectedDeposits.value.find((d) => d.network === network.value)) {
     enableConfirmButton.value = false;
     return;
   }
@@ -118,7 +117,7 @@ const enableOrDisableConfirmButton = (): void => {
   enableConfirmButton.value = true;
 };
 
-watch(networkName, (): void => {
+watch(network, (): void => {
   verifyLiquidity();
   enableOrDisableConfirmButton();
 });
@@ -234,22 +233,22 @@ const handleSubmit = async (e: Event): Promise<void> => {
           <div class="flex gap-2">
             <img
               alt="Rootstock image"
-              src="@/assets/rootstock.svg?url"
+              src="@/assets/networks/rootstock.svg?url"
               width="24"
               height="24"
               v-if="
                 selectedDeposits &&
-                selectedDeposits.find((d) => d.network == NetworkEnum.rootstock)
+                selectedDeposits.find((d) => d.network == Networks.rootstockTestnet)
               "
             />
             <img
               alt="Ethereum image"
-              src="@/assets/ethereum.svg?url"
+              src="@/assets/networks/ethereum.svg?url"
               width="24"
               height="24"
               v-if="
                 selectedDeposits &&
-                selectedDeposits.find((d) => d.network == NetworkEnum.sepolia)
+                selectedDeposits.find((d) => d.network == Networks.sepolia)
               "
             />
           </div>

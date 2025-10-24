@@ -53,7 +53,7 @@ const getWalletTransactions = async () => {
 const callWithdraw = async (amount: string) => {
   if (amount) {
     user.setLoadingWalletTransactions(true);
-    const withdraw = await withdrawDeposit(amount, user.selectedToken.value);
+    const withdraw = await withdrawDeposit(amount, user.network.value.tokens[user.selectedToken.value].address);
     if (withdraw) {
       console.log("Saque realizado!");
       await getWalletTransactions();
