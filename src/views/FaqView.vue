@@ -30,18 +30,18 @@ const openItem = (index: number) => {
 <template>
   <div class="page">
     <div class="text-container">
-      <span class="text font-extrabold text-5xl max-w-[50rem]"
+      <span class="text font-extrabold sm:text-5xl text-3xl sm:max-w-[50rem] max-w-[90%]"
         >Perguntas Frequentes
       </span>
-      <span class="text font-medium text-base max-w-[40rem]"
+      <span class="text font-medium sm:text-base text-sm sm:max-w-[40rem] max-w-[90%]"
         >Não conseguiu uma resposta para sua dúvida? Acesse a comunidade do
         Discord para falar diretamente conosco.</span
       >
     </div>
 
-    <div class="flex justify-between w-10/12 mt-20">
-      <div>
-        <h1 class="text-3xl text-white font-bold">Sumário</h1>
+    <div class="faq-container">
+      <div class="sumario-section">
+        <h1 class="sumario-title">Sumário</h1>
         <h3
           :class="index == selectedSection ? 'selected-sumario' : 'sumario'"
           v-for="(f, index) in faq"
@@ -52,7 +52,7 @@ const openItem = (index: number) => {
         </h3>
       </div>
 
-      <div class="w-4/6">
+      <div class="content-section">
         <div
           v-for="(item, index) in faq[selectedSection].items"
           v-bind:key="item.title"
@@ -61,16 +61,16 @@ const openItem = (index: number) => {
             <img
               alt="plus"
               src="@/assets/plus.svg?url"
-              class="mr-3"
+              class="icon"
               v-if="!item.isOpen"
             />
             <img
-              alt="plus"
+              alt="minus"
               src="@/assets/minus.svg?url"
-              class="mr-3"
+              class="icon"
               v-if="item.isOpen"
             />
-            <h4 class="text-white">{{ item.title }}</h4>
+            <h4 class="item-title">{{ item.title }}</h4>
           </div>
           <div class="content" v-if="item.isOpen" v-html="item.content"></div>
           <div class="hr"></div>
@@ -81,23 +81,52 @@ const openItem = (index: number) => {
 </template>
 
 <style scoped>
+.page {
+  @apply flex flex-col items-center justify-center w-full mt-8 sm:mt-16 px-4;
+}
+
+.text-container {
+  @apply flex flex-col items-center justify-center gap-4 mb-8 sm:mb-12;
+}
+
+.text {
+  @apply text-white text-center;
+}
+
+.faq-container {
+  @apply flex flex-col sm:flex-row sm:justify-between w-full sm:w-10/12 max-w-7xl gap-8 sm:gap-0 mt-8 sm:mt-20;
+}
+
+.sumario-section {
+  @apply w-full sm:w-auto sm:min-w-[200px];
+}
+
+.sumario-title {
+  @apply text-xl sm:text-3xl text-white font-bold mb-4 sm:mb-0;
+}
+
 .sumario {
-  margin-top: 24px;
-  cursor: pointer;
+  @apply text-white mt-6 sm:mt-6 cursor-pointer text-sm sm:text-base;
 }
 
 .selected-sumario {
-  font-weight: bolder;
-  margin-top: 24px;
-  cursor: pointer;
+  @apply text-white font-bold mt-6 sm:mt-6 cursor-pointer text-sm sm:text-base;
 }
-.page {
-  @apply flex flex-col items-center justify-center w-full mt-16;
+
+.content-section {
+  @apply w-full sm:w-4/6;
+}
+
+.icon {
+  @apply mr-3 flex-shrink-0 w-5 h-5 sm:w-6 sm:h-6;
+}
+
+.item-title {
+  @apply text-white font-semibold text-sm sm:text-base;
 }
 
 div.content {
-  padding-top: 24px;
-  color: white;
+  @apply pt-6 text-white text-sm sm:text-base;
 }
 
 .content :deep(ul) {
@@ -112,9 +141,12 @@ div.content {
   @apply list-disc m-1 p-1;
 }
 
+.content :deep(p) {
+  @apply mb-2;
+}
+
 .hr {
-  border: 1px solid #1f2937;
-  margin: 24px 0;
+  @apply border border-gray-700 my-6;
 }
 
 h3 {
@@ -124,13 +156,5 @@ h3 {
 h2,
 h4 {
   font-weight: 600;
-}
-
-.text-container {
-  @apply flex flex-col items-center justify-center gap-4;
-}
-
-.text {
-  @apply text-white text-center;
 }
 </style>
