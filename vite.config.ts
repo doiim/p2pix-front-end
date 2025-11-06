@@ -6,11 +6,17 @@ import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
 import svgLoader from "vite-svg-loader";
 
-function getGitCommitHash(): string {
+function getGitTag(): string {
   try {
-    return execSync("git rev-parse --short HEAD").toString().trim();
+    const tag = execSync("git describe --tags --abbrev=0").toString().trim();
+    return tag || "";
   } catch (error) {
-    return "unknown";
+    try {
+      const tags = execSync("git tag --sort=-version:refname").toString().trim().split("\n");
+      return tags.length > 0 ? tags[0] : "unknown";
+    } catch (fallbackError) {
+      return "";
+    }
   }
 }
 
@@ -21,7 +27,7 @@ export default defineConfig({
     target: "esnext",
   },
   define: {
-    __APP_VERSION__: JSON.stringify(getGitCommitHash()),
+    __APP_VERSION__: JSON.stringify(getGitTag()),
   },
   optimizeDeps: {
     esbuildOptions: {

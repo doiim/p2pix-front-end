@@ -12,9 +12,6 @@ const route = useRoute();
 const injected = injectedModule();
 const targetNetwork = ref(DEFAULT_NETWORK);
 
-const currentYear = new Date().getFullYear();
-const appVersion = __APP_VERSION__;
-
 const web3Onboard = init({
   wallets: [injected],
   chains: Object.values(Networks).map((network) => ({
@@ -57,9 +54,4 @@ if (!connectedWallet) {
     </RouterView>
     <ToasterComponent :targetNetwork="targetNetwork" />
   </main>
-  <footer class="mt-20 pt-2 pb-2 border-t border-gray-700 text-center">
-    <div class="flex justify-center items-center">
-      <p class="text-gray-400 text-xs"> Versão: {{ appVersion }} | © {{ currentYear }} P2Pix. Todos os direitos reservados.</p>
-    </div>
-  </footer>
 </template>

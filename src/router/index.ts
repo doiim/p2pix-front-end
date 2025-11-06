@@ -4,6 +4,7 @@ import FaqView from "@/views/FaqView.vue";
 import ManageBidsView from "@/views/ManageBidsView.vue";
 import SellerView from "@/views/SellerView.vue";
 import ExploreView from "@/views/ExploreView.vue";
+import VersionsView from "@/views/VersionsView.vue";
 
 const router = createRouter({
   history: import.meta.env.MODE === 'production' && import.meta.env.BASE_URL === './' 
@@ -40,6 +41,11 @@ const router = createRouter({
       path: "/explore",
       name: "explore",
       component: ExploreView,
+    },
+    {
+      path: "/versions",
+      name: "versions",
+      component: VersionsView,
     },
   ],
 });
