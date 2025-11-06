@@ -8,15 +8,10 @@ import svgLoader from "vite-svg-loader";
 
 function getGitTag(): string {
   try {
-    const tag = execSync("git describe --tags --abbrev=0").toString().trim();
-    return tag || "";
-  } catch (error) {
-    try {
-      const tags = execSync("git tag --sort=-version:refname").toString().trim().split("\n");
-      return tags.length > 0 ? tags[0] : "unknown";
-    } catch (fallbackError) {
-      return "";
-    }
+    const tags = execSync("git tag --sort=-version:refname").toString().trim().split("\n");
+    return tags.length > 0 ? tags[0] : "unknown";
+  } catch (fallbackError) {
+    return "";
   }
 }
 
