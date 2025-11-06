@@ -126,6 +126,7 @@ export const listAllTransactionByWalletAddress = async (
       transactions.push({
         token: deposit.token,
         blockNumber: parseInt(deposit.blockNumber),
+        blockTimestamp: parseInt(deposit.blockTimestamp),
         amount: parseFloat(formatEther(BigInt(deposit.amount))),
         seller: deposit.seller,
         buyer: "",
@@ -145,6 +146,7 @@ export const listAllTransactionByWalletAddress = async (
       transactions.push({
         token: lock.token,
         blockNumber: parseInt(lock.blockNumber),
+        blockTimestamp: parseInt(lock.blockTimestamp),
         amount: parseFloat(formatEther(BigInt(lock.amount))),
         seller: lock.seller,
         buyer: lock.buyer,
@@ -162,6 +164,7 @@ export const listAllTransactionByWalletAddress = async (
       transactions.push({
         token: undefined, // Subgraph doesn't provide token in this event, we could enhance this later
         blockNumber: parseInt(release.blockNumber),
+        blockTimestamp: parseInt(release.blockTimestamp),
         amount: -1, // Amount not available in this event
         seller: "",
         buyer: release.buyer,
@@ -179,6 +182,7 @@ export const listAllTransactionByWalletAddress = async (
       transactions.push({
         token: withdrawal.token,
         blockNumber: parseInt(withdrawal.blockNumber),
+        blockTimestamp: parseInt(withdrawal.blockTimestamp),
         amount: parseFloat(formatEther(BigInt(withdrawal.amount))),
         seller: withdrawal.seller,
         buyer: "",
@@ -310,7 +314,7 @@ const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
               buyer: lock.buyer,
               lockID: BigInt(lock.lockID),
               seller: lock.seller,
-              token: lock.token,
+              token: undefined, // Token not available in LockAdded subgraph event
               amount: BigInt(lock.amount),
             },
             // Add other necessary fields to match the original format
@@ -340,7 +344,6 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
           buyer
           lockID
           seller
-          token
           amount
           blockTimestamp
           blockNumber
@@ -380,7 +383,7 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
               buyer: lock.buyer,
               lockID: BigInt(lock.lockID),
               seller: lock.seller,
-              token: lock.token,
+              token: undefined, // Token not available in LockAdded subgraph event
               amount: BigInt(lock.amount),
             },
             // Add other necessary fields to match the original format

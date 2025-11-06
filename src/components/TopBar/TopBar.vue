@@ -14,6 +14,18 @@ import { connectProvider } from "@/blockchain/provider";
 import { DEFAULT_NETWORK } from "@/config/networks";
 import type { NetworkConfig } from "@/model/NetworkEnum";
 
+interface MenuOption {
+  label: string;
+  route?: string;
+  action?: () => void;
+  showInDesktop?: boolean;
+  showInMobile?: boolean;
+  isDynamic?: boolean;
+  dynamicLabel?: () => string;
+  dynamicRoute?: () => string;
+  showVersion?: boolean;
+}
+
 // Use the new composable
 const user = useUser();
 const { walletAddress, sellerView, network } = user;
@@ -80,15 +92,22 @@ const closeMenu = (): void => {
 
 const networkChange = async (network: NetworkConfig): Promise<void> => {
   currencyMenuOpenToggle.value = false;
-  const chainId = network.id.toString(16)
-  try {
-    await setChain({
-      chainId: `0x${chainId}`,
-      wallet: connectedWallet.value?.label || "",
-    });
+  
+  // If wallet is connected, try to change chain in wallet
+  if (connectedWallet.value) {
+    const chainId = network.id.toString(16)
+    try {
+      await setChain({
+        chainId: `0x${chainId}`,
+        wallet: connectedWallet.value.label,
+      });
+      user.setNetwork(network);
+    } catch (error) {
+      console.log("Error changing network", error);
+    }
+  } else {
+    // If no wallet connected, just update the network state
     user.setNetwork(network);
-  } catch (error) {
-    console.log("Error changing network", error);
   }
 };
 
@@ -103,11 +122,80 @@ onClickOutside(currencyRef, () => {
 onClickOutside(infoMenuRef, () => {
   infoMenuOpenToggle.value = false;
 });
+
+const infoMenuOptions: MenuOption[] = [
+  {
+    label: "Explorar Transações",
+    route: "/explore",
+    showInDesktop: true,
+    showInMobile: false,
+  },
+  {
+    label: "Perguntas frequentes",
+    route: "/faq",
+    showInDesktop: true,
+    showInMobile: false,
+  },
+  {
+    label: "Versões",
+    route: "/versions",
+    showInDesktop: true,
+    showInMobile: false,
+  },
+];
+
+const walletMenuOptions: MenuOption[] = [
+  {
+    label: "Quero vender",
+    isDynamic: true,
+    dynamicLabel: () => (sellerView.value ? "Quero comprar" : "Quero vender"),
+    dynamicRoute: () => (sellerView.value ? "/" : "/seller"),
+    showInDesktop: false,
+    showInMobile: true,
+  },
+  {
+    label: "Explorar Transações",
+    route: "/explore",
+    showInDesktop: false,
+    showInMobile: true,
+  },
+  {
+    label: "Gerenciar Ofertas",
+    route: "/manage_bids",
+    showInDesktop: true,
+    showInMobile: true,
+  },
+  {
+    label: "Perguntas frequentes",
+    route: "/faq",
+    showInDesktop: false,
+    showInMobile: true,
+  },
+  {
+    label: "Versões",
+    route: "/versions",
+    showInDesktop: false,
+    showInMobile: true,
+  },
+  {
+    label: "Desconectar",
+    route: "/",
+    action: disconnectUser,
+    showInDesktop: true,
+    showInMobile: true,
+  },
+];
+
+const handleMenuOptionClick = (option: MenuOption): void => {
+  if (!option.action) {
+    closeMenu();
+  }
+};
 </script>
 
 <template>
   <header class="z-20">
-    <RouterLink :to="'/'" class="default-button">
+    <RouterLink :to="'/'" class="default-button flex items-center md:h-auto md:py-2 h-10 py-0">
       <img
         alt="P2Pix logo"
         class="logo hidden md:inline-block"
@@ -117,7 +205,7 @@ onClickOutside(infoMenuRef, () => {
       />
       <img
         alt="P2Pix logo"
-        class="logo inline-block md:hidden w-10/12"
+        class="logo inline-block md:hidden h-10"
         width="40"
         height="40"
         src="@/assets/logo2.svg?url"
@@ -155,39 +243,44 @@ onClickOutside(infoMenuRef, () => {
           >
             <div class="mt-2">
               <div class="bg-white rounded-md z-10 -left-36 w-52">
-                <RouterLink
-                  :to="'/explore'"
-                  class="menu-button gap-2 px-4 rounded-md cursor-pointer"
+                <template
+                  v-for="(option, index) in infoMenuOptions.filter(
+                    (opt) => opt.showInDesktop
+                  )"
+                  :key="index"
                 >
-                  <span
-                    class="text-gray-900 py-4 text-end font-semibold text-sm whitespace-nowrap"
+                  <RouterLink
+                    v-if="option.route"
+                    :to="option.route"
+                    class="menu-button gap-2 px-4 rounded-md cursor-pointer"
                   >
-                    Explorar Transações
-                  </span>
-                </RouterLink>
-                <div class="w-full flex justify-center">
-                  <hr class="w-4/5" />
-                </div>
-                <div class="menu-button gap-2 px-4 rounded-md cursor-pointer">
-                  <span
-                    class="text-gray-900 py-4 text-end font-semibold text-sm"
+                    <span
+                      class="text-gray-900 py-4 text-end font-semibold text-sm whitespace-nowrap"
+                    >
+                      {{ option.label }}
+                    </span>
+                  </RouterLink>
+                  <div
+                    v-else
+                    class="menu-button gap-2 px-4 rounded-md cursor-pointer"
                   >
-                    Documentação
-                  </span>
-                </div>
-                <div class="w-full flex justify-center">
-                  <hr class="w-4/5" />
-                </div>
-                <RouterLink
-                  :to="'/faq'"
-                  class="menu-button gap-2 px-4 rounded-md cursor-pointer"
-                >
-                  <span
-                    class="text-gray-900 py-4 text-end font-semibold text-sm whitespace-nowrap"
+                    <span
+                      class="text-gray-900 py-4 text-end font-semibold text-sm"
+                    >
+                      {{ option.label }}
+                    </span>
+                  </div>
+                  <div
+                    v-if="
+                      index <
+                      infoMenuOptions.filter((opt) => opt.showInDesktop).length -
+                        1
+                    "
+                    class="w-full flex justify-center"
                   >
-                    Perguntas frequentes
-                  </span>
-                </RouterLink>
+                    <hr class="w-4/5" />
+                  </div>
+                </template>
                 <div class="w-full flex justify-center">
                   <hr class="w-4/5" />
                 </div>
@@ -234,13 +327,6 @@ onClickOutside(infoMenuRef, () => {
         </transition>
       </div>
       <RouterLink
-        :to="'/faq'"
-        v-if="!walletAddress"
-        class="default-button inline-block md:hidden"
-      >
-        FAQ
-      </RouterLink>
-      <RouterLink
         :to="sellerView ? '/' : '/seller'"
         class="default-button whitespace-nowrap w-40 sm:w-44 md:w-36 hidden md:inline-block"
       >
@@ -248,16 +334,7 @@ onClickOutside(infoMenuRef, () => {
           {{ sellerView ? "Quero comprar" : "Quero vender" }}
         </div>
       </RouterLink>
-      <RouterLink
-        :to="sellerView ? '/' : '/seller'"
-        v-if="!walletAddress"
-        class="default-button sm:whitespace-normal whitespace-nowrap inline-block md:hidden w-40 sm:w-44 md:w-36"
-      >
-        <div class="topbar-text topbar-link text-center mx-auto inline-block">
-          {{ sellerView ? "Quero comprar" : "Quero vender" }}
-        </div>
-      </RouterLink>
-      <div class="flex flex-col relative" v-if="walletAddress">
+      <div class="flex flex-col relative">
         <div
           ref="currencyRef"
           class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
@@ -330,7 +407,7 @@ onClickOutside(infoMenuRef, () => {
       <button
         type="button"
         v-if="!walletAddress"
-        class="border-amber-500 border-2 rounded default-button hidden md:inline-block"
+        class="border-amber-500 border-2 sm:rounded !rounded-lg default-button hidden md:inline-block"
         @click="connnectWallet()"
       >
         Conectar carteira
@@ -338,7 +415,7 @@ onClickOutside(infoMenuRef, () => {
       <button
         type="button"
         v-if="!walletAddress"
-        class="border-amber-500 border-2 rounded default-button inline-block md:hidden"
+        class="border-amber-500 border-2 sm:rounded !rounded-lg default-button inline-block md:hidden h-10"
         @click="connnectWallet()"
       >
         Conectar
@@ -384,23 +461,40 @@ onClickOutside(infoMenuRef, () => {
                 <div
                   class="bg-white rounded-md z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
                 >
-                  <RouterLink
-                    to="/manage_bids"
-                    class="redirect_button menu-button"
-                    @click="closeMenu()"
+                  <template
+                    v-for="(option, index) in walletMenuOptions.filter(
+                      (opt) => opt.showInDesktop
+                    )"
+                    :key="index"
                   >
-                    Gerenciar Ofertas
-                  </RouterLink>
-                  <div class="w-full flex justify-center">
-                    <hr class="w-4/5" />
-                  </div>
-                  <RouterLink
-                    to="/"
-                    class="redirect_button menu-button"
-                    @click="disconnectUser"
-                  >
-                    Desconectar
-                  </RouterLink>
+                    <RouterLink
+                      v-if="option.route && !option.action"
+                      :to="option.route"
+                      class="redirect_button menu-button"
+                      @click="closeMenu()"
+                    >
+                      {{ option.label }}
+                    </RouterLink>
+                    <RouterLink
+                      v-else-if="option.route && option.action"
+                      :to="option.route"
+                      class="redirect_button menu-button"
+                      @click="option.action"
+                    >
+                      {{ option.label }}
+                    </RouterLink>
+                    <div
+                      v-if="
+                        index <
+                        walletMenuOptions.filter((opt) => opt.showInDesktop)
+                          .length -
+                          1
+                      "
+                      class="w-full flex justify-center"
+                    >
+                      <hr class="w-4/5" />
+                    </div>
+                  </template>
                 </div>
               </div>
             </div>
@@ -412,35 +506,49 @@ onClickOutside(infoMenuRef, () => {
       v-show="menuOpenToggle"
       class="mobile-menu fixed w-4/5 text-gray-900 inline-block md:hidden"
     >
-      <div class="pl-4 mt-2 h-full">
+      <div class="pl-4 h-full">
         <div class="bg-white rounded-md z-10 h-full">
-          <div class="menu-button" @click="closeMenu()">
-            <RouterLink
-              :to="sellerView ? '/' : '/seller'"
-              class="redirect_button mt-2"
+          <template
+            v-for="(option, index) in walletMenuOptions.filter(
+              (opt) => opt.showInMobile
+            )"
+            :key="index"
+          >
+            <div class="menu-button" @click="handleMenuOptionClick(option)">
+              <RouterLink
+                v-if="option.isDynamic"
+                :to="option.dynamicRoute ? option.dynamicRoute() : '/'"
+                class="redirect_button"
+                :class="{ 'mt-2': index === 0 }"
+              >
+                {{ option.dynamicLabel ? option.dynamicLabel() : option.label }}
+              </RouterLink>
+              <RouterLink
+                v-else-if="option.route && !option.action"
+                :to="option.route"
+                class="redirect_button"
+              >
+                {{ option.label }}
+              </RouterLink>
+              <RouterLink
+                v-else-if="option.route && option.action"
+                :to="option.route"
+                class="redirect_button"
+                @click.stop="option.action"
+              >
+                {{ option.label }}
+              </RouterLink>
+            </div>
+            <div
+              v-if="
+                index <
+                walletMenuOptions.filter((opt) => opt.showInMobile).length - 1
+              "
+              class="w-full flex justify-center"
             >
-              {{ sellerView ? "Quero comprar" : "Quero vender" }}
-            </RouterLink>
-          </div>
-          <div class="w-full flex justify-center">
-            <hr class="w-4/5" />
-          </div>
-          <div class="w-full flex justify-center">
-            <hr class="w-4/5" />
-          </div>
-          <div class="menu-button" @click="closeMenu()">
-            <RouterLink to="/manage_bids" class="redirect_button">
-              Gerenciar Ofertas
-            </RouterLink>
-          </div>
-          <div class="w-full flex justify-center">
-            <hr class="w-4/5" />
-          </div>
-          <div class="menu-button" @click="disconnectUser">
-            <RouterLink to="/" class="redirect_button">
-              Desconectar
-            </RouterLink>
-          </div>
+              <hr class="w-4/5" />
+            </div>
+          </template>
           <div class="w-full flex justify-center">
             <hr class="w-4/5" />
           </div>
@@ -474,7 +582,7 @@ onClickOutside(infoMenuRef, () => {
       v-show="currencyMenuOpenToggle"
       class="mobile-menu fixed w-4/5 text-gray-900 inline-block md:hidden"
     >
-      <div class="pl-4 mt-2 h-full">
+      <div class="pl-4 h-full">
         <div class="bg-white rounded-md z-10 h-full">
           <div
             v-for="network in Networks"
@@ -539,8 +647,12 @@ a:hover {
 }
 
 .mobile-menu {
-  margin-top: 1400px;
-  bottom: 0px;
-  height: auto;
+  top: 60px;
+  right: 10px;
+  left: auto;
+  max-height: calc(100vh - 60px);
+  overflow-y: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 </style>

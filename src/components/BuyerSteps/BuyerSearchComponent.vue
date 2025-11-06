@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
+import { ref, watch, computed } from "vue";
 import { useUser } from "@/composables/useUser";
 import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
 import CustomButton from "@/components/ui/CustomButton.vue";
@@ -7,7 +7,7 @@ import { debounce } from "@/utils/debounce";
 import { verifyNetworkLiquidity } from "@/utils/networkLiquidity";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { decimalCount } from "@/utils/decimalCount";
-import { getTokenImage } from "@/utils/imagesPath";
+import { getTokenImage, getNetworkImage } from "@/utils/imagesPath";
 import { onClickOutside } from "@vueuse/core";
 import { Networks } from "@/config/networks";
 import { TokenEnum } from "@/model/NetworkEnum";
@@ -126,6 +126,13 @@ watch(walletAddress, (): void => {
   verifyLiquidity();
 });
 
+const availableNetworks = computed(() => {
+  if (!selectedDeposits.value) return [];
+  return Object.values(Networks).filter((network) =>
+    selectedDeposits.value?.some((d) => d.network.id === network.id)
+  );
+});
+
 // Add form submission handler
 const handleSubmit = async (e: Event): Promise<void> => {
   e.preventDefault();
@@ -159,7 +166,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
           <input
             type="number"
             name="tokenAmount"
-            class="border-none outline-none text-lg text-gray-900"
+            class="border-none outline-none text-lg text-gray-900 sm:flex-1 max-w-[60%]"
             v-bind:class="{
               'font-semibold': tokenValue != undefined,
               'text-xl': tokenValue != undefined,
@@ -169,7 +176,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
             step=".01"
             required
           />
-          <div class="relative overflow-visible">
+          <div class="relative overflow-visible ml-auto sm:ml-0">
             <button
               ref="tokenDropdownRef"
               class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
@@ -232,24 +239,12 @@ const handleSubmit = async (e: Event): Promise<void> => {
           </p>
           <div class="flex gap-2">
             <img
-              alt="Rootstock image"
-              src="@/assets/networks/rootstock.svg?url"
+              v-for="network in availableNetworks"
+              :key="network.id"
+              :alt="`${network.name} image`"
+              :src="getNetworkImage(network.name)"
               width="24"
               height="24"
-              v-if="
-                selectedDeposits &&
-                selectedDeposits.find((d) => d.network == Networks.rootstock)
-              "
-            />
-            <img
-              alt="Ethereum image"
-              src="@/assets/networks/ethereum.svg?url"
-              width="24"
-              height="24"
-              v-if="
-                selectedDeposits &&
-                selectedDeposits.find((d) => d.network == Networks.sepolia)
-              "
             />
           </div>
         </div>

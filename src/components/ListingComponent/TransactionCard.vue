@@ -29,7 +29,7 @@ const eventName = computed(() => {
 });
 
 const explorerName = computed(() => {
-  return Networks[props.networkName].blockExplorers?.default.name;
+  return Networks[(props.networkName as string).toLowerCase()].blockExplorers?.default.name;
 });
 
 const statusType = computed((): StatusType => {
@@ -56,6 +56,21 @@ const showContinueButton = computed(() => {
   return eventName.value === "Reserva" && props.transaction.lockStatus === 1;
 });
 
+const formattedDate = computed(() => {
+  if (!props.transaction.blockTimestamp) return "";
+  
+  const timestamp = props.transaction.blockTimestamp;
+  const date = new Date(timestamp * 1000);
+  
+  const day = String(date.getDate()).padStart(2, "0");
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const year = date.getFullYear();
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  
+  return `${day}/${month}/${year} ${hours}:${minutes}`;
+});
+
 const handleExplorerClick = () => {
   emit("openExplorer", props.transaction.transactionHash);
 };
@@ -70,6 +85,12 @@ const handleExplorerClick = () => {
         </span>
         <span class="text-xl sm:text-xl leading-7 font-semibold text-gray-900">
           {{ transaction.amount }} {{ selectedToken }}
+        </span>
+        <span
+          v-if="formattedDate"
+          class="text-xs sm:text-sm leading-5 font-normal text-gray-500 mt-1"
+        >
+          {{ formattedDate }}
         </span>
       </div>
       <div class="flex flex-col items-center justify-center">
