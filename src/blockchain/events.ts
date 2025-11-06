@@ -1,14 +1,13 @@
 import { useUser } from "@/composables/useUser";
 import { formatEther, toHex, stringToHex } from "viem";
 import type { PublicClient, Address } from "viem";
-
+import { Networks } from "@/config/networks";
 import { getContract } from "./provider";
-import { getP2PixAddress, getTokenAddress } from "./addresses";
 import { p2PixAbi } from "./abi"
 import type { ValidDeposit } from "@/model/ValidDeposit";
-import { getNetworkSubgraphURL, NetworkEnum, TokenEnum } from "@/model/NetworkEnum";
+import type { NetworkConfig } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
-import type { LockStatus } from "@/model/LockStatus"
+import { ChainContract } from "viem";
 
 const getNetworksLiquidity = async (): Promise<void> => {
   const user = useUser();
@@ -16,12 +15,10 @@ const getNetworksLiquidity = async (): Promise<void> => {
 
   const depositLists: ValidDeposit[][] = [];
 
-  for (const network of Object.values(NetworkEnum).filter(
-    (v) => !isNaN(Number(v))
-  )) {
+  for (const network of Object.values(Networks)) {
     const deposits = await getValidDeposits(
-      getTokenAddress(user.selectedToken.value),
-      Number(network)
+      user.network.value.tokens[user.selectedToken.value].address,
+      network
     );
     if (deposits) depositLists.push(deposits);
   }
@@ -32,8 +29,8 @@ const getNetworksLiquidity = async (): Promise<void> => {
 };
 
 const getParticipantID = async (
-  seller: string,
-  token: string
+  seller: Address,
+  token: Address
 ): Promise<string> => {
   const { address, abi, client } = await getContract();
 
@@ -62,7 +59,7 @@ const getParticipantID = async (
 
 const getValidDeposits = async (
   token: Address,
-  network: NetworkEnum,
+  network: NetworkConfig,
   contractInfo?: { client: PublicClient; address: Address }
 ): Promise<ValidDeposit[]> => {
   let client: PublicClient, abi;
@@ -73,9 +70,6 @@ const getValidDeposits = async (
   } else {
     ({ abi, client } = await getContract(true));
   }
-
-  // TODO: Remove this once we have a subgraph for rootstock
-  if (network === NetworkEnum.rootstock) return [];
 
   const body = {
     query: `
@@ -90,7 +84,7 @@ const getValidDeposits = async (
   `,
   };
 
-  const depositLogs = await fetch(getNetworkSubgraphURL(network), {
+  const depositLogs = await fetch( network.subgraphUrls[0], {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -119,7 +113,7 @@ const getValidDeposits = async (
   const sellersList = Object.keys(uniqueSellers) as Address[];
   // Use multicall to batch all getBalance requests
   const balanceCalls = sellersList.map((seller) => ({
-    address: getP2PixAddress(network),
+    address: (network.contracts?.p2pix as ChainContract).address,
     abi,
     functionName: "getBalance",
     args: [seller, token],

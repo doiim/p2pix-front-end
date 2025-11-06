@@ -1,8 +1,7 @@
-import { formatEther, hexToString, type Address } from "viem";
+import { formatEther, type Address } from "viem";
 import { useUser } from "@/composables/useUser";
 
 import { getPublicClient, getWalletClient, getContract } from "./provider";
-import { getTokenAddress } from "./addresses";
 
 import { getValidDeposits, getUnreleasedLockById } from "./events";
 
@@ -10,7 +9,6 @@ import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
 import { LockStatus } from "@/model/LockStatus";
-import { getNetworkSubgraphURL } from "@/model/NetworkEnum";
 
 export const updateWalletStatus = async (): Promise<void> => {
   const user = useUser();
@@ -36,8 +34,8 @@ export const listValidDepositTransactionsByWalletAddress = async (
 ): Promise<ValidDeposit[]> => {
   const user = useUser();
   const walletDeposits = await getValidDeposits(
-    getTokenAddress(user.selectedToken.value),
-    user.networkName.value
+    user.network.value.tokens[user.selectedToken.value].address,
+    user.network.value
   );
   if (walletDeposits) {
     return walletDeposits
@@ -67,7 +65,7 @@ export const listAllTransactionByWalletAddress = async (
   const user = useUser();
 
   // Get the current network for the subgraph URL
-  const network = user.networkName.value;
+  const network = user.network.value;
 
   // Query subgraph for all relevant transactions
   const subgraphQuery = {
@@ -110,7 +108,7 @@ export const listAllTransactionByWalletAddress = async (
     `,
   };
 
-  const response = await fetch(getNetworkSubgraphURL(network), {
+  const response = await fetch(network.subgraphUrls[0], {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -128,6 +126,7 @@ export const listAllTransactionByWalletAddress = async (
       transactions.push({
         token: deposit.token,
         blockNumber: parseInt(deposit.blockNumber),
+        blockTimestamp: parseInt(deposit.blockTimestamp),
         amount: parseFloat(formatEther(BigInt(deposit.amount))),
         seller: deposit.seller,
         buyer: "",
@@ -147,6 +146,7 @@ export const listAllTransactionByWalletAddress = async (
       transactions.push({
         token: lock.token,
         blockNumber: parseInt(lock.blockNumber),
+        blockTimestamp: parseInt(lock.blockTimestamp),
         amount: parseFloat(formatEther(BigInt(lock.amount))),
         seller: lock.seller,
         buyer: lock.buyer,
@@ -164,6 +164,7 @@ export const listAllTransactionByWalletAddress = async (
       transactions.push({
         token: undefined, // Subgraph doesn't provide token in this event, we could enhance this later
         blockNumber: parseInt(release.blockNumber),
+        blockTimestamp: parseInt(release.blockTimestamp),
         amount: -1, // Amount not available in this event
         seller: "",
         buyer: release.buyer,
@@ -181,6 +182,7 @@ export const listAllTransactionByWalletAddress = async (
       transactions.push({
         token: withdrawal.token,
         blockNumber: parseInt(withdrawal.blockNumber),
+        blockTimestamp: parseInt(withdrawal.blockTimestamp),
         amount: parseFloat(formatEther(BigInt(withdrawal.amount))),
         seller: withdrawal.seller,
         buyer: "",
@@ -200,7 +202,7 @@ export const listReleaseTransactionByWalletAddress = async (
   walletAddress: Address
 ) => {
   const user = useUser();
-  const network = user.networkName.value;
+  const network = user.network.value;
 
   // Query subgraph for release transactions
   const subgraphQuery = {
@@ -219,7 +221,7 @@ export const listReleaseTransactionByWalletAddress = async (
   };
 
   // Fetch data from subgraph
-  const response = await fetch(getNetworkSubgraphURL(network), {
+  const response = await fetch(network.subgraphUrls[0], {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -263,7 +265,7 @@ export const listReleaseTransactionByWalletAddress = async (
 
 const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
   const user = useUser();
-  const network = user.networkName.value;
+  const network = user.network.value;
 
   // Query subgraph for lock added transactions
   const subgraphQuery = {
@@ -284,7 +286,7 @@ const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
 
   try {
     // Fetch data from subgraph
-    const response = await fetch(getNetworkSubgraphURL(network), {
+    const response = await fetch(network.subgraphUrls[0], {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -312,7 +314,7 @@ const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
               buyer: lock.buyer,
               lockID: BigInt(lock.lockID),
               seller: lock.seller,
-              token: lock.token,
+              token: undefined, // Token not available in LockAdded subgraph event
               amount: BigInt(lock.amount),
             },
             // Add other necessary fields to match the original format
@@ -332,7 +334,7 @@ const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
 
 const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
   const user = useUser();
-  const network = user.networkName.value;
+  const network = user.network.value;
 
   // Query subgraph for lock added transactions where seller matches
   const subgraphQuery = {
@@ -342,7 +344,6 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
           buyer
           lockID
           seller
-          token
           amount
           blockTimestamp
           blockNumber
@@ -354,7 +355,7 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
 
   try {
     // Fetch data from subgraph
-    const response = await fetch(getNetworkSubgraphURL(network), {
+    const response = await fetch(network.subgraphUrls[0], {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -382,7 +383,7 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
               buyer: lock.buyer,
               lockID: BigInt(lock.lockID),
               seller: lock.seller,
-              token: lock.token,
+              token: undefined, // Token not available in LockAdded subgraph event
               amount: BigInt(lock.amount),
             },
             // Add other necessary fields to match the original format
@@ -462,19 +463,4 @@ export const getActiveLockAmount = async (
     }
     return total;
   }, 0);
-};
-
-export const getSellerParticipantId = async (
-  sellerAddress: Address,
-  tokenAddress: Address
-): Promise<string> => {
-  const { address, abi, client } = await getContract();
-
-  const participantId = await client.readContract({
-    address,
-    abi,
-    functionName: "getPixTarget",
-    args: [sellerAddress, tokenAddress],
-  });
-  return hexToString(participantId);
 };

@@ -2,8 +2,8 @@
 import { ref, onMounted, watch } from "vue";
 import { useUser } from "@/composables/useUser";
 import ListingComponent from "@/components/ListingComponent/ListingComponent.vue";
-import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
-import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
+import LoadingComponent from "@/components/ui/LoadingComponent.vue";
+import CustomAlert from "@/components/ui/CustomAlert.vue";
 import {
   listValidDepositTransactionsByWalletAddress,
   listAllTransactionByWalletAddress,
@@ -16,7 +16,7 @@ import type { WalletTransaction } from "@/model/WalletTransaction";
 import router from "@/router/index";
 
 const user = useUser();
-const { walletAddress, networkName, selectedToken } = user;
+const { walletAddress, network, selectedToken } = user;
 const loadingWithdraw = ref<boolean>(false);
 const showAlert = ref<boolean>(false);
 
@@ -29,7 +29,9 @@ const callWithdraw = async (amount: string) => {
     loadingWithdraw.value = true;
     let withdraw;
     try {
-      withdraw = await withdrawDeposit(amount, selectedToken.value);
+      withdraw = await withdrawDeposit(
+          amount,
+          network.value.tokens[selectedToken.value].address);
     } catch {
       loadingWithdraw.value = false;
     }
@@ -79,7 +81,7 @@ watch(walletAddress, async () => {
   await getWalletTransactions();
 });
 
-watch(networkName, async () => {
+watch(network, async () => {
   await getWalletTransactions();
 });
 </script>

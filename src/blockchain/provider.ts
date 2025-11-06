@@ -1,6 +1,5 @@
 import { p2PixAbi } from "./abi";
 import { updateWalletStatus } from "./wallet";
-import { getProviderUrl, getP2PixAddress } from "./addresses";
 import {
   createPublicClient,
   createWalletClient,
@@ -9,17 +8,19 @@ import {
   PublicClient,
   WalletClient,
 } from "viem";
-import { sepolia, rootstock } from "viem/chains";
 import { useUser } from "@/composables/useUser";
+import type { NetworkConfig } from "@/model/NetworkEnum";
+import type { ChainContract } from "viem";
 
 let walletClient: WalletClient | null = null;
 
 const getPublicClient = (): PublicClient => {
     const user = useUser();
-    const rpcUrl = getProviderUrl();
+    const rpcUrl = (user.network.value as NetworkConfig).rpcUrls.default.http[0];
+    const chain = user.network.value;
+
     return createPublicClient({
-      chain:
-        Number(user.networkName.value) === sepolia.id ? sepolia : rootstock,
+      chain,
       transport: http(rpcUrl),
     });
 };
@@ -30,7 +31,8 @@ const getWalletClient = (): WalletClient | null => {
 
 const getContract = async (onlyRpcProvider = false) => {
   const client = getPublicClient();
-  const address = getP2PixAddress();
+  const user = useUser();
+  const address = (user.network.value.contracts?.p2pix as ChainContract).address;
   const abi = p2PixAbi;
   const wallet = onlyRpcProvider ? null : getWalletClient();
 
@@ -45,8 +47,7 @@ const getContract = async (onlyRpcProvider = false) => {
 
 const connectProvider = async (p: any): Promise<void> => {
   const user = useUser();
-  const chain =
-    Number(user.networkName.value) === sepolia.id ? sepolia : rootstock;
+  const chain = user.network.value;
 
   const [account] = await p!.request({ method: "eth_requestAccounts" });
 

@@ -1,15 +1,14 @@
 import { ref } from "vue";
-import { NetworkEnum, TokenEnum } from "../model/NetworkEnum";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { Participant } from "../utils/bbPay";
-import { NetworkById } from "@/model/Networks";
 import type { Address } from "viem"
+import { DEFAULT_NETWORK, Networks } from "@/config/networks";
+import { TokenEnum, NetworkConfig } from "@/model/NetworkEnum"
 
 const walletAddress = ref<Address | null>(null);
 const balance = ref("");
-const networkId = ref(11155111);
-const networkName = ref(NetworkEnum.sepolia);
-const selectedToken = ref(TokenEnum.BRZ);
+const network = ref(DEFAULT_NETWORK);
+const selectedToken = ref<TokenEnum>(TokenEnum.BRZ);
 const loadingLock = ref(false);
 const sellerView = ref(false);
 const depositsValidList = ref<ValidDeposit[]>([]);
@@ -32,9 +31,29 @@ export function useUser() {
     selectedToken.value = token;
   };
 
-  const setNetworkId = (network: string | number) => {
-    networkName.value = NetworkById(network) || NetworkEnum.sepolia;
-    networkId.value = Number(network);
+  const setNetwork = (chain: NetworkConfig) => {
+    network.value = chain;
+  };
+
+  const setNetworkById = (id: string | number) => {
+    let chainId: number;
+
+    if (typeof id === 'string') {
+      // Parse hex string or number string to number
+      if (id.startsWith('0x')) {
+        chainId = parseInt(id, 16);
+      } else {
+        chainId = parseInt(id, 10);
+      }
+    } else {
+      chainId = id;
+    }
+
+    // Find network by chain ID
+    const chain = Object.values(Networks).find(n => n.id === chainId);
+    if (chain) {
+      network.value = chain;
+    }
   };
 
   const setLoadingLock = (isLoading: boolean) => {
@@ -76,8 +95,7 @@ export function useUser() {
     // State
     walletAddress,
     balance,
-    networkId,
-    networkName,
+    network,
     selectedToken,
     loadingLock,
     sellerView,
@@ -91,7 +109,8 @@ export function useUser() {
     setWalletAddress,
     setBalance,
     setSelectedToken,
-    setNetworkId,
+    setNetwork,
+    setNetworkById,
     setLoadingLock,
     setSellerView,
     setDepositsValidList,

@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from "vue";
-import CustomButton from "@/components/CustomButton/CustomButton.vue";
-import CustomModal from "@/components//CustomModal/CustomModal.vue";
-import SpinnerComponent from "@/components/SpinnerComponent.vue";
+import CustomButton from "@/components/ui/CustomButton.vue";
+import CustomModal from "@/components/ui/CustomModal.vue";
+import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
 import { createSolicitation, getSolicitation, type Offer } from "@/utils/bbPay";
-import { getSellerParticipantId } from "@/blockchain/wallet";
+import { getParticipantID } from "@/blockchain/events";
 import { getUnreleasedLockById } from "@/blockchain/events";
 import QRCode from "qrcode";
 
@@ -18,10 +18,12 @@ const props = defineProps<Props>();
 const qrCode = ref<string>("");
 const qrCodeSvg = ref<string>("");
 const showWarnModal = ref<boolean>(true);
-const pixTarget = ref<string>("");
+const pixTimestamp = ref<string>("");
 const releaseSignature = ref<string>("");
 const solicitationData = ref<any>(null);
 const pollingInterval = ref<NodeJS.Timeout | null>(null);
+const copyFeedback = ref<boolean>(false);
+const copyFeedbackTimeout = ref<NodeJS.Timeout | null>(null);
 
 // Function to generate QR code SVG
 const generateQrCodeSvg = async (text: string) => {
@@ -56,7 +58,7 @@ const checkSolicitationStatus = async () => {
     );
 
     if (response.signature) {
-      pixTarget.value = response.pixTarget;
+      pixTimestamp.value = response.pixTimestamp;
       releaseSignature.value = response.signature;
       // Stop polling when payment is confirmed
       if (pollingInterval.value) {
@@ -80,13 +82,36 @@ const startPolling = () => {
   pollingInterval.value = setInterval(checkSolicitationStatus, 10000);
 };
 
+
+const copyToClipboard = async () => {
+  if (!qrCode.value) {
+    return;
+  }
+
+  try {
+    await navigator.clipboard.writeText(qrCode.value);
+
+    if (copyFeedbackTimeout.value) {
+      clearTimeout(copyFeedbackTimeout.value);
+    }
+
+    copyFeedback.value = true;
+
+    copyFeedbackTimeout.value = setTimeout(() => {
+      copyFeedback.value = false;
+    }, 2000);
+  } catch (error) {
+    console.error("Error copying to clipboard:", error);
+  }
+};
+
 onMounted(async () => {
   try {
     const { tokenAddress, sellerAddress, amount } = await getUnreleasedLockById(
       BigInt(props.lockID)
     );
 
-    const participantId = await getSellerParticipantId(
+    const participantId = await getParticipantID(
       sellerAddress,
       tokenAddress
     );
@@ -118,6 +143,10 @@ onUnmounted(() => {
   if (pollingInterval.value) {
     clearInterval(pollingInterval.value);
     pollingInterval.value = null;
+  }
+  if (copyFeedbackTimeout.value) {
+    clearTimeout(copyFeedbackTimeout.value);
+    copyFeedbackTimeout.value = null;
   }
 });
 </script>
@@ -156,13 +185,24 @@ onUnmounted(() => {
             {{ qrCode }}
           </span>
         </div>
-        <img
-          alt="Copy PIX code"
-          src="@/assets/copyPix.svg?url"
-          width="16"
-          height="16"
-          class="pt-2 lg:mb-5 cursor-pointer"
-        />
+        <div class="flex flex-col items-center gap-1">
+          <img
+            alt="Copy PIX code"
+            src="@/assets/copyPix.svg?url"
+            width="16"
+            height="16"
+            class="pt-2 cursor-pointer hover:opacity-70 transition-opacity"
+            @click="copyToClipboard"
+          />
+          <transition name="fade">
+            <span
+              v-if="copyFeedback"
+              class="text-xs text-emerald-500 font-semibold"
+            >
+              Código copiado!
+            </span>
+          </transition>
+        </div>
       </div>
       <CustomButton
         :is-disabled="releaseSignature === ''"
@@ -170,7 +210,7 @@ onUnmounted(() => {
           releaseSignature ? 'Enviar para a rede' : 'Validando pagamento...'
         "
         @button-clicked="
-          emit('pixValidated', { pixTarget, signature: releaseSignature })
+          emit('pixValidated', { pixTimestamp, signature: releaseSignature })
         "
       />
     </div>
@@ -239,5 +279,16 @@ input[type="number"] {
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
+}
+
+/* Fade transition for copy feedback */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 </style>

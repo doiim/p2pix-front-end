@@ -1,12 +1,15 @@
 import { getContract, getPublicClient, getWalletClient } from "./provider";
-import { getTokenAddress, getP2PixAddress } from "./addresses";
-import { parseEther, toHex } from "viem";
-import { sepolia, rootstock } from "viem/chains";
-
+import { parseEther, toHex, ChainContract } from "viem";
 import { mockTokenAbi } from "./abi";
 import { useUser } from "@/composables/useUser";
 import { createParticipant } from "@/utils/bbPay";
 import type { Participant } from "@/utils/bbPay";
+import type { Address } from "viem";
+
+const getP2PixAddress = (): Address => {
+  const user = useUser();  
+  return (user.network.value.contracts?.p2pix as ChainContract).address;
+};
 
 const approveTokens = async (participant: Participant): Promise<any> => {
   const user = useUser();
@@ -21,7 +24,7 @@ const approveTokens = async (participant: Participant): Promise<any> => {
   const [account] = await walletClient.getAddresses();
 
   // Get token address
-  const tokenAddress = getTokenAddress(user.selectedToken.value);
+  const tokenAddress = user.network.value.tokens[user.selectedToken.value].address;
 
   // Check if the token is already approved
   const allowance = await publicClient.readContract({
@@ -33,7 +36,7 @@ const approveTokens = async (participant: Participant): Promise<any> => {
 
   if ( allowance < parseEther(participant.offer.toString()) ) {
     // Approve tokens
-    const chain = user.networkId.value === sepolia.id ? sepolia : rootstock;
+    const chain = user.network.value;
     const hash = await walletClient.writeContract({
       address: tokenAddress,
       abi: mockTokenAbi,
@@ -65,15 +68,15 @@ const addDeposit = async (): Promise<any> => {
   if (!sellerId.id) {
     throw new Error("Failed to create participant");
   }
-  const chain = user.networkId.value === sepolia.id ? sepolia : rootstock;
+  const chain = user.network.value;
   const hash = await walletClient.writeContract({
     address,
     abi,
     functionName: "deposit",
     args: [
-      user.networkId.value + "-" + sellerId.id,
+      user.network.value.id + "-" + sellerId.id,
       toHex("", { size: 32 }),
-      getTokenAddress(user.selectedToken.value),
+      user.network.value.tokens[user.selectedToken.value].address,
       parseEther(user.seller.value.offer.toString()),
       true,
     ],

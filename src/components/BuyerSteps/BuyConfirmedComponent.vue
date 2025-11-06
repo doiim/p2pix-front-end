@@ -5,12 +5,12 @@ import {
   listAllTransactionByWalletAddress,
   listValidDepositTransactionsByWalletAddress,
 } from "@/blockchain/wallet";
-import CustomButton from "@/components/CustomButton/CustomButton.vue";
+import CustomButton from "@/components/ui/CustomButton.vue";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { WalletTransaction } from "@/model/WalletTransaction";
 import { useUser } from "@/composables/useUser";
 import { onMounted, ref, watch } from "vue";
-import ListingComponent from "../ListingComponent/ListingComponent.vue";
+import ListingComponent from "@/components/ListingComponent/ListingComponent.vue";
 
 // props
 const props = defineProps<{
@@ -53,7 +53,7 @@ const getWalletTransactions = async () => {
 const callWithdraw = async (amount: string) => {
   if (amount) {
     user.setLoadingWalletTransactions(true);
-    const withdraw = await withdrawDeposit(amount, user.selectedToken.value);
+    const withdraw = await withdrawDeposit(amount, user.network.value.tokens[user.selectedToken.value].address);
     if (withdraw) {
       console.log("Saque realizado!");
       await getWalletTransactions();

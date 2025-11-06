@@ -1,34 +1,25 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
 import TopBar from "@/components/TopBar/TopBar.vue";
-import SpinnerComponent from "@/components/SpinnerComponent.vue";
-import ToasterComponent from "@/components/ToasterComponent.vue";
+import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
+import ToasterComponent from "@/components/ui/ToasterComponent.vue";
 import { init, useOnboard } from "@web3-onboard/vue";
 import injectedModule from "@web3-onboard/injected-wallets";
-import { Networks } from "./model/Networks";
-import { NetworkEnum } from "./model/NetworkEnum";
+import { Networks, DEFAULT_NETWORK } from "@/config/networks";
 import { ref } from "vue";
 
 const route = useRoute();
 const injected = injectedModule();
-const targetNetwork = ref(NetworkEnum.sepolia);
+const targetNetwork = ref(DEFAULT_NETWORK);
 
 const web3Onboard = init({
   wallets: [injected],
-  chains: [
-    {
-      id: Networks[NetworkEnum.sepolia].chainId,
-      token: "ETH",
-      label: "Sepolia",
-      rpcUrl: import.meta.env.VITE_SEPOLIA_API_URL,
-    },
-    {
-      id: Networks[NetworkEnum.rootstock].chainId,
-      token: "tRBTC",
-      label: "Rootstock Testnet",
-      rpcUrl: import.meta.env.VITE_ROOTSTOCK_API_URL,
-    },
-  ],
+  chains: Object.values(Networks).map((network) => ({
+    id: network.id,
+    token: network.nativeCurrency.symbol,
+    label: network.name,
+    rpcUrl: network.rpcUrls.default.http[0],
+  })),
   connect: {
     autoConnectLastWallet: true,
   },
@@ -41,7 +32,7 @@ if (!connectedWallet) {
 </script>
 
 <template>
-  <div class="p-3 sm:p-4 md:p-8">
+  <main class="p-3 sm:p-4 md:p-8">
     <TopBar />
     <RouterView v-slot="{ Component }">
       <template v-if="Component">
@@ -62,5 +53,5 @@ if (!connectedWallet) {
       </template>
     </RouterView>
     <ToasterComponent :targetNetwork="targetNetwork" />
-  </div>
+  </main>
 </template>

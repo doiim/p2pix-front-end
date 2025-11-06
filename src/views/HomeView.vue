@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import SearchComponent from "@/components/SearchComponent.vue";
-import LoadingComponent from "@/components/LoadingComponent/LoadingComponent.vue";
-import BuyConfirmedComponent from "@/components/BuyConfirmedComponent/BuyConfirmedComponent.vue";
+import SearchComponent from "@/components/BuyerSteps/BuyerSearchComponent.vue";
+import LoadingComponent from "@/components/ui/LoadingComponent.vue";
+import BuyConfirmedComponent from "@/components/BuyerSteps/BuyConfirmedComponent.vue";
 import { ref, onMounted, watch } from "vue";
 import { useUser } from "@/composables/useUser";
-import QrCodeComponent from "@/components/QrCodeComponent.vue";
+import QrCodeComponent from "@/components/BuyerSteps/QrCodeComponent.vue";
 import { addLock, releaseLock } from "@/blockchain/buyerMethods";
 import { updateWalletStatus, checkUnreleasedLock } from "@/blockchain/wallet";
 import { getNetworksLiquidity } from "@/blockchain/events";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import { getUnreleasedLockById } from "@/blockchain/events";
-import CustomAlert from "@/components/CustomAlert/CustomAlert.vue";
+import CustomAlert from "@/components/ui/CustomAlert.vue";
 import { getSolicitation } from "@/utils/bbPay";
 import type { Address } from "viem";
 
@@ -24,7 +24,7 @@ const user = useUser();
 user.setSellerView(false);
 
 // States
-const { loadingLock, walletAddress, networkName } = user;
+const { loadingLock, walletAddress, network } = user;
 const flowStep = ref<Step>(Step.Search);
 const participantID = ref<string>();
 const sellerAddress = ref<Address>();
@@ -59,19 +59,15 @@ const confirmBuyClick = async (
   }
 };
 
-const releaseTransaction = async ({
-  pixTarget,
-  signature,
-}: {
-  pixTarget: string;
-  signature: string;
+const releaseTransaction = async (params: {
+  pixTimestamp: `0x${string}`&{lenght:34},
+  signature: `0x${string}`,
 }) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
-  const release = await releaseLock(BigInt(lockID.value), pixTarget, signature);
-  await release.wait();
+  const release = await releaseLock(BigInt(lockID.value), params.pixTimestamp, params.signature);
 
   await updateWalletStatus();
   loadingRelease.value = false;
@@ -107,7 +103,7 @@ if (paramLockID) {
     await checkForUnreleasedLocks();
   });
 
-  watch(networkName, async () => {
+  watch(network, async () => {
     if (walletAddress.value) await checkForUnreleasedLocks();
   });
 }
