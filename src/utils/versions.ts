@@ -3,7 +3,7 @@ import type { AppVersion } from "@/model/AppVersion";
 export const appVersions: AppVersion[] = [
   {
     tag: "1.1.0",
-    ipfsHash: "bafybeigs4juzxfz2t3j7pcarnfxpu7vhj75v6z3ntfqqsdbf3jec3mvfxi",
+    ipfsHash: "bafybeiaffdxrxoex3qh7kirnkkufnvpafb4gmkt7mjxufnnpbrq6tmqoha",
     releaseDate: "2025-11-06",
     description: "Explorer and versioning features added"
   },
