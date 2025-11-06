@@ -71,6 +71,7 @@ const formatDate = (dateString: string): string => {
           </p>
           <div class="version-actions">
             <button
+              v-if="currentVersion !== version.tag"
               @click="openIpfsVersion(version.ipfsHash)"
               class="ipfs-button"
             >
