@@ -11,6 +11,9 @@ import { getTokenImage, getNetworkImage } from "@/utils/imagesPath";
 import { onClickOutside } from "@vueuse/core";
 import { Networks } from "@/config/networks";
 import { TokenEnum } from "@/model/NetworkEnum";
+import { getContract } from "@/blockchain/provider";
+import { reputationAbi } from "@/blockchain/abi";
+import { type Address } from "viem";
 
 // Store reference
 const user = useUser();
@@ -34,6 +37,8 @@ const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
 const identification = ref<string>("");
 const selectedDeposits = ref<ValidDeposit[]>();
+const reputationLimit = ref<number | null>(null);
+const exceedsReputationLimit = ref<boolean>(false);
 
 import ChevronDown from "@/assets/chevronDown.svg";
 import { useOnboard } from "@web3-onboard/vue";
@@ -41,6 +46,96 @@ import { getParticipantID } from "@/blockchain/events";
 
 // Emits
 const emit = defineEmits(["tokenBuy"]);
+
+const castAddrToKey = (address: Address): bigint => {
+  return BigInt(address) << BigInt(12);
+};
+
+const getUserCredit = async (userAddress: Address): Promise<bigint> => {
+  try {
+    const { address, abi, client } = await getContract(true);
+    const userKey = castAddrToKey(userAddress);
+    
+    const userCredit = await client.readContract({
+      address,
+      abi,
+      functionName: "userRecord",
+      args: [userKey],
+    });
+    
+    return userCredit as bigint;
+  } catch (error) {
+    console.error("Error fetching user credit:", error);
+    return BigInt(0);
+  }
+};
+
+const getReputationAddress = async (): Promise<Address | null> => {
+  try {
+    const { address, abi, client } = await getContract(true);
+    
+    const reputationAddr = await client.readContract({
+      address,
+      abi,
+      functionName: "reputation",
+    });
+    
+    return reputationAddr as Address;
+  } catch (error) {
+    console.error("Error fetching reputation address:", error);
+    return null;
+  }
+};
+
+const getSpendLimit = async (userCredit: bigint): Promise<bigint> => {
+  try {
+    const reputationAddr = await getReputationAddress();
+    if (!reputationAddr) return BigInt(0);
+    
+    const { client } = await getContract(true);
+    
+    const spendLimit = await client.readContract({
+      address: reputationAddr,
+      abi: reputationAbi,
+      functionName: "limiter",
+      args: [userCredit],
+    });
+    
+    return spendLimit as bigint;
+  } catch (error) {
+    console.error("Error fetching spend limit:", error);
+    return BigInt(0);
+  }
+};
+
+const checkReputationLimit = async (inputValue: number): Promise<void> => {
+  exceedsReputationLimit.value = false;
+  
+  if (!walletAddress.value) {
+    reputationLimit.value = null;
+    return;
+  }
+  
+  if (inputValue === 0) {
+    return;
+  }
+  
+  try {
+    const userCredit = await getUserCredit(walletAddress.value);
+    const spendLimitRaw = await getSpendLimit(userCredit);
+    
+    const spendLimitNumber = Number(spendLimitRaw);
+    reputationLimit.value = spendLimitNumber;
+ 
+    exceedsReputationLimit.value = spendLimitNumber < inputValue;
+    enableConfirmButton.value = !exceedsReputationLimit.value;
+
+  } catch (error) {
+    console.error("Error checking reputation limit:", error);
+    reputationLimit.value = null;
+    exceedsReputationLimit.value = false;
+  }
+};
 
 // Blockchain methods
 const connectAccount = async (): Promise<void> => {
@@ -70,6 +165,7 @@ const handleInputEvent = (event: any): void => {
   }
   validDecimals.value = true;
 
+  checkReputationLimit(tokenValue.value);
   verifyLiquidity();
 };
 
@@ -268,12 +364,22 @@ const handleSubmit = async (e: Event): Promise<void> => {
         <div
           class="flex justify-center"
           v-else-if="
-            !hasLiquidity && !loadingNetworkLiquidity && tokenValue > 0
+            !hasLiquidity && !loadingNetworkLiquidity && tokenValue > 0 && !exceedsReputationLimit
           "
         >
           <span class="text-red-500 font-normal text-sm"
             >Atualmente não há liquidez nas rede selecionada para sua
             demanda</span
+          >
+        </div>
+        <div
+          class="flex justify-center"
+          v-if="
+            exceedsReputationLimit && !loadingNetworkLiquidity && reputationLimit !== null
+          "
+        >
+          <span class="text-red-500 font-normal text-sm"
+            >O valor excede o limite permitido pela sua reputação. Limite máximo: {{ reputationLimit }} {{ selectedToken }}</span
           >
         </div>
       </div>
@@ -297,6 +403,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
         v-if="walletAddress"
         type="submit"
         text="Confirmar Oferta"
+        :isDisabled="!enableConfirmButton"
       />
       <CustomButton
         v-else
