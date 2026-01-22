@@ -1,9 +1,9 @@
-name: Deploy to IPFS and Update Gist
+name: Deploy to IPFS
 
 on:
   push:
     branches:
-      - release
+      - develop
 
 jobs:
   build-and-deploy:
@@ -23,21 +23,22 @@ jobs:
       - name: Build SPA
         run: npm run build
 
-      - name: Upload build output to Pinata (API)
-        id: pinata_upload
+      - name: Authenticate Pinata CLI (write JWT to file)
         env:
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
         run: |
+          echo -n "$PINATA_JWT" > ~/.pinata-files-cli
+
+      - name: Upload build output to Pinata
+        id: pinata_upload
+        run: |
+          export PATH="$HOME/.local/share/pinata/:$PATH"
           VERSION=$(jq -r .version package.json)
-          zip -r dist.zip dist
-          RESPONSE=$(curl -sSL -X POST "https://api.pinata.cloud/pinning/pinFileToIPFS" \
-            -H "Authorization: Bearer $PINATA_JWT" \
-            -F "file=@dist.zip;type=application/zip" \
-            -F "pinataMetadata={\"name\":\"p2pix_${VERSION}\"};type=application/json")
-          CID=$(echo "$RESPONSE" | jq -r .IpfsHash)
+          UPLOAD_JSON=$(pinata upload --name "p2pix_${VERSION}" ./dist)
+          CID=$(echo "$UPLOAD_JSON" | jq -r .cid)
           if [ -z "$CID" ] || [ "$CID" = "null" ]; then
-            echo "Error: Could not parse CID from Pinata API response. Aborting."
-            echo "Upload output: $RESPONSE"
+            echo "Error: Could not parse CID from Pinata upload output. Aborting."
+            echo "Upload output: $UPLOAD_JSON"
             exit 1
           fi
           echo "CID=$CID" >> $GITHUB_OUTPUT
