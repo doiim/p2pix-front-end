@@ -1,0 +1,44 @@
+name: Deploy to IPFS
+
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SPA
+        run: npm run build
+
+      - name: Authenticate Pinata CLI (write JWT to file)
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+        run: |
+          echo -n "$PINATA_JWT" > ~/.pinata-files-cli
+
+      - name: Upload build output to Pinata
+        id: pinata_upload
+        run: |
+          export PATH="$HOME/.local/share/pinata/:$PATH"
+          VERSION=$(jq -r .version package.json)
+          UPLOAD_JSON=$(pinata upload --name "p2pix_${VERSION}" ./dist)
+          CID=$(echo "$UPLOAD_JSON" | jq -r .cid)
+          if [ -z "$CID" ] || [ "$CID" = "null" ]; then
+            echo "Error: Could not parse CID from Pinata upload output. Aborting."
+            echo "Upload output: $UPLOAD_JSON"
+            exit 1
+          fi
+          echo "CID=$CID" >> $GITHUB_OUTPUT
