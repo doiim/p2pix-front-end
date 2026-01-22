@@ -23,6 +23,10 @@ jobs:
       - name: Build SPA
         run: npm run build
 
+      - name: Install Pinata CLI
+        shell: bash
+        run: curl -fsSL https://cli.pinata.cloud/install | bash
+
       - name: Authenticate Pinata CLI (write JWT to file)
         env:
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
