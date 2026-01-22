@@ -38,7 +38,7 @@ jobs:
         run: |
           export PATH="$HOME/.local/share/pinata/:$PATH"
           VERSION=$(jq -r .version package.json)
-          UPLOAD_JSON=$(pinata upload --name "p2pix_${VERSION}" ./dist)
+          UPLOAD_JSON=$(pinata upload --group "${{ secrets.PINATA_GROUP }}" --name "p2pix_${VERSION}" ./dist)
           CID=$(echo "$UPLOAD_JSON" | jq -r .cid)
           if [ -z "$CID" ] || [ "$CID" = "null" ]; then
             echo "Error: Could not parse CID from Pinata upload output. Aborting."
