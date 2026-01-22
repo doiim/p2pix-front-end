@@ -1,0 +1,43 @@
+name: Deploy to IPFS and Update Gist
+
+on:
+  push:
+    branches:
+      - release
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SPA
+        run: npm run build
+
+      - name: Upload build output to Pinata (API)
+        id: pinata_upload
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+        run: |
+          VERSION=$(jq -r .version package.json)
+          zip -r dist.zip dist
+          RESPONSE=$(curl -sSL -X POST "https://api.pinata.cloud/pinning/pinFileToIPFS" \
+            -H "Authorization: Bearer $PINATA_JWT" \
+            -F "file=@dist.zip;type=application/zip" \
+            -F "pinataMetadata={\"name\":\"p2pix_${VERSION}\"};type=application/json")
+          CID=$(echo "$RESPONSE" | jq -r .IpfsHash)
+          if [ -z "$CID" ] || [ "$CID" = "null" ]; then
+            echo "Error: Could not parse CID from Pinata API response. Aborting."
+            echo "Upload output: $RESPONSE"
+            exit 1
+          fi
+          echo "CID=$CID" >> $GITHUB_OUTPUT
