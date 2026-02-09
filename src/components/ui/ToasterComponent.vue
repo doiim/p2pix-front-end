@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import { useOnboard } from "@web3-onboard/vue";
 import { Networks } from "@/config/networks";
 import { useUser } from "@/composables/useUser";
+import { useSwitchChain, useChainId, useConnection } from '@wagmi/vue';
 
-const { connectedWallet } = useOnboard();
+const { mutateAsync: switchChain } = useSwitchChain()
+const currentConnection = useConnection();
+const chain = useChainId();
 const user = useUser();
 const { network } = user;
 
@@ -12,9 +14,9 @@ const isWrongNetwork = ref(false);
 const targetNetworkName = computed(() => network.value.name);
 
 const checkNetwork = () => {
-  if (connectedWallet.value) {
-    const chainId = connectedWallet.value.chains[0].id;
-    isWrongNetwork.value = Number(chainId) !== network.value.id;
+  if (!!currentConnection.address && currentConnection.isConnected) {
+    const chainId: number = chain.value
+    isWrongNetwork.value = chainId !== network.value.id;
   } else {
     isWrongNetwork.value = false; // No wallet connected yet
   }
@@ -22,16 +24,8 @@ const checkNetwork = () => {
 
 const switchNetwork = async () => {
   try {
-    if (connectedWallet.value && connectedWallet.value.provider) {
-      let chainId = network.value.id.toString(16);
-      await connectedWallet.value.provider.request({
-        method: "wallet_switchEthereumChain",
-        params: [
-          {
-            chainId: `0x${chainId}`,
-          },
-        ],
-      });
+    if (!!currentConnection.address && currentConnection.isConnected) {
+      await switchChain({ chainId: network.value.id })
     }
   } catch (error) {
     console.error("Failed to switch network:", error);
@@ -39,7 +33,7 @@ const switchNetwork = async () => {
 };
 
 onMounted(checkNetwork);
-watch(connectedWallet, checkNetwork);
+watch(currentConnection, checkNetwork);
 watch(network, checkNetwork, { immediate: true });
 </script>
 

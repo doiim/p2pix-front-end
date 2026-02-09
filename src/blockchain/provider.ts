@@ -1,27 +1,31 @@
 import { p2PixAbi } from "./abi";
 import { updateWalletStatus } from "./wallet";
-import {
-  createPublicClient,
-  createWalletClient,
-  custom,
-  http,
-  PublicClient,
-  WalletClient,
-} from "viem";
+import { 
+  getPublicClient as getPublicClientWagmi,
+	getTransactionReceipt as getTransactionReceiptWagmi,
+	getWalletClient as getWalletClientWagmi,
+	switchChain,
+	waitForTransactionReceipt,
+} from '@wagmi/core';
 import { useUser } from "@/composables/useUser";
 import type { NetworkConfig } from "@/model/NetworkEnum";
-import type { ChainContract } from "viem";
+import type { ChainContract, PublicClient, WalletClient } from "viem";
+import { wagmiConfig } from "@/config/wagmi";
 
 let walletClient: WalletClient | null = null;
 
-const getPublicClient = (): PublicClient => {
+const getPublicClient = () => {
     const user = useUser();
     const rpcUrl = (user.network.value as NetworkConfig).rpcUrls.default.http[0];
     const chain = user.network.value;
 
-    return createPublicClient({
-      chain,
-      transport: http(rpcUrl),
+    // return createPublicClient({
+    //   chain,
+    //   transport: http(rpcUrl),
+    // });
+
+    return getPublicClientWagmi(wagmiConfig, {
+      chainId: chain.id
     });
 };
 
@@ -45,16 +49,12 @@ const getContract = async (onlyRpcProvider = false) => {
   return { address, abi, client, wallet, account };
 };
 
-const connectProvider = async (p: any): Promise<void> => {
+const connectProvider = async (): Promise<void> => {
   const user = useUser();
   const chain = user.network.value;
 
-  const [account] = await p!.request({ method: "eth_requestAccounts" });
-
-  walletClient = createWalletClient({
-    account,
-    chain,
-    transport: custom(p),
+  walletClient = await getWalletClientWagmi(wagmiConfig, {
+    chainId: chain.id
   });
 
   await updateWalletStatus();

@@ -5,7 +5,7 @@ import CustomButton from "@/components/ui/CustomButton.vue";
 import { debounce } from "@/utils/debounce";
 import { decimalCount } from "@/utils/decimalCount";
 import { getTokenImage } from "@/utils/imagesPath";
-import { useOnboard } from "@web3-onboard/vue";
+import { useAppKit } from "@reown/appkit/vue";
 
 // Store
 const user = useUser();
@@ -21,10 +21,7 @@ const validDecimals = ref<boolean>(true);
 const emit = defineEmits(["tokenBuy"]);
 
 // Blockchain methods
-const connectAccount = async (): Promise<void> => {
-  const { connectWallet } = useOnboard();
-  await connectWallet();
-};
+const { open: connectAccount } = useAppKit();
 
 // Debounce methods
 const handleInputEvent = (event: any): void => {

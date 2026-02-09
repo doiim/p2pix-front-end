@@ -1,34 +1,34 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router";
+import { ref } from "vue";
+import { createAppKit } from "@reown/appkit/vue";
 import TopBar from "@/components/TopBar/TopBar.vue";
 import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
 import ToasterComponent from "@/components/ui/ToasterComponent.vue";
-import { init, useOnboard } from "@web3-onboard/vue";
-import injectedModule from "@web3-onboard/injected-wallets";
-import { Networks, DEFAULT_NETWORK } from "@/config/networks";
-import { ref } from "vue";
+import { DEFAULT_NETWORK } from "@/config/networks";
+import { wagmiAdapter, appKitNetworks } from "@/config/wagmi";
 
-const route = useRoute();
-const injected = injectedModule();
-const targetNetwork = ref(DEFAULT_NETWORK);
+const projectId = import.meta.env.VITE_REOWN_PROJECT_ID as string;
 
-const web3Onboard = init({
-  wallets: [injected],
-  chains: Object.values(Networks).map((network) => ({
-    id: network.id,
-    token: network.nativeCurrency.symbol,
-    label: network.name,
-    rpcUrl: network.rpcUrls.default.http[0],
-  })),
-  connect: {
-    autoConnectLastWallet: true,
+const metadata = {
+  name: "P2Pix",
+  description: "Adquira cripto com apenas um Pix",
+  url: "https://p2pix.co",
+  icons: ["/favicon.ico"],
+};
+
+createAppKit({
+  adapters: [wagmiAdapter],
+  networks: appKitNetworks,
+  projectId,
+  metadata,
+  features: {
+    analytics: true,
   },
 });
 
-const { connectedWallet } = useOnboard();
-if (!connectedWallet) {
-  web3Onboard.connectWallet();
-}
+const route = useRoute();
+const targetNetwork = ref(DEFAULT_NETWORK);
 </script>
 
 <template>

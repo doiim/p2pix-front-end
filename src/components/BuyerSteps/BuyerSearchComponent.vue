@@ -41,7 +41,7 @@ const reputationLimit = ref<number | null>(null);
 const exceedsReputationLimit = ref<boolean>(false);
 
 import ChevronDown from "@/assets/chevronDown.svg";
-import { useOnboard } from "@web3-onboard/vue";
+import { useAppKit } from "@reown/appkit/vue";
 import { getParticipantID } from "@/blockchain/events";
 
 // Emits
@@ -138,10 +138,7 @@ const checkReputationLimit = async (inputValue: number): Promise<void> => {
 };
 
 // Blockchain methods
-const connectAccount = async (): Promise<void> => {
-  const { connectWallet } = useOnboard();
-  await connectWallet();
-};
+const { open: connectAccount } = useAppKit();
 
 const emitConfirmButton = async (): Promise<void> => {
   const deposit = selectedDeposits.value?.find(
@@ -235,7 +232,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
   if (walletAddress.value) {
     await emitConfirmButton();
   } else {
-    await connectAccount();
+    connectAccount();
   }
 };
 </script>

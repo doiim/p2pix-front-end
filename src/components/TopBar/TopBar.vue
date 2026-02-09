@@ -4,7 +4,7 @@ import { useUser } from "@/composables/useUser";
 import { onClickOutside } from "@vueuse/core";
 import { getNetworkImage } from "@/utils/imagesPath";
 import { Networks } from "@/config/networks";
-import { useOnboard } from "@web3-onboard/vue";
+import { useAppKit, useDisconnect } from "@reown/appkit/vue";
 
 import ChevronDown from "@/assets/chevronDown.svg";
 import TwitterIcon from "@/assets/twitterIcon.svg";
@@ -13,6 +13,8 @@ import GithubIcon from "@/assets/githubIcon.svg";
 import { connectProvider } from "@/blockchain/provider";
 import { DEFAULT_NETWORK } from "@/config/networks";
 import type { NetworkConfig } from "@/model/NetworkEnum";
+import { useChainId, useChains, useConnection, useSwitchChain } from "@wagmi/vue";
+import { Address } from "viem";
 
 interface MenuOption {
   label: string;
@@ -37,26 +39,24 @@ const infoMenuRef = ref<any>(null);
 const walletAddressRef = ref<any>(null);
 const currencyRef = ref<any>(null);
 
-const { connectedWallet, connectedChain, setChain, disconnectWallet } =
-  useOnboard();
+const { open: connectWallet } = useAppKit();
+const { disconnect } = useDisconnect();
+const connection = useConnection();
+const chain = useChainId();
+const { mutateAsync: switchChain } = useSwitchChain()
 
-const connnectWallet = async (): Promise<void> => {
-  const { connectWallet } = useOnboard();
-  await connectWallet();
-};
-
-watch(connectedWallet, async (newVal: any) => {
-  connectProvider(newVal.provider);
-  const addresses = await newVal.provider.request({ method: "eth_accounts" });
-  user.setWalletAddress(addresses.shift());
+watch(connection, async (newConnection) => {
+  connectProvider();
+  const addresses = newConnection.addresses;
+  user.setWalletAddress(newConnection.addresses?.value?.[0] as Address);
 });
 
-watch(connectedChain, (newVal: any) => {
+watch(chain, (newChain) => {
   // Check if connected chain is valid, otherwise default to Sepolia
   if (
-    !newVal ||
+    !newChain ||
     !Object.values(Networks).some(
-      (network) => network.id === Number(newVal.id)
+      (network) => network.id === Number(newChain)
     )
   ) {
     console.log(
@@ -65,7 +65,7 @@ watch(connectedChain, (newVal: any) => {
     user.setNetwork(DEFAULT_NETWORK);
     return;
   }
-  user.setNetworkById(newVal?.id);
+  user.setNetworkById(newChain);
 });
 
 const formatWalletAddress = (): string => {
@@ -82,7 +82,7 @@ const formatWalletAddress = (): string => {
 
 const disconnectUser = async (): Promise<void> => {
   user.setWalletAddress(null);
-  await disconnectWallet({ label: connectedWallet.value?.label || "" });
+  disconnect();
   closeMenu();
 };
 
@@ -94,12 +94,11 @@ const networkChange = async (network: NetworkConfig): Promise<void> => {
   currencyMenuOpenToggle.value = false;
   
   // If wallet is connected, try to change chain in wallet
-  if (connectedWallet.value) {
-    const chainId = network.id.toString(16)
+  if (!!connection.address &&  connection.isConnected) {
     try {
-      await setChain({
-        chainId: `0x${chainId}`,
-        wallet: connectedWallet.value.label,
+      await switchChain({
+        chainId: network.id,
+        connector: connection.connector.value
       });
       user.setNetwork(network);
     } catch (error) {
@@ -408,7 +407,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
         type="button"
         v-if="!walletAddress"
         class="border-amber-500 border-2 sm:rounded !rounded-lg default-button hidden md:inline-block"
-        @click="connnectWallet()"
+        @click="async () => await connectWallet()"
       >
         Conectar carteira
       </button>
@@ -416,7 +415,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
         type="button"
         v-if="!walletAddress"
         class="border-amber-500 border-2 sm:rounded !rounded-lg default-button inline-block md:hidden h-10"
-        @click="connnectWallet()"
+        @click="async () => await connectWallet()"
       >
         Conectar
       </button>
