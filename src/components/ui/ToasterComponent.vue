@@ -1,45 +1,35 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from "vue";
-import { useOnboard } from "@web3-onboard/vue";
-import { Networks } from "@/config/networks";
+import { useAppKitAccount, useAppKitNetwork } from "@reown/appkit/vue";
 import { useUser } from "@/composables/useUser";
 
-const { connectedWallet } = useOnboard();
 const user = useUser();
 const { network } = user;
+const appKitAccount = useAppKitAccount();
+const appKitNetwork = useAppKitNetwork();
 
 const isWrongNetwork = ref(false);
 const targetNetworkName = computed(() => network.value.name);
 
 const checkNetwork = () => {
-  if (connectedWallet.value) {
-    const chainId = connectedWallet.value.chains[0].id;
-    isWrongNetwork.value = Number(chainId) !== network.value.id;
+  if (appKitAccount.value.isConnected && appKitNetwork.value.chainId) {
+    isWrongNetwork.value = Number(appKitNetwork.value.chainId) !== network.value.id;
   } else {
-    isWrongNetwork.value = false; // No wallet connected yet
+    isWrongNetwork.value = false;
   }
 };
 
 const switchNetwork = async () => {
   try {
-    if (connectedWallet.value && connectedWallet.value.provider) {
-      let chainId = network.value.id.toString(16);
-      await connectedWallet.value.provider.request({
-        method: "wallet_switchEthereumChain",
-        params: [
-          {
-            chainId: `0x${chainId}`,
-          },
-        ],
-      });
-    }
+    await appKitNetwork.value.switchNetwork(network.value as any);
   } catch (error) {
     console.error("Failed to switch network:", error);
   }
 };
 
 onMounted(checkNetwork);
-watch(connectedWallet, checkNetwork);
+watch(() => appKitNetwork.value.chainId, checkNetwork);
+watch(() => appKitAccount.value.isConnected, checkNetwork);
 watch(network, checkNetwork, { immediate: true });
 </script>
 

@@ -3,32 +3,13 @@ import { useRoute } from "vue-router";
 import TopBar from "@/components/TopBar/TopBar.vue";
 import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
 import ToasterComponent from "@/components/ui/ToasterComponent.vue";
-import { init, useOnboard } from "@web3-onboard/vue";
-import injectedModule from "@web3-onboard/injected-wallets";
-import { Networks, DEFAULT_NETWORK } from "@/config/networks";
+import { DEFAULT_NETWORK } from "@/config/networks";
 import { ref } from "vue";
 
+import "@/config/wagmi";
+
 const route = useRoute();
-const injected = injectedModule();
 const targetNetwork = ref(DEFAULT_NETWORK);
-
-const web3Onboard = init({
-  wallets: [injected],
-  chains: Object.values(Networks).map((network) => ({
-    id: network.id,
-    token: network.nativeCurrency.symbol,
-    label: network.name,
-    rpcUrl: network.rpcUrls.default.http[0],
-  })),
-  connect: {
-    autoConnectLastWallet: true,
-  },
-});
-
-const { connectedWallet } = useOnboard();
-if (!connectedWallet) {
-  web3Onboard.connectWallet();
-}
 </script>
 
 <template>

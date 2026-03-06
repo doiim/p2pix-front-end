@@ -1,7 +1,9 @@
 import { formatEther, type Address } from "viem";
+import { getAccount } from "@wagmi/core";
+import { getWagmiConfig } from "@/config/wagmi";
 import { useUser } from "@/composables/useUser";
 
-import { getPublicClient, getWalletClient, getContract } from "./provider";
+import { getPublicClient, getContract } from "./provider";
 
 import { getValidDeposits, getUnreleasedLockById } from "./events";
 
@@ -12,20 +14,16 @@ import { LockStatus } from "@/model/LockStatus";
 
 export const updateWalletStatus = async (): Promise<void> => {
   const user = useUser();
+  const { address } = getAccount(getWagmiConfig());
 
-  const publicClient = getPublicClient();
-  const walletClient = getWalletClient();
-
-  if (!publicClient || !walletClient) {
-    console.error("Client not initialized");
+  if (!address) {
     return;
   }
 
-  // Get balance
-  const [account] = await walletClient.getAddresses();
-  const balance = await publicClient.getBalance({ address: account });
+  const publicClient = getPublicClient();
+  const balance = await publicClient.getBalance({ address });
 
-  user.setWalletAddress(account);
+  user.setWalletAddress(address);
   user.setBalance(formatEther(balance));
 };
 

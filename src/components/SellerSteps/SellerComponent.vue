@@ -5,7 +5,7 @@ import CustomButton from "@/components/ui/CustomButton.vue";
 import { postProcessKey } from "@/utils/pixKeyFormat";
 import { TokenEnum } from "@/model/NetworkEnum";
 import { getTokenImage } from "@/utils/imagesPath";
-import { useOnboard } from "@web3-onboard/vue";
+import { useAppKit } from "@reown/appkit/vue";
 import ChevronDown from "@/assets/chevron.svg";
 
 // Import the bank list
@@ -58,10 +58,9 @@ const handleBankSelect = (bank: Bank) => {
 // Emits
 const emit = defineEmits(["approveTokens"]);
 
-// Methods
-const connectAccount = async (): Promise<void> => {
-  const { connectWallet } = useOnboard();
-  await connectWallet();
+const connectAccount = (): void => {
+  const { open } = useAppKit();
+  open();
 };
 
 const handleSubmit = (e: Event): void => {

@@ -14,7 +14,7 @@ const getP2PixAddress = (): Address => {
 const approveTokens = async (participant: Participant): Promise<any> => {
   const user = useUser();
   const publicClient = getPublicClient();
-  const walletClient = getWalletClient();
+  const walletClient = await getWalletClient();
 
   if (!publicClient || !walletClient) {
     throw new Error("Clients not initialized");
@@ -54,7 +54,7 @@ const approveTokens = async (participant: Participant): Promise<any> => {
 
 const addDeposit = async (): Promise<any> => {
   const { address, abi, client } = await getContract();
-  const walletClient = getWalletClient();
+  const walletClient = await getWalletClient();
   const user = useUser();
 
   if (!walletClient) {
