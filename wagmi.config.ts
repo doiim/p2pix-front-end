@@ -6,6 +6,6 @@ export default defineConfig({
   contracts: [],
   plugins: [
     hardhat({
-      project: '../p2pix-smart-contracts',
+      project: 'p2pix-smart-contracts',
     }),],
 })
