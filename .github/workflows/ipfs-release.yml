@@ -1,9 +1,10 @@
 name: Deploy to IPFS
 
 on:
-  push:
-    branches:
-      - develop
+    push:
+      branches:
+        - develop
+    workflow_dispatch:
 
 jobs:
   build-and-deploy:
