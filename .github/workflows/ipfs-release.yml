@@ -25,16 +25,19 @@ jobs:
         run: npm run build
 
       - name: Install Pinata CLI
+        if: secrets.PINATA_JWT != ''
         shell: bash
         run: curl -fsSL https://cli.pinata.cloud/install | bash
 
       - name: Authenticate Pinata CLI (write JWT to file)
+        if: secrets.PINATA_JWT != ''
         env:
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
         run: |
           echo -n "$PINATA_JWT" > ~/.pinata-files-cli
 
       - name: Upload build output to Pinata
+        if: secrets.PINATA_JWT != ''
         id: pinata_upload
         run: |
           export PATH="$HOME/.local/share/pinata/:$PATH"
