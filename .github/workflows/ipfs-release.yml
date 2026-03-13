@@ -2,8 +2,6 @@ name: Deploy to IPFS
 
 on:
     push:
-      branches:
-        - develop
     workflow_dispatch:
 
 jobs:
@@ -31,7 +29,7 @@ jobs:
           HOST: ${{secrets.SSH_HOST}}
           KEY: ${{secrets.SSH_KEY}}
           SOURCE: dist/
-          TARGET: /
+          TARGET: ${{ gitea.ref_name }}
 
       - name: Deploy to IPFS
         uses: ipshipyard/ipfs-deploy-action@v1
