@@ -1,0 +1,3 @@
+[submodule "p2pix-smart-contracts"]
+	path = p2pix-smart-contracts
+	url = https://git.p2pix.co/doiim/p2pix-smart-contracts

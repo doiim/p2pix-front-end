@@ -69,7 +69,7 @@ const sendNetwork = async () => {
     />
     <div v-if="flowStep == Step.Network">
       <SendNetwork
-        :sellerId="user.sellerId.value"
+        :sellerId="String(user.sellerId.value)"
         :offer="Number(user.seller.value.offer)"
         :selected-token="user.selectedToken.value"
         v-if="!loading"
