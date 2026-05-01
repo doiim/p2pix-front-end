@@ -40,21 +40,8 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
     totalReleases: '0'
   });
 
-  const getGraphQLUrl = () => {
-    const rskNetworkName = isTestnetEnvironment() ? rootstockTestnet.name : rootstock.name;  
-    
-    switch (network.value.name) {
-      case sepolia.name:
-        return import.meta.env.VITE_SEPOLIA_SUBGRAPH_URL!;
-      case rskNetworkName:
-        return import.meta.env.VITE_RSK_SUBGRAPH_URL!;
-      default:
-        throw new Error(`Unsupported network: ${network.value.name}`);
-    }
-  };
-
   const executeQuery = async (query: string, variables: any = {}) => {
-    const url = getGraphQLUrl();
+    const url = network.value.subgraphUrls[0]; // TODO: try all available URLs
     
     try {
       const response = await fetch(url, {
