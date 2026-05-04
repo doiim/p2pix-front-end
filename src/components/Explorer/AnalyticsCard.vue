@@ -37,6 +37,7 @@ const props = withDefaults(defineProps<Props>(), {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .analytics-card {
   @apply bg-white rounded-lg border border-gray-200 p-6 flex items-center justify-between shadow-lg;
 }

@@ -161,6 +161,7 @@ watch(
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .amount-input-container {
   @apply flex flex-col w-full gap-2;
 }

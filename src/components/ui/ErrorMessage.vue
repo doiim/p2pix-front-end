@@ -32,6 +32,7 @@ const colorClasses = {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .error-message-container {
   @apply flex w-full;
 }

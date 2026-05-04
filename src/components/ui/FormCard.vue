@@ -28,6 +28,7 @@ const props = withDefaults(
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .form-card {
   @apply flex flex-col bg-white rounded-lg;
 }

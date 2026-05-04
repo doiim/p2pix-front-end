@@ -28,6 +28,7 @@ const props = withDefaults(
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .page-header {
   @apply flex flex-col gap-4;
 }

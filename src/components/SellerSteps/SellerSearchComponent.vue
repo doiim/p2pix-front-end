@@ -129,6 +129,7 @@ const handleInputEvent = (event: any): void => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .custom-divide {
   width: 100%;
   border-bottom: 1px solid #d1d5db;

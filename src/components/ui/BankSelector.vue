@@ -91,6 +91,7 @@ const selectBank = (bank: Bank) => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .bank-selector {
   @apply relative w-full;
 }

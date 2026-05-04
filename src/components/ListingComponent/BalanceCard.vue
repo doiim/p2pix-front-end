@@ -185,6 +185,7 @@ onMounted(() => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 p {
   @apply text-gray-900;
 }

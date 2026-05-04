@@ -43,6 +43,7 @@ const displayText = computed(() => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .status-badge {
   @apply text-xs sm:text-base font-medium text-gray-900 rounded-lg text-center px-2 py-1;
 }

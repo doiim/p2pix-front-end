@@ -102,6 +102,7 @@ onClickOutside(menuRef, () => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .wallet-connect-container {
   @apply relative inline-block;
 }

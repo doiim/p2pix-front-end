@@ -417,6 +417,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .custom-divide {
   width: 100%;
   border-bottom: 1px solid #d1d5db;

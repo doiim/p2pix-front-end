@@ -119,6 +119,7 @@ watch(network, async () => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .page {
   @apply flex flex-col items-center gap-10 mt-20 w-full;
 }

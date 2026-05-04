@@ -600,6 +600,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 header {
   @apply flex flex-row justify-between w-full items-center;
 }

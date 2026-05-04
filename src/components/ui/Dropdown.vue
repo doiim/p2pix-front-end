@@ -143,6 +143,7 @@ onClickOutside(dropdownRef, () => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .dropdown-container {
   @apply relative inline-block;
 }

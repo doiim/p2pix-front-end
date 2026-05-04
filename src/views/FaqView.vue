@@ -83,6 +83,7 @@ const openItem = (index: number) => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .page {
   @apply flex flex-col items-center justify-center w-full mt-8 sm:mt-16 px-4;
 }

@@ -36,6 +36,7 @@ const sizeMap = {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .loading-state {
   @apply flex items-center gap-2;
 }

@@ -53,6 +53,7 @@ const networkData = computed(() => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .network-badges {
   @apply flex gap-2 items-center;
 }

@@ -62,6 +62,7 @@ const handleClick = () => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .icon-button {
   @apply flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-200 cursor-pointer;
 }

@@ -219,6 +219,7 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .page {
   @apply flex flex-col items-center justify-center w-full mt-16;
 }

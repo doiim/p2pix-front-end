@@ -131,6 +131,7 @@ const handleExplorerClick = () => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .item-container {
   @apply flex justify-between items-center;
 }

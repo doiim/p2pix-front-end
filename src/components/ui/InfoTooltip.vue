@@ -75,6 +75,7 @@ const toggleTooltip = () => {
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .info-tooltip-container {
   @apply relative inline-block;
 }
