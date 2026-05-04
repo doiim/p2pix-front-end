@@ -25,6 +25,8 @@
     "@vueuse/core": "^14.3.0",
     "@wagmi/core": "^3.4.8",
     "@wagmi/vue": "^0.5.11",
+    "@web3-onboard/injected-wallets": "^2.11.3",
+    "@web3-onboard/vue": "^2.10.0",
     "graphql": "^16.13.2",
     "marked": "^18.0.3",
     "permissionless": "^0.2.57",
