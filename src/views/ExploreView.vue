@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
-import { useUser } from '@/composables/useUser';
-import { useGraphQL } from '@/composables/useGraphQL';
-import FormCard from '@/components/ui/FormCard.vue';
-import LoadingComponent from '@/components/ui/LoadingComponent.vue';
-import AnalyticsCard from '@/components/Explorer/AnalyticsCard.vue';
-import TransactionTable from '@/components/Explorer/TransactionTable.vue';
+import { onMounted, watch } from "vue";
+import { useUser } from "@/composables/useUser";
+import { useGraphQL } from "@/composables/useGraphQL";
+import FormCard from "@/components/ui/FormCard.vue";
+import LoadingComponent from "@/components/ui/LoadingComponent.vue";
+import AnalyticsCard from "@/components/Explorer/AnalyticsCard.vue";
+import TransactionTable from "@/components/Explorer/TransactionTable.vue";
 
 const user = useUser();
 const { network } = user;
@@ -21,15 +21,15 @@ const {
   fetchAllActivity,
   fetchUserActivity,
   fetchAnalytics,
-  clearData
+  clearData,
 } = useGraphQL(network);
 
 const transactionTypes = [
-  { key: 'all', label: 'Todas' },
-  { key: 'deposit', label: 'Depósitos' },
-  { key: 'lock', label: 'Bloqueios' },
-  { key: 'release', label: 'Liberações' },
-  { key: 'return', label: 'Retornos' }
+  { key: "all", label: "Todas" },
+  { key: "deposit", label: "Depósitos" },
+  { key: "lock", label: "Bloqueios" },
+  { key: "release", label: "Liberações" },
+  { key: "return", label: "Retornos" },
 ];
 
 const handleTypeFilter = (type: string) => {
@@ -44,51 +44,48 @@ watch(searchAddress, async (newAddress) => {
   }
 });
 
-watch(network, async () => {
-  clearData();
-  await Promise.all([
-    fetchAllActivity(),
-    fetchAnalytics()
-  ]);
-}, { deep: true });
+watch(
+  network,
+  async () => {
+    clearData();
+    await Promise.all([fetchAllActivity(), fetchAnalytics()]);
+  },
+  { deep: true },
+);
 
 onMounted(async () => {
-  await Promise.all([
-    fetchAllActivity(),
-    fetchAnalytics()
-  ]);
+  await Promise.all([fetchAllActivity(), fetchAnalytics()]);
 });
 </script>
 
 <template>
   <div class="min-h-screen">
     <div class="container mx-auto px-4 py-8">
-
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-8">
         <AnalyticsCard
           title="Volume Total"
           :value="analytics.totalVolume"
           :loading="analyticsLoading"
         />
-        
+
         <AnalyticsCard
           title="Total de Transações"
           :value="analytics.totalTransactions"
           :loading="analyticsLoading"
         />
-        
+
         <AnalyticsCard
           title="Total de Bloqueios"
           :value="analytics.totalLocks"
           :loading="analyticsLoading"
         />
-        
+
         <AnalyticsCard
           title="Total de Depósitos"
           :value="analytics.totalDeposits"
           :loading="analyticsLoading"
         />
-        
+
         <AnalyticsCard
           title="Total de Liberações"
           :value="analytics.totalReleases"
@@ -119,7 +116,7 @@ onMounted(async () => {
                 'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
                 selectedType === type.key
                   ? 'bg-amber-400 text-gray-900'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200',
               ]"
             >
               {{ type.label }}
@@ -143,11 +140,15 @@ onMounted(async () => {
       <!-- Transactions Table -->
       <FormCard v-else padding="lg">
         <div class="mb-6">
-          <h2 class="text-xl font-semibold text-gray-900 mb-2">Transações Recentes</h2>
-          <p class="text-gray-600">{{ transactions.length }} transações encontradas</p>
+          <h2 class="text-xl font-semibold text-gray-900 mb-2">
+            Transações Recentes
+          </h2>
+          <p class="text-gray-600">
+            {{ transactions.length }} transações encontradas
+          </p>
         </div>
 
-        <TransactionTable 
+        <TransactionTable
           :transactions="transactions"
           :network-explorer-url="network.blockExplorers?.default.url || ''"
         />

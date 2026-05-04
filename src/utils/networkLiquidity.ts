@@ -4,14 +4,14 @@ import type { Address } from "viem";
 const verifyNetworkLiquidity = (
   tokenValue: number,
   walletAddress: Address,
-  validDepositList: ValidDeposit[]
+  validDepositList: ValidDeposit[],
 ): ValidDeposit[] => {
   const filteredDepositList = validDepositList
     .filter((element) => {
       const remaining = element.remaining;
       if (
-        tokenValue!! <= remaining &&
-        tokenValue!! != 0 &&
+        tokenValue! <= remaining &&
+        tokenValue! != 0 &&
         element.seller !== walletAddress
       ) {
         return true;
@@ -25,14 +25,14 @@ const verifyNetworkLiquidity = (
   const uniqueNetworkDeposits = filteredDepositList.reduce(
     (acc: ValidDeposit[], current) => {
       const existingNetwork = acc.find(
-        (deposit) => deposit.network === current.network
+        (deposit) => deposit.network === current.network,
       );
       if (!existingNetwork) {
         acc.push(current);
       }
       return acc;
     },
-    []
+    [],
   );
   return uniqueNetworkDeposits;
 };

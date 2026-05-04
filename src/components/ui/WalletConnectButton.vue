@@ -12,7 +12,7 @@ const props = withDefaults(
   {
     variant: "primary",
     showMenu: true,
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -30,12 +30,12 @@ const isConnected = computed(() => {
 
 const formattedAddress = computed(() => {
   if (!props.walletAddress) return "";
-  
+
   const address = props.walletAddress;
   const length = address.length;
   const start = address.substring(0, 5);
   const end = address.substring(length - 4, length);
-  
+
   return `${start}...${end}`;
 });
 
@@ -72,17 +72,13 @@ onClickOutside(menuRef, () => {
       :variant="variant"
       @button-clicked="handleConnect"
     />
-    
+
     <div v-else ref="menuRef" class="wallet-connected">
-      <button
-        type="button"
-        class="wallet-button"
-        @click="toggleMenu"
-      >
+      <button type="button" class="wallet-button" @click="toggleMenu">
         <span class="wallet-address">{{ formattedAddress }}</span>
         <div class="wallet-indicator"></div>
       </button>
-      
+
       <transition name="menu-fade">
         <div v-if="menuOpen && showMenu" class="wallet-menu">
           <button
@@ -149,4 +145,3 @@ onClickOutside(menuRef, () => {
   @apply opacity-0 -translate-y-2;
 }
 </style>
-

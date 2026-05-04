@@ -1,5 +1,5 @@
-import type { LockStatus } from "@/model/LockStatus"
-import type { Address } from "viem"
+import type { LockStatus } from "@/model/LockStatus";
+import type { Address } from "viem";
 
 export type WalletTransaction = {
   token?: Address;

@@ -13,7 +13,7 @@ const props = withDefaults(
     size: "md",
     centered: true,
     inline: false,
-  }
+  },
 );
 
 const sizeMap = {
@@ -24,12 +24,7 @@ const sizeMap = {
 </script>
 
 <template>
-  <div
-    :class="[
-      'loading-state',
-      { centered: centered, inline: inline },
-    ]"
-  >
+  <div :class="['loading-state', { centered: centered, inline: inline }]">
     <span v-if="message" :class="['loading-message', sizeMap[size].text]">
       {{ message }}
     </span>
@@ -57,4 +52,3 @@ const sizeMap = {
   @apply text-gray-900 font-normal;
 }
 </style>
-

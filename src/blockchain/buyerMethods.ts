@@ -1,15 +1,11 @@
 import { getContract } from "./provider";
 import { ChainContract } from "viem";
-import {
-  parseEther,
-  type Address,
-  type TransactionReceipt,
-} from "viem";
+import { parseEther, type Address, type TransactionReceipt } from "viem";
 
 export const addLock = async (
   sellerAddress: Address,
   tokenAddress: Address,
-  amount: number
+  amount: number,
 ): Promise<bigint> => {
   const { address, abi, wallet, client, account } = await getContract();
   const parsedAmount = parseEther(amount.toString());
@@ -36,7 +32,7 @@ export const addLock = async (
 
 export const withdrawDeposit = async (
   amount: string,
-  token: Address
+  token: Address,
 ): Promise<boolean> => {
   const { address, abi, wallet, client, account } = await getContract();
 
@@ -49,7 +45,7 @@ export const withdrawDeposit = async (
     abi,
     functionName: "withdraw",
     args: [token, parseEther(amount), []],
-    account
+    account,
   });
 
   const hash = await wallet.writeContract(request);
@@ -60,8 +56,8 @@ export const withdrawDeposit = async (
 
 export const releaseLock = async (
   lockID: bigint,
-  pixTimestamp: `0x${string}`&{lenght:34},
-  signature: `0x${string}`
+  pixTimestamp: `0x${string}` & { lenght: 34 },
+  signature: `0x${string}`,
 ): Promise<TransactionReceipt> => {
   const { address, abi, wallet, client, account } = await getContract();
 
@@ -74,7 +70,7 @@ export const releaseLock = async (
     abi,
     functionName: "release",
     args: [BigInt(lockID), pixTimestamp, signature],
-    account
+    account,
   });
 
   const hash = await wallet.writeContract(request);

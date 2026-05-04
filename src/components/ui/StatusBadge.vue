@@ -47,4 +47,3 @@ const displayText = computed(() => {
   @apply text-xs sm:text-base font-medium text-gray-900 rounded-lg text-center px-2 py-1;
 }
 </style>
-

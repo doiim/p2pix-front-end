@@ -3,7 +3,7 @@ import { formatEther, toHex, stringToHex } from "viem";
 import type { PublicClient, Address } from "viem";
 import { Networks } from "@/config/networks";
 import { getContract } from "./provider";
-import { p2PixAbi } from "./abi"
+import { p2PixAbi } from "./abi";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { NetworkConfig } from "@/model/NetworkEnum";
 import type { UnreleasedLock } from "@/model/UnreleasedLock";
@@ -18,7 +18,7 @@ const getNetworksLiquidity = async (): Promise<void> => {
   for (const network of Object.values(Networks)) {
     const deposits = await getValidDeposits(
       user.network.value.tokens[user.selectedToken.value].address,
-      network
+      network,
     );
     if (deposits) depositLists.push(deposits);
   }
@@ -30,7 +30,7 @@ const getNetworksLiquidity = async (): Promise<void> => {
 
 const getParticipantID = async (
   seller: Address,
-  token: Address
+  token: Address,
 ): Promise<string> => {
   const { address, abi, client } = await getContract();
 
@@ -51,7 +51,7 @@ const getParticipantID = async (
     hexString
       .slice(2)
       .match(/.{1,2}/g)!
-      .map((byte: string) => parseInt(byte, 16))
+      .map((byte: string) => parseInt(byte, 16)),
   );
   // Remove null bytes from the end of the string
   return new TextDecoder().decode(bytes).replace(/\0/g, "");
@@ -60,7 +60,7 @@ const getParticipantID = async (
 const getValidDeposits = async (
   token: Address,
   network: NetworkConfig,
-  contractInfo?: { client: PublicClient; address: Address }
+  contractInfo?: { client: PublicClient; address: Address },
 ): Promise<ValidDeposit[]> => {
   let client: PublicClient, abi;
 
@@ -84,7 +84,7 @@ const getValidDeposits = async (
   `,
   };
 
-  const depositLogs = await fetch( network.subgraphUrls[0], {
+  const depositLogs = await fetch(network.subgraphUrls[0], {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -104,7 +104,7 @@ const getValidDeposits = async (
       acc[deposit.seller] = true;
       return acc;
     },
-    {} as Record<Address, boolean>
+    {} as Record<Address, boolean>,
   );
 
   if (!contractInfo) {
@@ -147,11 +147,11 @@ const getValidDeposits = async (
 };
 
 const getUnreleasedLockById = async (
-  lockID: bigint
+  lockID: bigint,
 ): Promise<UnreleasedLock> => {
   const { address, abi, client } = await getContract();
 
-  const [ , , , amount, token, seller ] = await client.readContract({
+  const [, , , amount, token, seller] = await client.readContract({
     address,
     abi,
     functionName: "mapLocks",

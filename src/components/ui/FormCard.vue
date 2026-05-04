@@ -11,7 +11,7 @@ const props = withDefaults(
     padding: "md",
     fullWidth: true,
     noBorder: false,
-  }
+  },
 );
 </script>
 
@@ -52,4 +52,3 @@ const props = withDefaults(
   @apply px-12 py-8;
 }
 </style>
-

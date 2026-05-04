@@ -20,7 +20,7 @@ const props = withDefaults(
     iconPosition: "left",
     fullWidth: true,
     loading: false,
-  }
+  },
 );
 
 const emit = defineEmits(["buttonClicked"]);

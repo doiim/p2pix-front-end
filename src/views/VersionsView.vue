@@ -8,8 +8,9 @@ const latestVersion = ref<AppVersion | null>(null);
 const currentVersion = __APP_VERSION__;
 
 onMounted(() => {
-  versions.value = [...appVersions].sort((a, b) => 
-    new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime()
+  versions.value = [...appVersions].sort(
+    (a, b) =>
+      new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime(),
   );
   latestVersion.value = getLatestVersion();
 });
@@ -36,28 +37,22 @@ const formatDate = (dateString: string): string => {
         Versões do P2Pix
       </span>
       <span class="text font-medium text-base max-w-[40rem]">
-        Visualize todas as versões do P2Pix. Cada versão está
-        disponível no IPFS para acesso permanente e descentralizado.
+        Visualize todas as versões do P2Pix. Cada versão está disponível no IPFS
+        para acesso permanente e descentralizado.
       </span>
       <div v-if="currentVersion" class="mt-4">
         <span class="text-gray-400 text-sm">
-          Versão atual: <span class="font-semibold text-white">{{ currentVersion }}</span>
+          Versão atual:
+          <span class="font-semibold text-white">{{ currentVersion }}</span>
         </span>
       </div>
     </div>
 
     <div class="versions-container">
-      <div
-        v-for="version in versions"
-        :key="version.tag"
-        class="version-card"
-      >
+      <div v-for="version in versions" :key="version.tag" class="version-card">
         <div class="version-header">
           <h3 class="version-tag">{{ version.tag }}</h3>
-          <span
-            v-if="version.tag === currentVersion"
-            class="current-badge"
-          >
+          <span v-if="version.tag === currentVersion" class="current-badge">
             Atual
           </span>
         </div>
@@ -153,5 +148,3 @@ const formatDate = (dateString: string): string => {
   @apply text-center py-12;
 }
 </style>
-
-

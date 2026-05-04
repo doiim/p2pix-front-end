@@ -55,12 +55,10 @@ watch(connectedChain, (newVal: any) => {
   // Check if connected chain is valid, otherwise default to Sepolia
   if (
     !newVal ||
-    !Object.values(Networks).some(
-      (network) => network.id === Number(newVal.id)
-    )
+    !Object.values(Networks).some((network) => network.id === Number(newVal.id))
   ) {
     console.log(
-      "Invalid or unsupported network detected, defaulting to Sepolia"
+      "Invalid or unsupported network detected, defaulting to Sepolia",
     );
     user.setNetwork(DEFAULT_NETWORK);
     return;
@@ -69,13 +67,12 @@ watch(connectedChain, (newVal: any) => {
 });
 
 const formatWalletAddress = (): string => {
-  if (!walletAddress.value)
-    throw new Error("Wallet not connected");
+  if (!walletAddress.value) throw new Error("Wallet not connected");
   const walletAddressLength = walletAddress.value.length;
   const initialText = walletAddress.value.substring(0, 5);
   const finalText = walletAddress.value.substring(
     walletAddressLength - 4,
-    walletAddressLength
+    walletAddressLength,
   );
   return `${initialText}...${finalText}`;
 };
@@ -92,10 +89,10 @@ const closeMenu = (): void => {
 
 const networkChange = async (network: NetworkConfig): Promise<void> => {
   currencyMenuOpenToggle.value = false;
-  
+
   // If wallet is connected, try to change chain in wallet
   if (connectedWallet.value) {
-    const chainId = network.id.toString(16)
+    const chainId = network.id.toString(16);
     try {
       await setChain({
         chainId: `0x${chainId}`,
@@ -195,7 +192,10 @@ const handleMenuOptionClick = (option: MenuOption): void => {
 
 <template>
   <header class="z-20">
-    <RouterLink :to="'/'" class="default-button flex items-center md:h-auto md:py-2 h-10 py-0">
+    <RouterLink
+      :to="'/'"
+      class="default-button flex items-center md:h-auto md:py-2 h-10 py-0"
+    >
       <img
         alt="P2Pix logo"
         class="logo hidden md:inline-block"
@@ -217,13 +217,11 @@ const handleMenuOptionClick = (option: MenuOption): void => {
         <button
           ref="infoMenuRef"
           class="default-button hidden md:inline-block cursor-pointer"
-          @click="
-            [
-              (infoMenuOpenToggle = !infoMenuOpenToggle),
-              (menuOpenToggle = false),
-              (currencyMenuOpenToggle = false),
-            ]
-          "
+          @click="[
+            (infoMenuOpenToggle = !infoMenuOpenToggle),
+            (menuOpenToggle = false),
+            (currencyMenuOpenToggle = false),
+          ]"
         >
           <h1
             class="topbar-text topbar-link"
@@ -245,7 +243,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
               <div class="bg-white rounded-md z-10 -left-36 w-52">
                 <template
                   v-for="(option, index) in infoMenuOptions.filter(
-                    (opt) => opt.showInDesktop
+                    (opt) => opt.showInDesktop,
                   )"
                   :key="index"
                 >
@@ -273,7 +271,8 @@ const handleMenuOptionClick = (option: MenuOption): void => {
                   <div
                     v-if="
                       index <
-                      infoMenuOptions.filter((opt) => opt.showInDesktop).length -
+                      infoMenuOptions.filter((opt) => opt.showInDesktop)
+                        .length -
                         1
                     "
                     class="w-full flex justify-center"
@@ -339,13 +338,11 @@ const handleMenuOptionClick = (option: MenuOption): void => {
           ref="currencyRef"
           class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
           :class="{ 'bg-gray-50': currencyMenuOpenToggle }"
-          @click="
-            [
-              (currencyMenuOpenToggle = !currencyMenuOpenToggle),
-              (menuOpenToggle = false),
-              (infoMenuOpenToggle = false),
-            ]
-          "
+          @click="[
+            (currencyMenuOpenToggle = !currencyMenuOpenToggle),
+            (menuOpenToggle = false),
+            (infoMenuOpenToggle = false),
+          ]"
         >
           <img
             alt="Choosed network image"
@@ -357,9 +354,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
             class="default-text hidden sm:inline-block text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap text-ellipsis overflow-hidden"
             :class="{ '!text-gray-900': currencyMenuOpenToggle }"
           >
-            {{
-              user.network.value.name || "Invalid Chain"
-            }}
+            {{ user.network.value.name || "Invalid Chain" }}
           </span>
           <div
             class="transition-all duration-500 ease-in-out mt-1"
@@ -426,13 +421,11 @@ const handleMenuOptionClick = (option: MenuOption): void => {
             ref="walletAddressRef"
             class="top-bar-info cursor-pointer h-10 group hover:bg-gray-50 transition-all duration-500 ease-in-out"
             :class="{ 'bg-gray-50': menuOpenToggle }"
-            @click="
-              [
-                (menuOpenToggle = !menuOpenToggle),
-                (currencyMenuOpenToggle = false),
-                (infoMenuOpenToggle = false),
-              ]
-            "
+            @click="[
+              (menuOpenToggle = !menuOpenToggle),
+              (currencyMenuOpenToggle = false),
+              (infoMenuOpenToggle = false),
+            ]"
           >
             <img alt="Account image" src="@/assets/account.svg?url" />
             <span
@@ -463,7 +456,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
                 >
                   <template
                     v-for="(option, index) in walletMenuOptions.filter(
-                      (opt) => opt.showInDesktop
+                      (opt) => opt.showInDesktop,
                     )"
                     :key="index"
                   >
@@ -510,7 +503,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
         <div class="bg-white rounded-md z-10 h-full">
           <template
             v-for="(option, index) in walletMenuOptions.filter(
-              (opt) => opt.showInMobile
+              (opt) => opt.showInMobile,
             )"
             :key="index"
           >
@@ -653,6 +646,8 @@ a:hover {
   max-height: calc(100vh - 60px);
   overflow-y: auto;
   border-radius: 8px;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.1),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
 }
 </style>

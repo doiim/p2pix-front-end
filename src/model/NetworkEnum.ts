@@ -1,10 +1,10 @@
 import type { Chain, ChainContract } from "viem";
 
 export enum TokenEnum {
-  BRZ = 'BRZ',
+  BRZ = "BRZ",
   // BRX = 'BRX'
 }
 export type NetworkConfig = Chain & {
-  tokens: Record<TokenEnum, ChainContract>,
-  subgraphUrls: string[]
+  tokens: Record<TokenEnum, ChainContract>;
+  subgraphUrls: string[];
 };

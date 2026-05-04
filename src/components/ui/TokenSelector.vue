@@ -13,7 +13,7 @@ const props = withDefaults(
   {
     disabled: false,
     size: "md",
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -45,4 +45,3 @@ const handleChange = (value: TokenEnum) => {
     @update:model-value="handleChange"
   />
 </template>
-

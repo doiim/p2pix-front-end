@@ -15,7 +15,7 @@ const props = withDefaults(
   {
     disabled: false,
     size: "md",
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -23,7 +23,7 @@ const emit = defineEmits<{
   change: [value: NetworkConfig];
 }>();
 
-const networkItems = computed((): DropdownItem<NetworkConfig>[] => {  
+const networkItems = computed((): DropdownItem<NetworkConfig>[] => {
   return Object.values(Networks).map((network) => ({
     value: network,
     label: network.name,
@@ -47,4 +47,3 @@ const handleChange = (value: NetworkConfig) => {
     @update:model-value="handleChange"
   />
 </template>
-

@@ -4,5 +4,3 @@ export interface AppVersion {
   releaseDate: string;
   description?: string;
 }
-
-

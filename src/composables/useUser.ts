@@ -1,9 +1,9 @@
 import { ref } from "vue";
 import type { ValidDeposit } from "@/model/ValidDeposit";
 import type { Participant } from "../utils/bbPay";
-import type { Address } from "viem"
+import type { Address } from "viem";
 import { DEFAULT_NETWORK, Networks } from "@/config/networks";
-import { TokenEnum, NetworkConfig } from "@/model/NetworkEnum"
+import { TokenEnum, NetworkConfig } from "@/model/NetworkEnum";
 
 const walletAddress = ref<Address | null>(null);
 const balance = ref("");
@@ -38,9 +38,9 @@ export function useUser() {
   const setNetworkById = (id: string | number) => {
     let chainId: number;
 
-    if (typeof id === 'string') {
+    if (typeof id === "string") {
       // Parse hex string or number string to number
-      if (id.startsWith('0x')) {
+      if (id.startsWith("0x")) {
         chainId = parseInt(id, 16);
       } else {
         chainId = parseInt(id, 10);
@@ -50,7 +50,7 @@ export function useUser() {
     }
 
     // Find network by chain ID
-    const chain = Object.values(Networks).find(n => n.id === chainId);
+    const chain = Object.values(Networks).find((n) => n.id === chainId);
     if (chain) {
       network.value = chain;
     }

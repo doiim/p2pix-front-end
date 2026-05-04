@@ -5,13 +5,13 @@ export const appVersions: AppVersion[] = [
     tag: "1.1.0",
     ipfsHash: "bafybeiaffdxrxoex3qh7kirnkkufnvpafb4gmkt7mjxufnnpbrq6tmqoha",
     releaseDate: "2025-11-06",
-    description: "Explorer and versioning features added"
+    description: "Explorer and versioning features added",
   },
   {
     tag: "1.0.0",
     ipfsHash: "bafybeiagfqnxnb5zdrks6dicfm7kxjdtzzzzm2ouluxgdseg2hrrotayzi",
     releaseDate: "2023-01-28",
-    description: "Initial release"
+    description: "Initial release",
   },
 ];
 
@@ -26,5 +26,3 @@ export function getVersionByTag(tag: string): AppVersion | null {
 export function getIpfsUrl(ipfsHash: string): string {
   return `https://${ipfsHash}.ipfs.dweb.link`;
 }
-
-

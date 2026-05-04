@@ -15,14 +15,14 @@ import type { ChainContract } from "viem";
 let walletClient: WalletClient | null = null;
 
 const getPublicClient = (): PublicClient => {
-    const user = useUser();
-    const rpcUrl = (user.network.value as NetworkConfig).rpcUrls.default.http[0];
-    const chain = user.network.value;
+  const user = useUser();
+  const rpcUrl = (user.network.value as NetworkConfig).rpcUrls.default.http[0];
+  const chain = user.network.value;
 
-    return createPublicClient({
-      chain,
-      transport: http(rpcUrl),
-    });
+  return createPublicClient({
+    chain,
+    transport: http(rpcUrl),
+  });
 };
 
 const getWalletClient = (): WalletClient | null => {
@@ -32,7 +32,8 @@ const getWalletClient = (): WalletClient | null => {
 const getContract = async (onlyRpcProvider = false) => {
   const client = getPublicClient();
   const user = useUser();
-  const address = (user.network.value.contracts?.p2pix as ChainContract).address;
+  const address = (user.network.value.contracts?.p2pix as ChainContract)
+    .address;
   const abi = p2PixAbi;
   const wallet = onlyRpcProvider ? null : getWalletClient();
 

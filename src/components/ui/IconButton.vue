@@ -19,7 +19,7 @@ const props = withDefaults(
     iconPosition: "left",
     disabled: false,
     fullWidth: false,
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -144,4 +144,3 @@ const handleClick = () => {
   @apply flex-shrink-0;
 }
 </style>
-

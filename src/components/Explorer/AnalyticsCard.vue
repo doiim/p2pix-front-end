@@ -3,14 +3,14 @@ interface Props {
   title: string;
   value: string;
   change?: string;
-  changeType?: 'positive' | 'negative' | 'neutral';
+  changeType?: "positive" | "negative" | "neutral";
   icon?: string;
   loading?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  changeType: 'neutral',
-  loading: false
+  changeType: "neutral",
+  loading: false,
 });
 </script>
 
@@ -22,7 +22,11 @@ const props = withDefaults(defineProps<Props>(), {
       </div>
       <div v-else class="analytics-value">{{ value }}</div>
       <div class="analytics-title">{{ title }}</div>
-      <div v-if="change && !loading" class="analytics-change" :class="`change-${changeType}`">
+      <div
+        v-if="change && !loading"
+        class="analytics-change"
+        :class="`change-${changeType}`"
+      >
         {{ change }}
       </div>
     </div>

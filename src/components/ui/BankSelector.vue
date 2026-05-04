@@ -16,7 +16,7 @@ const props = withDefaults(
   {
     disabled: false,
     placeholder: "Busque e selecione seu banco",
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -46,7 +46,7 @@ const searchQuery = computed({
 
 const filteredBanks = computed(() => {
   if (!searchQuery.value) return [];
-  
+
   const query = searchQuery.value.toLowerCase();
   return bankList
     .filter((bank) => bank.longName.toLowerCase().includes(query))
@@ -73,7 +73,7 @@ const selectBank = (bank: Bank) => {
       class="bank-input"
       autocomplete="off"
     />
-    
+
     <transition name="dropdown-fade">
       <div v-if="showBankList" class="bank-list">
         <div
@@ -134,4 +134,3 @@ const selectBank = (bank: Bank) => {
   @apply opacity-0 -translate-y-2;
 }
 </style>
-

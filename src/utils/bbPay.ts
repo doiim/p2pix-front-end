@@ -61,9 +61,11 @@ export const createSolicitation = async (offer: Offer) => {
   return response.json();
 };
 
-export const getSolicitation = async (id: bigint): Promise<{pixTimestamp: `0x${string}`, signature: `0x${string}`}> => {
+export const getSolicitation = async (
+  id: bigint,
+): Promise<{ pixTimestamp: `0x${string}`; signature: `0x${string}` }> => {
   const response = await fetch(
-    `${import.meta.env.VITE_APP_API_URL}/release/${id}`
+    `${import.meta.env.VITE_APP_API_URL}/release/${id}`,
   );
 
   const obj = await response.json();

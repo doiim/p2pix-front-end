@@ -30,12 +30,12 @@ export const updateWalletStatus = async (): Promise<void> => {
 };
 
 export const listValidDepositTransactionsByWalletAddress = async (
-  walletAddress: Address
+  walletAddress: Address,
 ): Promise<ValidDeposit[]> => {
   const user = useUser();
   const walletDeposits = await getValidDeposits(
     user.network.value.tokens[user.selectedToken.value].address,
-    user.network.value
+    user.network.value,
   );
   if (walletDeposits) {
     return walletDeposits
@@ -50,7 +50,7 @@ export const listValidDepositTransactionsByWalletAddress = async (
 
 const getLockStatus = async (id: bigint): Promise<LockStatus> => {
   const { address, abi, client } = await getContract();
-  const [ sortedIDs , status ] = await client.readContract({
+  const [sortedIDs, status] = await client.readContract({
     address,
     abi,
     functionName: "getLocksStatus",
@@ -60,7 +60,7 @@ const getLockStatus = async (id: bigint): Promise<LockStatus> => {
 };
 
 export const listAllTransactionByWalletAddress = async (
-  walletAddress: Address
+  walletAddress: Address,
 ): Promise<WalletTransaction[]> => {
   const user = useUser();
 
@@ -199,7 +199,7 @@ export const listAllTransactionByWalletAddress = async (
 
 // get wallet's release transactions
 export const listReleaseTransactionByWalletAddress = async (
-  walletAddress: Address
+  walletAddress: Address,
 ) => {
   const user = useUser();
   const network = user.network.value;
@@ -403,7 +403,7 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
 };
 
 export const checkUnreleasedLock = async (
-  walletAddress: Address
+  walletAddress: Address,
 ): Promise<UnreleasedLock | undefined> => {
   const { address, abi, client } = await getContract();
   const addedLocks = await listLockTransactionByWalletAddress(walletAddress);
@@ -412,7 +412,7 @@ export const checkUnreleasedLock = async (
 
   const lockIds = addedLocks.map((lock: any) => lock.args.lockID);
 
-  const [ sortedIDs, status ] = await client.readContract({
+  const [sortedIDs, status] = await client.readContract({
     address,
     abi,
     functionName: "getLocksStatus",
@@ -420,15 +420,15 @@ export const checkUnreleasedLock = async (
   });
 
   const unreleasedLockId = status.findIndex(
-    (status: LockStatus) => status == LockStatus.Active
+    (status: LockStatus) => status == LockStatus.Active,
   );
-  
+
   if (unreleasedLockId !== -1)
     return getUnreleasedLockById(sortedIDs[unreleasedLockId]);
 };
 
 export const getActiveLockAmount = async (
-  walletAddress: Address
+  walletAddress: Address,
 ): Promise<number> => {
   const { address, abi, client } = await getContract(true);
   const lockSeller = await listLockTransactionBySellerAddress(walletAddress);
@@ -437,7 +437,7 @@ export const getActiveLockAmount = async (
 
   const lockIds = lockSeller.map((lock: any) => lock.args.lockID);
 
-  const [ sortedIDs, status ] = await client.readContract({
+  const [sortedIDs, status] = await client.readContract({
     address,
     abi,
     functionName: "getLocksStatus",
@@ -450,7 +450,7 @@ export const getActiveLockAmount = async (
       abi,
       functionName: "mapLocks",
       args: [BigInt(id)],
-    })
+    }),
   );
 
   const mapLocksResults = await client.multicall({

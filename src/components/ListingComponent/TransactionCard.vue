@@ -29,7 +29,8 @@ const eventName = computed(() => {
 });
 
 const explorerName = computed(() => {
-  return Networks[(props.networkName as string).toLowerCase()].blockExplorers?.default.name;
+  return Networks[(props.networkName as string).toLowerCase()].blockExplorers
+    ?.default.name;
 });
 
 const statusType = computed((): StatusType => {
@@ -58,16 +59,16 @@ const showContinueButton = computed(() => {
 
 const formattedDate = computed(() => {
   if (!props.transaction.blockTimestamp) return "";
-  
+
   const timestamp = props.transaction.blockTimestamp;
   const date = new Date(timestamp * 1000);
-  
+
   const day = String(date.getDate()).padStart(2, "0");
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const year = date.getFullYear();
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
-  
+
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 });
 
@@ -142,4 +143,3 @@ const handleExplorerClick = () => {
   @apply rounded-lg border-amber-300 border-2 px-3 py-2 text-gray-900 font-semibold sm:text-base text-xs hover:bg-transparent w-full text-center;
 }
 </style>
-

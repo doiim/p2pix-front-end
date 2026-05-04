@@ -3,6 +3,8 @@ import { ref, computed } from "vue";
 import { onClickOutside } from "@vueuse/core";
 import ChevronDown from "@/assets/chevronDown.svg";
 
+defineOptions({ name: "UiDropdown" });
+
 export interface DropdownItem<T = any> {
   value: T;
   label: string;
@@ -26,7 +28,7 @@ const props = withDefaults(
     disabled: false,
     size: "md",
     showIcon: true,
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -46,11 +48,9 @@ const filteredItems = computed(() => {
   if (!props.searchable || !searchQuery.value) {
     return props.items;
   }
-  
+
   const query = searchQuery.value.toLowerCase();
-  return props.items.filter((item) =>
-    item.label.toLowerCase().includes(query)
-  );
+  return props.items.filter((item) => item.label.toLowerCase().includes(query));
 });
 
 const toggleDropdown = () => {
@@ -97,10 +97,7 @@ onClickOutside(dropdownRef, () => {
       <span class="selected-text">
         {{ selectedItem?.label || placeholder }}
       </span>
-      <ChevronDown
-        class="chevron"
-        :class="{ rotated: isOpen }"
-      />
+      <ChevronDown class="chevron" :class="{ rotated: isOpen }" />
     </button>
 
     <transition name="dropdown-fade">
@@ -113,7 +110,7 @@ onClickOutside(dropdownRef, () => {
           placeholder="Buscar..."
           @click.stop
         />
-        
+
         <div class="items-container">
           <div
             v-for="item in filteredItems"
@@ -135,7 +132,7 @@ onClickOutside(dropdownRef, () => {
             />
             <span class="item-label">{{ item.label }}</span>
           </div>
-          
+
           <div v-if="filteredItems.length === 0" class="no-results">
             Nenhum resultado encontrado
           </div>
@@ -245,4 +242,3 @@ onClickOutside(dropdownRef, () => {
   @apply opacity-0 -translate-y-2;
 }
 </style>
-

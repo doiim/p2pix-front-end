@@ -27,7 +27,7 @@ const props = withDefaults(
     minValue: 0,
     disabled: false,
     required: false,
-  }
+  },
 );
 
 const emit = defineEmits<{
@@ -68,9 +68,9 @@ const handleInput = (event: Event) => {
   const target = event.target as HTMLInputElement;
   const value = target.value;
   inputValue.value = value;
-  
+
   const numValue = Number(value);
-  
+
   // Validar decimais
   if (decimalCount(value) > 2) {
     validDecimals.value = false;
@@ -79,7 +79,7 @@ const handleInput = (event: Event) => {
     return;
   }
   validDecimals.value = true;
-  
+
   // Validar range
   if (props.minValue !== undefined && numValue < props.minValue) {
     validRange.value = false;
@@ -94,7 +94,7 @@ const handleInput = (event: Event) => {
     return;
   }
   validRange.value = true;
-  
+
   emit("update:modelValue", numValue);
   emit("error", null);
   emit("valid", true);
@@ -106,11 +106,14 @@ const handleTokenChange = (token: TokenEnum) => {
   emit("update:selectedToken", token);
 };
 
-watch(() => props.modelValue, (newVal) => {
-  if (newVal !== Number(inputValue.value)) {
-    inputValue.value = String(newVal || "");
-  }
-});
+watch(
+  () => props.modelValue,
+  (newVal) => {
+    if (newVal !== Number(inputValue.value)) {
+      inputValue.value = String(newVal || "");
+    }
+  },
+);
 </script>
 
 <template>
@@ -130,7 +133,7 @@ watch(() => props.modelValue, (newVal) => {
         step="0.01"
         @input="debouncedHandleInput"
       />
-      
+
       <TokenSelector
         v-if="showTokenSelector"
         :model-value="selectedToken"
@@ -138,26 +141,22 @@ watch(() => props.modelValue, (newVal) => {
         size="md"
         @update:model-value="handleTokenChange"
       />
-      
+
       <div v-else class="token-display">
         {{ selectedToken }}
       </div>
     </div>
-    
+
     <div class="divider"></div>
-    
+
     <div class="info-row">
       <p v-if="showConversion" class="conversion-text">
         ~ R$ {{ convertedValue }}
       </p>
       <slot name="extra-info"></slot>
     </div>
-    
-    <ErrorMessage
-      v-if="errorMessage"
-      :message="errorMessage"
-      type="error"
-    />
+
+    <ErrorMessage v-if="errorMessage" :message="errorMessage" type="error" />
   </div>
 </template>
 
@@ -205,4 +204,3 @@ watch(() => props.modelValue, (newVal) => {
   @apply text-gray-500 font-normal text-sm;
 }
 </style>
-

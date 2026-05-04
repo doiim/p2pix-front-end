@@ -54,7 +54,7 @@ const checkSolicitationStatus = async () => {
 
   try {
     const response = await getSolicitation(
-      solicitationData.value.numeroSolicitacao
+      solicitationData.value.numeroSolicitacao,
     );
 
     if (response.signature) {
@@ -82,7 +82,6 @@ const startPolling = () => {
   pollingInterval.value = setInterval(checkSolicitationStatus, 10000);
 };
 
-
 const copyToClipboard = async () => {
   if (!qrCode.value) {
     return;
@@ -108,13 +107,10 @@ const copyToClipboard = async () => {
 onMounted(async () => {
   try {
     const { tokenAddress, sellerAddress, amount } = await getUnreleasedLockById(
-      BigInt(props.lockID)
+      BigInt(props.lockID),
     );
 
-    const participantId = await getParticipantID(
-      sellerAddress,
-      tokenAddress
-    );
+    const participantId = await getParticipantID(sellerAddress, tokenAddress);
 
     const offer: Offer = {
       amount,

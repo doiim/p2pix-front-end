@@ -162,10 +162,7 @@ onMounted(() => {
         </span>
       </div>
       <hr v-show="isCollapsibleOpen" class="pb-3" />
-      <div
-        v-show="isCollapsibleOpen"
-        class="flex justify-between items-center"
-      >
+      <div v-show="isCollapsibleOpen" class="flex justify-between items-center">
         <h1
           @click="cancelWithdraw"
           class="text-black font-medium cursor-pointer hover:text-gray-600 transition-colors"
@@ -212,4 +209,3 @@ input[type="number"]::-webkit-outer-spin-button {
   }
 }
 </style>
-

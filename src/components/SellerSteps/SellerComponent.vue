@@ -44,7 +44,7 @@ const filteredBanks = computed(() => {
   if (!bankSearchQuery.value) return [];
   return bankList
     .filter((bank) =>
-      bank.longName.toLowerCase().includes(bankSearchQuery.value.toLowerCase())
+      bank.longName.toLowerCase().includes(bankSearchQuery.value.toLowerCase()),
     )
     .slice(0, 5);
 });

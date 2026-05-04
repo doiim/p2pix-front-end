@@ -55,14 +55,14 @@ const getUserCredit = async (userAddress: Address): Promise<bigint> => {
   try {
     const { address, abi, client } = await getContract(true);
     const userKey = castAddrToKey(userAddress);
-    
+
     const userCredit = await client.readContract({
       address,
       abi,
       functionName: "userRecord",
       args: [userKey],
     });
-    
+
     return userCredit as bigint;
   } catch (error) {
     console.error("Error fetching user credit:", error);
@@ -73,13 +73,13 @@ const getUserCredit = async (userAddress: Address): Promise<bigint> => {
 const getReputationAddress = async (): Promise<Address | null> => {
   try {
     const { address, abi, client } = await getContract(true);
-    
+
     const reputationAddr = await client.readContract({
       address,
       abi,
       functionName: "reputation",
     });
-    
+
     return reputationAddr as Address;
   } catch (error) {
     console.error("Error fetching reputation address:", error);
@@ -91,16 +91,16 @@ const getSpendLimit = async (userCredit: bigint): Promise<bigint> => {
   try {
     const reputationAddr = await getReputationAddress();
     if (!reputationAddr) return BigInt(0);
-    
+
     const { client } = await getContract(true);
-    
+
     const spendLimit = await client.readContract({
       address: reputationAddr,
       abi: reputationAbi,
       functionName: "limiter",
       args: [userCredit],
     });
-    
+
     return spendLimit as bigint;
   } catch (error) {
     console.error("Error fetching spend limit:", error);
@@ -110,26 +110,25 @@ const getSpendLimit = async (userCredit: bigint): Promise<bigint> => {
 
 const checkReputationLimit = async (inputValue: number): Promise<void> => {
   exceedsReputationLimit.value = false;
-  
+
   if (!walletAddress.value) {
     reputationLimit.value = null;
     return;
   }
-  
+
   if (inputValue === 0) {
     return;
   }
-  
+
   try {
     const userCredit = await getUserCredit(walletAddress.value);
     const spendLimitRaw = await getSpendLimit(userCredit);
-    
+
     const spendLimitNumber = Number(spendLimitRaw);
     reputationLimit.value = spendLimitNumber;
- 
+
     exceedsReputationLimit.value = spendLimitNumber < inputValue;
     enableConfirmButton.value = !exceedsReputationLimit.value;
-
   } catch (error) {
     console.error("Error checking reputation limit:", error);
     reputationLimit.value = null;
@@ -145,7 +144,7 @@ const connectAccount = async (): Promise<void> => {
 
 const emitConfirmButton = async (): Promise<void> => {
   const deposit = selectedDeposits.value?.find(
-    (d) => d.network === network.value
+    (d) => d.network === network.value,
   );
   if (!deposit) return;
   deposit.participantID = await getParticipantID(deposit.seller, deposit.token);
@@ -185,17 +184,14 @@ const handleSelectedToken = (token: TokenEnum): void => {
 // Verify if there is a valid deposit to buy
 const verifyLiquidity = (): void => {
   enableConfirmButton.value = false;
-  if (!walletAddress.value)
-    return;
+  if (!walletAddress.value) return;
   const selDeposits = verifyNetworkLiquidity(
     tokenValue.value,
     walletAddress.value,
-    depositsValidList.value
+    depositsValidList.value,
   );
   selectedDeposits.value = selDeposits;
-  hasLiquidity.value = !!selDeposits.find(
-    (d) => d.network === network.value
-  );
+  hasLiquidity.value = !!selDeposits.find((d) => d.network === network.value);
   enableOrDisableConfirmButton();
 };
 
@@ -225,7 +221,7 @@ watch(walletAddress, (): void => {
 const availableNetworks = computed(() => {
   if (!selectedDeposits.value) return [];
   return Object.values(Networks).filter((network) =>
-    selectedDeposits.value?.some((d) => d.network.id === network.id)
+    selectedDeposits.value?.some((d) => d.network.id === network.id),
   );
 });
 
@@ -364,7 +360,10 @@ const handleSubmit = async (e: Event): Promise<void> => {
         <div
           class="flex justify-center"
           v-else-if="
-            !hasLiquidity && !loadingNetworkLiquidity && tokenValue > 0 && !exceedsReputationLimit
+            !hasLiquidity &&
+            !loadingNetworkLiquidity &&
+            tokenValue > 0 &&
+            !exceedsReputationLimit
           "
         >
           <span class="text-red-500 font-normal text-sm"
@@ -375,11 +374,14 @@ const handleSubmit = async (e: Event): Promise<void> => {
         <div
           class="flex justify-center"
           v-if="
-            exceedsReputationLimit && !loadingNetworkLiquidity && reputationLimit !== null
+            exceedsReputationLimit &&
+            !loadingNetworkLiquidity &&
+            reputationLimit !== null
           "
         >
           <span class="text-red-500 font-normal text-sm"
-            >O valor excede o limite permitido pela sua reputação. Limite máximo: {{ reputationLimit }} {{ selectedToken }}</span
+            >O valor excede o limite permitido pela sua reputação. Limite
+            máximo: {{ reputationLimit }} {{ selectedToken }}</span
           >
         </div>
       </div>

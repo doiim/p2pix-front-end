@@ -11,14 +11,12 @@ const props = withDefaults(
   {
     size: "lg",
     centered: true,
-  }
+  },
 );
 </script>
 
 <template>
-  <div
-    :class="['page-header', `size-${size}`, { centered: centered }]"
-  >
+  <div :class="['page-header', `size-${size}`, { centered: centered }]">
     <h1 class="title text-white font-extrabold">
       {{ title }}
     </h1>
@@ -63,4 +61,3 @@ const props = withDefaults(
   @apply sm:text-base text-sm sm:max-w-[28rem] max-w-[30rem] sm:tracking-normal tracking-wide;
 }
 </style>
-

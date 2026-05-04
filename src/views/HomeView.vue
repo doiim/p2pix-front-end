@@ -37,7 +37,7 @@ const paramLockID = window.history.state?.lockID;
 
 const confirmBuyClick = async (
   selectedDeposit: ValidDeposit,
-  tokenValue: number
+  tokenValue: number,
 ) => {
   participantID.value = selectedDeposit.participantID;
   tokenAmount.value = tokenValue;
@@ -60,22 +60,25 @@ const confirmBuyClick = async (
 };
 
 const releaseTransaction = async (params: {
-  pixTimestamp: `0x${string}`&{lenght:34},
-  signature: `0x${string}`,
+  pixTimestamp: `0x${string}` & { lenght: 34 };
+  signature: `0x${string}`;
 }) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
-  const release = await releaseLock(BigInt(lockID.value), params.pixTimestamp, params.signature);
+  const release = await releaseLock(
+    BigInt(lockID.value),
+    params.pixTimestamp,
+    params.signature,
+  );
 
   await updateWalletStatus();
   loadingRelease.value = false;
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
-  if (!walletAddress.value)
-    throw new Error("Wallet not connected");
+  if (!walletAddress.value) throw new Error("Wallet not connected");
   const lock = await checkUnreleasedLock(walletAddress.value);
   if (lock) {
     lockID.value = String(lock.lockID);

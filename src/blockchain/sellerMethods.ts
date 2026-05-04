@@ -7,7 +7,7 @@ import type { Participant } from "@/utils/bbPay";
 import type { Address } from "viem";
 
 const getP2PixAddress = (): Address => {
-  const user = useUser();  
+  const user = useUser();
   return (user.network.value.contracts?.p2pix as ChainContract).address;
 };
 
@@ -24,7 +24,8 @@ const approveTokens = async (participant: Participant): Promise<any> => {
   const [account] = await walletClient.getAddresses();
 
   // Get token address
-  const tokenAddress = user.network.value.tokens[user.selectedToken.value].address;
+  const tokenAddress =
+    user.network.value.tokens[user.selectedToken.value].address;
 
   // Check if the token is already approved
   const allowance = await publicClient.readContract({
@@ -34,7 +35,7 @@ const approveTokens = async (participant: Participant): Promise<any> => {
     args: [account, getP2PixAddress()],
   });
 
-  if ( allowance < parseEther(participant.offer.toString()) ) {
+  if (allowance < parseEther(participant.offer.toString())) {
     // Approve tokens
     const chain = user.network.value;
     const hash = await walletClient.writeContract({

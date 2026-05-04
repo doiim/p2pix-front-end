@@ -12,7 +12,7 @@ const props = withDefaults(
   {
     size: "md",
     showLabel: false,
-  }
+  },
 );
 
 const sizeMap = {
@@ -69,4 +69,3 @@ const networkData = computed(() => {
   @apply text-sm font-medium text-gray-900;
 }
 </style>
-

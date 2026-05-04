@@ -8,7 +8,10 @@ import svgLoader from "vite-svg-loader";
 
 function getGitTag(): string {
   try {
-    const tags = execSync("git tag --sort=-version:refname").toString().trim().split("\n");
+    const tags = execSync("git tag --sort=-version:refname")
+      .toString()
+      .trim()
+      .split("\n");
     return tags.length > 0 ? tags[0] : "unknown";
   } catch (fallbackError) {
     return "";
@@ -40,7 +43,7 @@ export default defineConfig({
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       "viem/errors": fileURLToPath(
-        new URL("./node_modules/viem/errors", import.meta.url)
+        new URL("./node_modules/viem/errors", import.meta.url),
       ),
     },
   },

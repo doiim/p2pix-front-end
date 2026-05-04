@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref } from "vue";
 
 interface Transaction {
   id: string;
-  type: 'deposit' | 'lock' | 'release' | 'return';
+  type: "deposit" | "lock" | "release" | "return";
   timestamp: string;
   seller?: string;
   buyer?: string | null;
@@ -25,22 +25,27 @@ const copyFeedbackTimeout = ref<{ [key: string]: NodeJS.Timeout | null }>({});
 
 const getTransactionTypeInfo = (type: string) => {
   const typeMap = {
-    deposit: { label: 'Depósito', status: 'completed' as const },
-    lock: { label: 'Bloqueio', status: 'open' as const },
-    release: { label: 'Liberação', status: 'completed' as const },
-    return: { label: 'Retorno', status: 'expired' as const }
+    deposit: { label: "Depósito", status: "completed" as const },
+    lock: { label: "Bloqueio", status: "open" as const },
+    release: { label: "Liberação", status: "completed" as const },
+    return: { label: "Retorno", status: "expired" as const },
   };
-  return typeMap[type as keyof typeof typeMap] || { label: type, status: 'pending' as const };
+  return (
+    typeMap[type as keyof typeof typeMap] || {
+      label: type,
+      status: "pending" as const,
+    }
+  );
 };
 
 const getTransactionTypeColor = (type: string) => {
   const colorMap = {
-    deposit: 'text-emerald-600',
-    lock: 'text-amber-600', 
-    release: 'text-emerald-600',
-    return: 'text-gray-600'
+    deposit: "text-emerald-600",
+    lock: "text-amber-600",
+    release: "text-emerald-600",
+    return: "text-gray-600",
   };
-  return colorMap[type as keyof typeof colorMap] || 'text-gray-600';
+  return colorMap[type as keyof typeof colorMap] || "text-gray-600";
 };
 
 const formatAddress = (address: string) => {
@@ -74,7 +79,7 @@ const copyToClipboard = async (address: string, key: string) => {
       copyFeedback.value[key] = false;
     }, 2000);
   } catch (error) {
-    console.error('Error copying to clipboard:', error);
+    console.error("Error copying to clipboard:", error);
   }
 };
 </script>
@@ -85,25 +90,31 @@ const copyToClipboard = async (address: string, key: string) => {
       <table class="w-full">
         <thead>
           <tr class="border-b border-gray-200">
-            <th class="text-left py-3 px-4 text-gray-700 font-medium">Horário</th>
+            <th class="text-left py-3 px-4 text-gray-700 font-medium">
+              Horário
+            </th>
             <th class="text-left py-3 px-4 text-gray-700 font-medium">Tipo</th>
-            <th class="text-left py-3 px-4 text-gray-700 font-medium">Participantes</th>
+            <th class="text-left py-3 px-4 text-gray-700 font-medium">
+              Participantes
+            </th>
             <th class="text-left py-3 px-4 text-gray-700 font-medium">Valor</th>
             <th class="text-left py-3 px-4 text-gray-700 font-medium">Bloco</th>
             <th class="text-left py-3 px-4 text-gray-700 font-medium">Ações</th>
           </tr>
         </thead>
         <tbody>
-          <tr 
-            v-for="transaction in transactions" 
+          <tr
+            v-for="transaction in transactions"
             :key="transaction.id"
             class="border-b border-gray-100 hover:bg-gray-50 transition-colors"
           >
             <td class="py-4 px-4">
-              <div class="text-sm text-gray-600">{{ transaction.timestamp }}</div>
+              <div class="text-sm text-gray-600">
+                {{ transaction.timestamp }}
+              </div>
             </td>
             <td class="py-4 px-4">
-              <span 
+              <span
                 :class="getTransactionTypeColor(transaction.type)"
                 class="text-sm font-medium"
               >
@@ -115,9 +126,14 @@ const copyToClipboard = async (address: string, key: string) => {
                 <div v-if="transaction.seller" class="text-sm">
                   <span class="text-gray-600">Vendedor: </span>
                   <div class="relative inline-block">
-                    <span 
+                    <span
                       class="text-gray-900 font-mono cursor-pointer hover:text-amber-500 transition-colors"
-                      @click="copyToClipboard(transaction.seller, `seller-${transaction.id}`)"
+                      @click="
+                        copyToClipboard(
+                          transaction.seller,
+                          `seller-${transaction.id}`,
+                        )
+                      "
                       title="Copiar"
                     >
                       {{ formatAddress(transaction.seller) }}
@@ -135,9 +151,14 @@ const copyToClipboard = async (address: string, key: string) => {
                 <div v-if="transaction.buyer" class="text-sm">
                   <span class="text-gray-600">Comprador: </span>
                   <div class="relative inline-block">
-                    <span 
+                    <span
                       class="text-gray-900 font-mono cursor-pointer hover:text-amber-500 transition-colors"
-                      @click="copyToClipboard(transaction.buyer, `buyer-${transaction.id}`)"
+                      @click="
+                        copyToClipboard(
+                          transaction.buyer,
+                          `buyer-${transaction.id}`,
+                        )
+                      "
                       title="Copiar"
                     >
                       {{ formatAddress(transaction.buyer) }}
@@ -181,13 +202,13 @@ const copyToClipboard = async (address: string, key: string) => {
 
     <!-- Mobile Cards -->
     <div class="lg:hidden space-y-4">
-      <div 
-        v-for="transaction in transactions" 
+      <div
+        v-for="transaction in transactions"
         :key="transaction.id"
         class="bg-gray-50 rounded-lg p-4 border border-gray-200"
       >
         <div class="flex items-center justify-between mb-3">
-          <span 
+          <span
             :class="getTransactionTypeColor(transaction.type)"
             class="text-sm font-medium"
           >
@@ -195,14 +216,19 @@ const copyToClipboard = async (address: string, key: string) => {
           </span>
           <div class="text-sm text-gray-600">{{ transaction.timestamp }}</div>
         </div>
-        
+
         <div class="space-y-2 mb-4">
           <div v-if="transaction.seller" class="text-sm">
             <span class="text-gray-600">Vendedor: </span>
             <div class="relative inline-block">
-              <span 
+              <span
                 class="text-gray-900 font-mono cursor-pointer hover:text-amber-500 transition-colors"
-                @click="copyToClipboard(transaction.seller, `seller-${transaction.id}`)"
+                @click="
+                  copyToClipboard(
+                    transaction.seller,
+                    `seller-${transaction.id}`,
+                  )
+                "
                 title="Copiar"
               >
                 {{ formatAddress(transaction.seller) }}
@@ -220,9 +246,11 @@ const copyToClipboard = async (address: string, key: string) => {
           <div v-if="transaction.buyer" class="text-sm">
             <span class="text-gray-600">Comprador: </span>
             <div class="relative inline-block">
-              <span 
+              <span
                 class="text-gray-900 font-mono cursor-pointer hover:text-amber-500 transition-colors"
-                @click="copyToClipboard(transaction.buyer, `buyer-${transaction.id}`)"
+                @click="
+                  copyToClipboard(transaction.buyer, `buyer-${transaction.id}`)
+                "
                 title="Copiar"
               >
                 {{ formatAddress(transaction.buyer) }}
@@ -239,14 +267,18 @@ const copyToClipboard = async (address: string, key: string) => {
           </div>
           <div class="text-sm">
             <span class="text-gray-600">Valor: </span>
-              <span class="font-semibold text-emerald-600">{{ formatAmount(transaction.amount, 18) }} BRZ</span>
-            </div>
+            <span class="font-semibold text-emerald-600"
+              >{{ formatAmount(transaction.amount, 18) }} BRZ</span
+            >
+          </div>
           <div class="text-sm">
             <span class="text-gray-600">Bloco: </span>
-            <span class="text-gray-900 font-mono">#{{ transaction.blockNumber }}</span>
+            <span class="text-gray-900 font-mono"
+              >#{{ transaction.blockNumber }}</span
+            >
           </div>
         </div>
-        
+
         <a
           :href="getExplorerUrl(transaction.transactionHash)"
           target="_blank"

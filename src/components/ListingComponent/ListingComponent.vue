@@ -39,7 +39,7 @@ const openEtherscanUrl = (transactionHash: string): void => {
 const loadMore = (): void => {
   const itemsShowing = itemsToShow.value.length;
   itemsToShow.value?.push(
-    ...props.walletTransactions.slice(itemsShowing, itemsShowing + 3)
+    ...props.walletTransactions.slice(itemsShowing, itemsShowing + 3),
   );
 };
 

@@ -1,11 +1,11 @@
-import { NetworkConfig } from '@/model/NetworkEnum';
-import { ref, computed, type Ref } from 'vue';
-import { isTestnetEnvironment } from '@/config/networks';
+import { NetworkConfig } from "@/model/NetworkEnum";
+import { ref, computed, type Ref } from "vue";
+import { isTestnetEnvironment } from "@/config/networks";
 import { sepolia, rootstock, rootstockTestnet } from "viem/chains";
 
 export interface Transaction {
   id: string;
-  type: 'deposit' | 'lock' | 'release' | 'return';
+  type: "deposit" | "lock" | "release" | "return";
   timestamp: string;
   blockTimestamp: string;
   seller?: string;
@@ -25,29 +25,29 @@ export interface AnalyticsData {
 }
 
 export function useGraphQL(network: Ref<NetworkConfig>) {
-  const searchAddress = ref('');
-  const selectedType = ref('all');
+  const searchAddress = ref("");
+  const selectedType = ref("all");
   const loading = ref(false);
   const error = ref<string | null>(null);
   const analyticsLoading = ref(false);
-  
+
   const transactionsData = ref<Transaction[]>([]);
   const analyticsData = ref<AnalyticsData>({
-    totalVolume: '0',
-    totalTransactions: '0',
-    totalLocks: '0',
-    totalDeposits: '0',
-    totalReleases: '0'
+    totalVolume: "0",
+    totalTransactions: "0",
+    totalLocks: "0",
+    totalDeposits: "0",
+    totalReleases: "0",
   });
 
   const executeQuery = async (query: string, variables: any = {}) => {
     const url = network.value.subgraphUrls[0]; // TODO: try all available URLs
-    
+
     try {
       const response = await fetch(url, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           query,
@@ -60,14 +60,14 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
       }
 
       const data = await response.json();
-      
+
       if (data.errors) {
-        throw new Error(data.errors[0]?.message || 'GraphQL error');
+        throw new Error(data.errors[0]?.message || "GraphQL error");
       }
 
       return data.data;
     } catch (err) {
-      console.error('GraphQL query error:', err);
+      console.error("GraphQL query error:", err);
       throw err;
     }
   };
@@ -130,7 +130,8 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
       const data = await executeQuery(query, { first: 50 });
       transactionsData.value = processActivityData(data);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch transactions';
+      error.value =
+        err instanceof Error ? err.message : "Failed to fetch transactions";
     } finally {
       loading.value = false;
     }
@@ -194,7 +195,10 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
       const data = await executeQuery(query, { userAddress, first: 50 });
       transactionsData.value = processActivityData(data);
     } catch (err) {
-      error.value = err instanceof Error ? err.message : 'Failed to fetch user transactions';
+      error.value =
+        err instanceof Error
+          ? err.message
+          : "Failed to fetch user transactions";
     } finally {
       loading.value = false;
     }
@@ -203,11 +207,11 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
   const clearData = () => {
     transactionsData.value = [];
     analyticsData.value = {
-      totalVolume: '0',
-      totalTransactions: '0',
-      totalLocks: '0',
-      totalDeposits: '0',
-      totalReleases: '0'
+      totalVolume: "0",
+      totalTransactions: "0",
+      totalLocks: "0",
+      totalDeposits: "0",
+      totalReleases: "0",
     };
   };
 
@@ -242,7 +246,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
       const data = await executeQuery(query);
       analyticsData.value = processAnalyticsData(data);
     } catch (err) {
-      console.error('Failed to fetch analytics:', err);
+      console.error("Failed to fetch analytics:", err);
     } finally {
       analyticsLoading.value = false;
     }
@@ -250,9 +254,9 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
 
   const processActivityData = (data: any): Transaction[] => {
     if (!data) return [];
-    
+
     const activities: Transaction[] = [];
-    
+
     if (data.depositAddeds) {
       data.depositAddeds.forEach((deposit: any) => {
         activities.push({
@@ -260,16 +264,16 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           blockNumber: deposit.blockNumber,
           blockTimestamp: deposit.blockTimestamp,
           transactionHash: deposit.transactionHash,
-          type: 'deposit',
+          type: "deposit",
           seller: deposit.seller,
           buyer: undefined,
           amount: deposit.amount,
           token: deposit.token,
-          timestamp: formatTimestamp(deposit.blockTimestamp)
+          timestamp: formatTimestamp(deposit.blockTimestamp),
         });
       });
     }
-    
+
     if (data.depositWithdrawns) {
       data.depositWithdrawns.forEach((withdrawal: any) => {
         activities.push({
@@ -277,16 +281,16 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           blockNumber: withdrawal.blockNumber,
           blockTimestamp: withdrawal.blockTimestamp,
           transactionHash: withdrawal.transactionHash,
-          type: 'deposit', // Treat as deposit withdrawal
+          type: "deposit", // Treat as deposit withdrawal
           seller: withdrawal.seller,
           buyer: undefined,
           amount: withdrawal.amount,
           token: withdrawal.token,
-          timestamp: formatTimestamp(withdrawal.blockTimestamp)
+          timestamp: formatTimestamp(withdrawal.blockTimestamp),
         });
       });
     }
-    
+
     if (data.lockAddeds) {
       data.lockAddeds.forEach((lock: any) => {
         activities.push({
@@ -294,16 +298,16 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           blockNumber: lock.blockNumber,
           blockTimestamp: lock.blockTimestamp,
           transactionHash: lock.transactionHash,
-          type: 'lock',
+          type: "lock",
           seller: lock.seller,
           buyer: lock.buyer,
           amount: lock.amount,
           token: lock.token,
-          timestamp: formatTimestamp(lock.blockTimestamp)
+          timestamp: formatTimestamp(lock.blockTimestamp),
         });
       });
     }
-    
+
     if (data.lockReleaseds) {
       data.lockReleaseds.forEach((release: any) => {
         activities.push({
@@ -311,16 +315,16 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           blockNumber: release.blockNumber,
           blockTimestamp: release.blockTimestamp,
           transactionHash: release.transactionHash,
-          type: 'release',
+          type: "release",
           seller: undefined, // Release doesn't have seller info
           buyer: release.buyer,
           amount: release.amount,
-          token: 'BRZ', // Default token
-          timestamp: formatTimestamp(release.blockTimestamp)
+          token: "BRZ", // Default token
+          timestamp: formatTimestamp(release.blockTimestamp),
         });
       });
     }
-    
+
     if (data.lockReturneds) {
       data.lockReturneds.forEach((returnTx: any) => {
         activities.push({
@@ -328,24 +332,26 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           blockNumber: returnTx.blockNumber,
           blockTimestamp: returnTx.blockTimestamp,
           transactionHash: returnTx.transactionHash,
-          type: 'return',
+          type: "return",
           seller: undefined, // Return doesn't have seller info
           buyer: returnTx.buyer,
-          amount: '0', // Return doesn't have amount
-          token: 'BRZ', // Default token
-          timestamp: formatTimestamp(returnTx.blockTimestamp)
+          amount: "0", // Return doesn't have amount
+          token: "BRZ", // Default token
+          timestamp: formatTimestamp(returnTx.blockTimestamp),
         });
       });
     }
-    
-    return activities.sort((a, b) => parseInt(b.blockTimestamp) - parseInt(a.blockTimestamp));
+
+    return activities.sort(
+      (a, b) => parseInt(b.blockTimestamp) - parseInt(a.blockTimestamp),
+    );
   };
 
   const formatTimestamp = (timestamp: string): string => {
     const now = Date.now() / 1000;
     const diff = now - parseInt(timestamp);
-    
-    if (diff < 60) return 'Just now';
+
+    if (diff < 60) return "Just now";
     if (diff < 3600) return `${Math.floor(diff / 60)} minutes ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)} hours ago`;
     return `${Math.floor(diff / 86400)} days ago`;
@@ -353,7 +359,8 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
 
   const formatAmount = (amount: string): string => {
     const num = parseFloat(amount);
-    if (num >= 1000000000000000) return `${(num / 1000000000000000).toFixed(1)}Q`;
+    if (num >= 1000000000000000)
+      return `${(num / 1000000000000000).toFixed(1)}Q`;
     if (num >= 1000000000000) return `${(num / 1000000000000).toFixed(1)}T`;
     if (num >= 1000000000) return `${(num / 1000000000).toFixed(1)}B`;
     if (num >= 1000000) return `${(num / 1000000).toFixed(1)}M`;
@@ -365,11 +372,11 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
   const processAnalyticsData = (data: any): AnalyticsData => {
     if (!data) {
       return {
-        totalVolume: '0',
-        totalTransactions: '0',
-        totalLocks: '0',
-        totalDeposits: '0',
-        totalReleases: '0'
+        totalVolume: "0",
+        totalTransactions: "0",
+        totalLocks: "0",
+        totalDeposits: "0",
+        totalReleases: "0",
       };
     }
 
@@ -381,7 +388,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
 
     if (data.depositAddeds) {
       data.depositAddeds.forEach((deposit: any) => {
-        totalVolume += parseFloat(deposit.amount || '0');
+        totalVolume += parseFloat(deposit.amount || "0");
         totalTransactions++;
         totalDeposits++;
       });
@@ -389,14 +396,14 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
 
     if (data.depositWithdrawns) {
       data.depositWithdrawns.forEach((withdrawal: any) => {
-        totalVolume += parseFloat(withdrawal.amount || '0');
+        totalVolume += parseFloat(withdrawal.amount || "0");
         totalTransactions++;
       });
     }
 
     if (data.lockAddeds) {
       data.lockAddeds.forEach((lock: any) => {
-        totalVolume += parseFloat(lock.amount || '0');
+        totalVolume += parseFloat(lock.amount || "0");
         totalTransactions++;
         totalLocks++;
       });
@@ -404,12 +411,11 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
 
     if (data.lockReleaseds) {
       data.lockReleaseds.forEach((release: any) => {
-        totalVolume += parseFloat(release.amount || '0');
+        totalVolume += parseFloat(release.amount || "0");
         totalTransactions++;
         totalReleases++;
       });
     }
-
 
     if (data.lockReturneds) {
       data.lockReturneds.forEach((returnTx: any) => {
@@ -422,27 +428,28 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
       totalTransactions: totalTransactions.toString(),
       totalLocks: totalLocks.toString(),
       totalDeposits: totalDeposits.toString(),
-      totalReleases: totalReleases.toString()
+      totalReleases: totalReleases.toString(),
     };
-    
+
     return result;
   };
 
   const filteredTransactions = computed(() => {
     let filtered = transactionsData.value;
-    
-    if (selectedType.value !== 'all') {
-      filtered = filtered.filter(tx => tx.type === selectedType.value);
+
+    if (selectedType.value !== "all") {
+      filtered = filtered.filter((tx) => tx.type === selectedType.value);
     }
-    
+
     if (searchAddress.value) {
       const searchLower = searchAddress.value.toLowerCase();
-      filtered = filtered.filter(tx => 
-        tx.seller?.toLowerCase().includes(searchLower) ||
-        tx.buyer?.toLowerCase().includes(searchLower)
+      filtered = filtered.filter(
+        (tx) =>
+          tx.seller?.toLowerCase().includes(searchLower) ||
+          tx.buyer?.toLowerCase().includes(searchLower),
       );
     }
-    
+
     return filtered;
   });
 
@@ -457,6 +464,6 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
     fetchAllActivity,
     fetchUserActivity,
     fetchAnalytics,
-    clearData
+    clearData,
   };
 }

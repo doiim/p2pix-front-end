@@ -12,7 +12,7 @@ const props = withDefaults(
     type: "error",
     centered: true,
     icon: false,
-  }
+  },
 );
 
 const colorClasses = {
@@ -52,4 +52,3 @@ const colorClasses = {
   @apply leading-tight;
 }
 </style>
-

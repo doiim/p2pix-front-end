@@ -13,7 +13,7 @@ const props = withDefaults(
     placement: "right",
     iconSrc: "",
     showOnHover: true,
-  }
+  },
 );
 
 const showTooltip = ref<boolean>(false);
@@ -24,7 +24,12 @@ const floatingArrow = ref(null);
 onMounted(() => {
   useFloating(reference, floating, {
     placement: props.placement,
-    middleware: [offset(10), flip(), shift(), arrow({ element: floatingArrow })],
+    middleware: [
+      offset(10),
+      flip(),
+      shift(),
+      arrow({ element: floatingArrow }),
+    ],
   });
 });
 
@@ -88,4 +93,3 @@ const toggleTooltip = () => {
   }
 }
 </style>
-
