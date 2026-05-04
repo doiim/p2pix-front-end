@@ -1,46 +1,46 @@
-import { fileURLToPath, URL } from "node:url";
-import { execSync } from "node:child_process";
+import { fileURLToPath, URL } from 'node:url';
+import { execSync } from 'node:child_process';
 
-import { defineConfig } from "vite";
-import vue from "@vitejs/plugin-vue";
-import vueJsx from "@vitejs/plugin-vue-jsx";
-import tailwindcss from "@tailwindcss/vite";
-import svgLoader from "vite-svg-loader";
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import vueJsx from '@vitejs/plugin-vue-jsx';
+import tailwindcss from '@tailwindcss/vite';
+import svgLoader from 'vite-svg-loader';
 
 function sh(cmd: string): string {
   try {
-    return execSync(cmd, { stdio: ["ignore", "pipe", "ignore"] })
+    return execSync(cmd, { stdio: ['ignore', 'pipe', 'ignore'] })
       .toString()
       .trim();
   } catch {
-    return "";
+    return '';
   }
 }
 
 function getAppVersion(): string {
-  const tag = sh("git tag --sort=-version:refname").split("\n")[0] || "";
-  const shortSha = sh("git rev-parse --short HEAD");
-  const tagSha = tag ? sh(`git rev-list -n 1 ${tag}`) : "";
-  const headSha = sh("git rev-parse HEAD");
+  const tag = sh('git tag --sort=-version:refname').split('\n')[0] || '';
+  const shortSha = sh('git rev-parse --short HEAD');
+  const tagSha = tag ? sh(`git rev-list -n 1 ${tag}`) : '';
+  const headSha = sh('git rev-parse HEAD');
   if (tag && tagSha === headSha) return tag;
   if (tag && shortSha) return `${tag}+${shortSha}`;
-  return shortSha || "dev";
+  return shortSha || 'dev';
 }
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: "./",
+  base: './',
   build: {
-    target: "esnext",
+    target: 'esnext',
   },
   define: {
     __APP_VERSION__: JSON.stringify(getAppVersion()),
   },
   optimizeDeps: {
     esbuildOptions: {
-      target: "esnext",
+      target: 'esnext',
       define: {
-        global: "globalThis",
+        global: 'globalThis',
       },
       supported: {
         bigint: true,
@@ -50,9 +50,9 @@ export default defineConfig({
   plugins: [vue(), vueJsx(), tailwindcss(), svgLoader()],
   resolve: {
     alias: {
-      "@": fileURLToPath(new URL("./src", import.meta.url)),
-      "viem/errors": fileURLToPath(
-        new URL("./node_modules/viem/errors", import.meta.url),
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+      'viem/errors': fileURLToPath(
+        new URL('./node_modules/viem/errors', import.meta.url),
       ),
     },
   },

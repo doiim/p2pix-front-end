@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch, onMounted } from "vue";
-import { useOnboard } from "@web3-onboard/vue";
-import { Networks } from "@/config/networks";
-import { useUser } from "@/composables/useUser";
+import { ref, computed, watch, onMounted } from 'vue';
+import { useOnboard } from '@web3-onboard/vue';
+import { Networks } from '@/config/networks';
+import { useUser } from '@/composables/useUser';
 
 const { connectedWallet } = useOnboard();
 const user = useUser();
@@ -25,7 +25,7 @@ const switchNetwork = async () => {
     if (connectedWallet.value && connectedWallet.value.provider) {
       const chainId = network.value.id.toString(16);
       await connectedWallet.value.provider.request({
-        method: "wallet_switchEthereumChain",
+        method: 'wallet_switchEthereumChain',
         params: [
           {
             chainId: `0x${chainId}`,
@@ -34,7 +34,7 @@ const switchNetwork = async () => {
       });
     }
   } catch (error) {
-    console.error("Failed to switch network:", error);
+    console.error('Failed to switch network:', error);
   }
 };
 

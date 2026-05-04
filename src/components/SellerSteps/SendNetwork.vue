@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import CustomButton from "@/components/ui/CustomButton.vue";
+import CustomButton from '@/components/ui/CustomButton.vue';
 
 // Emits
-const emit = defineEmits(["sendNetwork"]);
+const emit = defineEmits(['sendNetwork']);
 
 // props and store references
 const props = defineProps({
@@ -80,8 +80,8 @@ p {
   @apply font-medium text-base;
 }
 
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 </style>

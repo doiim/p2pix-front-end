@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import type { WalletTransaction } from "@/model/WalletTransaction";
-import { useUser } from "@/composables/useUser";
-import { ref, watch } from "vue";
-import SpinnerComponent from "../ui/SpinnerComponent.vue";
-import BalanceCard from "./BalanceCard.vue";
-import TransactionCard from "./TransactionCard.vue";
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import type { WalletTransaction } from '@/model/WalletTransaction';
+import { useUser } from '@/composables/useUser';
+import { ref, watch } from 'vue';
+import SpinnerComponent from '../ui/SpinnerComponent.vue';
+import BalanceCard from './BalanceCard.vue';
+import TransactionCard from './TransactionCard.vue';
 
 const user = useUser();
 
@@ -16,14 +16,14 @@ const props = defineProps<{
   activeLockAmount: number;
 }>();
 
-const emit = defineEmits(["depositWithdrawn"]);
+const emit = defineEmits(['depositWithdrawn']);
 
 const { loadingWalletTransactions } = user;
 
 const itemsToShow = ref<WalletTransaction[]>([]);
 
 const callWithdraw = (amount: string) => {
-  emit("depositWithdrawn", amount);
+  emit('depositWithdrawn', amount);
 };
 
 const showInitialItems = (): void => {
@@ -33,7 +33,7 @@ const showInitialItems = (): void => {
 const openEtherscanUrl = (transactionHash: string): void => {
   const networkUrl = user.network.value.blockExplorers?.default.url;
   const url = `https://${networkUrl}/tx/${transactionHash}`;
-  window.open(url, "_blank");
+  window.open(url, '_blank');
 };
 
 const loadMore = (): void => {

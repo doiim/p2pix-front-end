@@ -1,5 +1,5 @@
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import type { Address } from "viem";
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import type { Address } from 'viem';
 
 const verifyNetworkLiquidity = (
   tokenValue: number,

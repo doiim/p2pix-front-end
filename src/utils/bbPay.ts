@@ -23,9 +23,9 @@ export interface Offer {
 
 export const createParticipant = async (participant: Participant) => {
   const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/register`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       chainID: participant.chainID,
@@ -49,13 +49,13 @@ export const createParticipant = async (participant: Participant) => {
 
 export const createSolicitation = async (offer: Offer) => {
   const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/request`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       amount: offer.amount,
-      pixTarget: offer.sellerId.split("-").pop(),
+      pixTarget: offer.sellerId.split('-').pop(),
     }),
   });
   return response.json();

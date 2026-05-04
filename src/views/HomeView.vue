@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import SearchComponent from "@/components/BuyerSteps/BuyerSearchComponent.vue";
-import LoadingComponent from "@/components/ui/LoadingComponent.vue";
-import BuyConfirmedComponent from "@/components/BuyerSteps/BuyConfirmedComponent.vue";
-import { ref, onMounted, watch } from "vue";
-import { useUser } from "@/composables/useUser";
-import QrCodeComponent from "@/components/BuyerSteps/QrCodeComponent.vue";
-import { addLock, releaseLock } from "@/blockchain/buyerMethods";
-import { updateWalletStatus, checkUnreleasedLock } from "@/blockchain/wallet";
-import { getNetworksLiquidity } from "@/blockchain/events";
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import { getUnreleasedLockById } from "@/blockchain/events";
-import CustomAlert from "@/components/ui/CustomAlert.vue";
-import { getSolicitation } from "@/utils/bbPay";
-import type { Address } from "viem";
+import SearchComponent from '@/components/BuyerSteps/BuyerSearchComponent.vue';
+import LoadingComponent from '@/components/ui/LoadingComponent.vue';
+import BuyConfirmedComponent from '@/components/BuyerSteps/BuyConfirmedComponent.vue';
+import { ref, onMounted, watch } from 'vue';
+import { useUser } from '@/composables/useUser';
+import QrCodeComponent from '@/components/BuyerSteps/QrCodeComponent.vue';
+import { addLock, releaseLock } from '@/blockchain/buyerMethods';
+import { updateWalletStatus, checkUnreleasedLock } from '@/blockchain/wallet';
+import { getNetworksLiquidity } from '@/blockchain/events';
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import { getUnreleasedLockById } from '@/blockchain/events';
+import CustomAlert from '@/components/ui/CustomAlert.vue';
+import { getSolicitation } from '@/utils/bbPay';
+import type { Address } from 'viem';
 
 enum Step {
   Search,
@@ -29,7 +29,7 @@ const flowStep = ref<Step>(Step.Search);
 const participantID = ref<string>();
 const sellerAddress = ref<Address>();
 const tokenAmount = ref<number>();
-const lockID = ref<string>("");
+const lockID = ref<string>('');
 const loadingRelease = ref<boolean>(false);
 const showModal = ref<boolean>(false);
 const showBuyAlert = ref<boolean>(false);
@@ -78,7 +78,7 @@ const releaseTransaction = async (params: {
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
-  if (!walletAddress.value) throw new Error("Wallet not connected");
+  if (!walletAddress.value) throw new Error('Wallet not connected');
   const lock = await checkUnreleasedLock(walletAddress.value);
   if (lock) {
     lockID.value = String(lock.lockID);
@@ -114,7 +114,7 @@ if (paramLockID) {
 onMounted(async () => {
   await getNetworksLiquidity();
   if (walletAddress.value && !paramLockID) await checkForUnreleasedLocks();
-  window.history.state.lockID = "";
+  window.history.state.lockID = '';
 });
 </script>
 

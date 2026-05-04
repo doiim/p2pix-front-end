@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { appVersions, getIpfsUrl, getLatestVersion } from "@/utils/versions";
-import type { AppVersion } from "@/model/AppVersion";
+import { ref, onMounted } from 'vue';
+import { appVersions, getIpfsUrl, getLatestVersion } from '@/utils/versions';
+import type { AppVersion } from '@/model/AppVersion';
 
 const versions = ref<AppVersion[]>([]);
 const latestVersion = ref<AppVersion | null>(null);
@@ -17,15 +17,15 @@ onMounted(() => {
 
 const openIpfsVersion = (ipfsHash: string) => {
   const url = getIpfsUrl(ipfsHash);
-  window.open(url, "_blank", "noopener,noreferrer");
+  window.open(url, '_blank', 'noopener,noreferrer');
 };
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
-  return date.toLocaleDateString("pt-BR", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
+  return date.toLocaleDateString('pt-BR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
   });
 };
 </script>

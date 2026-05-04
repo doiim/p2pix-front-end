@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue";
-import CustomButton from "@/components/ui/CustomButton.vue";
-import CustomModal from "@/components/ui/CustomModal.vue";
-import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
-import { createSolicitation, getSolicitation, type Offer } from "@/utils/bbPay";
-import { getParticipantID } from "@/blockchain/events";
-import { getUnreleasedLockById } from "@/blockchain/events";
-import QRCode from "qrcode";
+import { ref, onMounted, onUnmounted } from 'vue';
+import CustomButton from '@/components/ui/CustomButton.vue';
+import CustomModal from '@/components/ui/CustomModal.vue';
+import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
+import { createSolicitation, getSolicitation, type Offer } from '@/utils/bbPay';
+import { getParticipantID } from '@/blockchain/events';
+import { getUnreleasedLockById } from '@/blockchain/events';
+import QRCode from 'qrcode';
 
 // Props
 interface Props {
@@ -15,11 +15,11 @@ interface Props {
 
 const props = defineProps<Props>();
 
-const qrCode = ref<string>("");
-const qrCodeSvg = ref<string>("");
+const qrCode = ref<string>('');
+const qrCodeSvg = ref<string>('');
 const showWarnModal = ref<boolean>(true);
-const pixTimestamp = ref<string>("");
-const releaseSignature = ref<string>("");
+const pixTimestamp = ref<string>('');
+const releaseSignature = ref<string>('');
 const solicitationData = ref<any>(null);
 const pollingInterval = ref<NodeJS.Timeout | null>(null);
 const copyFeedback = ref<boolean>(false);
@@ -29,22 +29,22 @@ const copyFeedbackTimeout = ref<NodeJS.Timeout | null>(null);
 const generateQrCodeSvg = async (text: string) => {
   try {
     const svgString = await QRCode.toString(text, {
-      type: "svg",
+      type: 'svg',
       width: 192, // 48 * 4 for better quality
       margin: 2,
       color: {
-        dark: "#000000",
-        light: "#FFFFFF",
+        dark: '#000000',
+        light: '#FFFFFF',
       },
     });
     qrCodeSvg.value = svgString;
   } catch (error) {
-    console.error("Error generating QR code SVG:", error);
+    console.error('Error generating QR code SVG:', error);
   }
 };
 
 // Emits
-const emit = defineEmits(["pixValidated"]);
+const emit = defineEmits(['pixValidated']);
 
 // Function to check solicitation status
 const checkSolicitationStatus = async () => {
@@ -67,7 +67,7 @@ const checkSolicitationStatus = async () => {
       }
     }
   } catch (error) {
-    console.error("Error checking solicitation status:", error);
+    console.error('Error checking solicitation status:', error);
   }
 };
 
@@ -100,7 +100,7 @@ const copyToClipboard = async () => {
       copyFeedback.value = false;
     }, 2000);
   } catch (error) {
-    console.error("Error copying to clipboard:", error);
+    console.error('Error copying to clipboard:', error);
   }
 };
 
@@ -130,7 +130,7 @@ onMounted(async () => {
     // Start polling for solicitation status
     startPolling();
   } catch (error) {
-    console.error("Error creating solicitation:", error);
+    console.error('Error creating solicitation:', error);
   }
 });
 
@@ -268,13 +268,13 @@ h2 {
   @apply flex flex-col justify-center items-center px-8 py-6 gap-2 rounded-lg shadow-md shadow-gray-600 backdrop-blur-md mt-6 max-w-screen-sm;
 }
 
-input[type="number"] {
+input[type='number'] {
   appearance: textfield;
   -moz-appearance: textfield;
 }
 
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 

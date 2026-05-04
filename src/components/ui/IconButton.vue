@@ -1,7 +1,7 @@
 <script setup lang="ts">
-export type IconButtonVariant = "primary" | "secondary" | "outline" | "ghost";
-export type IconButtonSize = "sm" | "md" | "lg";
-export type IconPosition = "left" | "right";
+export type IconButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type IconButtonSize = 'sm' | 'md' | 'lg';
+export type IconPosition = 'left' | 'right';
 
 const props = withDefaults(
   defineProps<{
@@ -14,9 +14,9 @@ const props = withDefaults(
     fullWidth?: boolean;
   }>(),
   {
-    variant: "outline",
-    size: "md",
-    iconPosition: "left",
+    variant: 'outline',
+    size: 'md',
+    iconPosition: 'left',
     disabled: false,
     fullWidth: false,
   },
@@ -28,7 +28,7 @@ const emit = defineEmits<{
 
 const handleClick = () => {
   if (!props.disabled) {
-    emit("click");
+    emit('click');
   }
 };
 </script>

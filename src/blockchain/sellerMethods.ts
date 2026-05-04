@@ -1,10 +1,10 @@
-import { getContract, getPublicClient, getWalletClient } from "./provider";
-import { parseEther, toHex, ChainContract } from "viem";
-import { mockTokenAbi } from "./abi";
-import { useUser } from "@/composables/useUser";
-import { createParticipant } from "@/utils/bbPay";
-import type { Participant } from "@/utils/bbPay";
-import type { Address } from "viem";
+import { getContract, getPublicClient, getWalletClient } from './provider';
+import { parseEther, toHex, ChainContract } from 'viem';
+import { mockTokenAbi } from './abi';
+import { useUser } from '@/composables/useUser';
+import { createParticipant } from '@/utils/bbPay';
+import type { Participant } from '@/utils/bbPay';
+import type { Address } from 'viem';
 
 const getP2PixAddress = (): Address => {
   const user = useUser();
@@ -17,7 +17,7 @@ const approveTokens = async (participant: Participant): Promise<any> => {
   const walletClient = getWalletClient();
 
   if (!publicClient || !walletClient) {
-    throw new Error("Clients not initialized");
+    throw new Error('Clients not initialized');
   }
 
   user.setSeller(participant);
@@ -31,7 +31,7 @@ const approveTokens = async (participant: Participant): Promise<any> => {
   const allowance = await publicClient.readContract({
     address: tokenAddress,
     abi: mockTokenAbi,
-    functionName: "allowance",
+    functionName: 'allowance',
     args: [account, getP2PixAddress()],
   });
 
@@ -41,7 +41,7 @@ const approveTokens = async (participant: Participant): Promise<any> => {
     const hash = await walletClient.writeContract({
       address: tokenAddress,
       abi: mockTokenAbi,
-      functionName: "approve",
+      functionName: 'approve',
       args: [getP2PixAddress(), parseEther(participant.offer.toString())],
       account,
       chain,
@@ -59,7 +59,7 @@ const addDeposit = async (): Promise<any> => {
   const user = useUser();
 
   if (!walletClient) {
-    throw new Error("Wallet client not initialized");
+    throw new Error('Wallet client not initialized');
   }
 
   const [account] = await walletClient.getAddresses();
@@ -67,16 +67,16 @@ const addDeposit = async (): Promise<any> => {
   const sellerId = await createParticipant(user.seller.value);
   user.setSellerId(sellerId.id);
   if (!sellerId.id) {
-    throw new Error("Failed to create participant");
+    throw new Error('Failed to create participant');
   }
   const chain = user.network.value;
   const hash = await walletClient.writeContract({
     address,
     abi,
-    functionName: "deposit",
+    functionName: 'deposit',
     args: [
-      user.network.value.id + "-" + sellerId.id,
-      toHex("", { size: 32 }),
+      user.network.value.id + '-' + sellerId.id,
+      toHex('', { size: 32 }),
       user.network.value.tokens[user.selectedToken.value].address,
       parseEther(user.seller.value.offer.toString()),
       true,

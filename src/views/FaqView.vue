@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { Faq } from "@/model/Faq";
-import { ref } from "vue";
-import { marked } from "marked";
-import faqContent from "@/utils/files/faqContent.json";
+import type { Faq } from '@/model/Faq';
+import { ref } from 'vue';
+import { marked } from 'marked';
+import faqContent from '@/utils/files/faqContent.json';
 
 const faq = ref<Faq>(faqContent);
 

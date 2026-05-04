@@ -1,5 +1,5 @@
-import { p2PixAbi } from "./abi";
-import { updateWalletStatus } from "./wallet";
+import { p2PixAbi } from './abi';
+import { updateWalletStatus } from './wallet';
 import {
   createPublicClient,
   createWalletClient,
@@ -7,10 +7,10 @@ import {
   http,
   PublicClient,
   WalletClient,
-} from "viem";
-import { useUser } from "@/composables/useUser";
-import type { NetworkConfig } from "@/model/NetworkEnum";
-import type { ChainContract } from "viem";
+} from 'viem';
+import { useUser } from '@/composables/useUser';
+import type { NetworkConfig } from '@/model/NetworkEnum';
+import type { ChainContract } from 'viem';
 
 let walletClient: WalletClient | null = null;
 
@@ -38,7 +38,7 @@ const getContract = async (onlyRpcProvider = false) => {
   const wallet = onlyRpcProvider ? null : getWalletClient();
 
   if (!client) {
-    throw new Error("Public client not initialized");
+    throw new Error('Public client not initialized');
   }
 
   const [account] = wallet ? await wallet.getAddresses() : [null];
@@ -50,7 +50,7 @@ const connectProvider = async (p: any): Promise<void> => {
   const user = useUser();
   const chain = user.network.value;
 
-  const [account] = await p!.request({ method: "eth_requestAccounts" });
+  const [account] = await p!.request({ method: 'eth_requestAccounts' });
 
   walletClient = createWalletClient({
     account,

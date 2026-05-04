@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref } from 'vue';
 
 const props = defineProps({
   isRedirectModal: Boolean,
 });
 
-const modalColor = ref<string>("white");
-const modalHeight = ref<string>("250px");
-const pFontSize = ref<string>("16px");
+const modalColor = ref<string>('white');
+const modalHeight = ref<string>('250px');
+const pFontSize = ref<string>('16px');
 
 if (props.isRedirectModal) {
-  modalColor.value = "rgba(251, 191, 36, 1)";
-  modalHeight.value = "150px";
-  pFontSize.value = "20px";
+  modalColor.value = 'rgba(251, 191, 36, 1)';
+  modalHeight.value = '150px';
+  pFontSize.value = '20px';
 }
 </script>
 

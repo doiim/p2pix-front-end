@@ -12,7 +12,7 @@ const props = defineProps({
       <span
         class="text font-bold sm:text-3xl text-2xl sm:max-w-[29rem] max-w-[20rem]"
       >
-        {{ props.title ? props.title : "Confirme em sua carteira" }}
+        {{ props.title ? props.title : 'Confirme em sua carteira' }}
       </span>
     </div>
     <div class="main-container max-w-md">
@@ -61,12 +61,12 @@ const props = defineProps({
   @apply text-white text-center;
 }
 
-input[type="number"] {
+input[type='number'] {
   -moz-appearance: textfield;
 }
 
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 </style>

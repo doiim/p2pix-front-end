@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { useRoute } from "vue-router";
-import TopBar from "@/components/TopBar/TopBar.vue";
-import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
-import ToasterComponent from "@/components/ui/ToasterComponent.vue";
-import VersionFooter from "@/components/ui/VersionFooter.vue";
-import { init, useOnboard } from "@web3-onboard/vue";
-import injectedModule from "@web3-onboard/injected-wallets";
-import { Networks, DEFAULT_NETWORK } from "@/config/networks";
-import { ref } from "vue";
+import { useRoute } from 'vue-router';
+import TopBar from '@/components/TopBar/TopBar.vue';
+import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
+import ToasterComponent from '@/components/ui/ToasterComponent.vue';
+import VersionFooter from '@/components/ui/VersionFooter.vue';
+import { init, useOnboard } from '@web3-onboard/vue';
+import injectedModule from '@web3-onboard/injected-wallets';
+import { Networks, DEFAULT_NETWORK } from '@/config/networks';
+import { ref } from 'vue';
 
 const route = useRoute();
 const injected = injectedModule();

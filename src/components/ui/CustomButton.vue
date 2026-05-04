@@ -1,6 +1,6 @@
 <script setup lang="ts">
-export type ButtonVariant = "primary" | "secondary" | "outline" | "ghost";
-export type ButtonSize = "sm" | "md" | "lg" | "xl";
+export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 const props = withDefaults(
   defineProps<{
@@ -9,25 +9,25 @@ const props = withDefaults(
     variant?: ButtonVariant;
     size?: ButtonSize;
     icon?: string;
-    iconPosition?: "left" | "right";
+    iconPosition?: 'left' | 'right';
     fullWidth?: boolean;
     loading?: boolean;
   }>(),
   {
     isDisabled: false,
-    variant: "primary",
-    size: "xl",
-    iconPosition: "left",
+    variant: 'primary',
+    size: 'xl',
+    iconPosition: 'left',
     fullWidth: true,
     loading: false,
   },
 );
 
-const emit = defineEmits(["buttonClicked"]);
+const emit = defineEmits(['buttonClicked']);
 
 const handleClick = () => {
   if (!props.isDisabled && !props.loading) {
-    emit("buttonClicked");
+    emit('buttonClicked');
   }
 };
 </script>

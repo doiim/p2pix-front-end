@@ -1,23 +1,23 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { TokenEnum } from "@/model/NetworkEnum";
-import { getTokenImage } from "@/utils/imagesPath";
-import Dropdown, { type DropdownItem } from "./Dropdown.vue";
+import { computed } from 'vue';
+import { TokenEnum } from '@/model/NetworkEnum';
+import { getTokenImage } from '@/utils/imagesPath';
+import Dropdown, { type DropdownItem } from './Dropdown.vue';
 
 const props = withDefaults(
   defineProps<{
     modelValue: TokenEnum;
     disabled?: boolean;
-    size?: "sm" | "md" | "lg";
+    size?: 'sm' | 'md' | 'lg';
   }>(),
   {
     disabled: false,
-    size: "md",
+    size: 'md',
   },
 );
 
 const emit = defineEmits<{
-  "update:modelValue": [value: TokenEnum];
+  'update:modelValue': [value: TokenEnum];
   change: [value: TokenEnum];
 }>();
 
@@ -30,8 +30,8 @@ const tokenItems = computed((): DropdownItem<TokenEnum>[] => {
 });
 
 const handleChange = (value: TokenEnum) => {
-  emit("update:modelValue", value);
-  emit("change", value);
+  emit('update:modelValue', value);
+  emit('change', value);
 };
 </script>
 

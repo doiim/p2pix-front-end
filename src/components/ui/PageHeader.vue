@@ -1,5 +1,5 @@
 <script setup lang="ts">
-export type HeaderSize = "sm" | "md" | "lg";
+export type HeaderSize = 'sm' | 'md' | 'lg';
 
 const props = withDefaults(
   defineProps<{
@@ -9,7 +9,7 @@ const props = withDefaults(
     centered?: boolean;
   }>(),
   {
-    size: "lg",
+    size: 'lg',
     centered: true,
   },
 );

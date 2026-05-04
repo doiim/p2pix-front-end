@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from "vue";
+import { computed } from 'vue';
 
-export type StatusType = "open" | "expired" | "completed" | "pending";
+export type StatusType = 'open' | 'expired' | 'completed' | 'pending';
 
 const props = defineProps<{
   status: StatusType;
@@ -11,20 +11,20 @@ const props = defineProps<{
 const statusConfig = computed(() => {
   const configs: Record<StatusType, { text: string; color: string }> = {
     open: {
-      text: "Em Aberto",
-      color: "bg-amber-300",
+      text: 'Em Aberto',
+      color: 'bg-amber-300',
     },
     expired: {
-      text: "Expirado",
-      color: "bg-[#94A3B8]",
+      text: 'Expirado',
+      color: 'bg-[#94A3B8]',
     },
     completed: {
-      text: "Finalizado",
-      color: "bg-emerald-300",
+      text: 'Finalizado',
+      color: 'bg-emerald-300',
     },
     pending: {
-      text: "Pendente",
-      color: "bg-gray-300",
+      text: 'Pendente',
+      color: 'bg-gray-300',
     },
   };
 

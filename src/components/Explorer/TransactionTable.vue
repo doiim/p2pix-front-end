@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref } from 'vue';
 
 interface Transaction {
   id: string;
-  type: "deposit" | "lock" | "release" | "return";
+  type: 'deposit' | 'lock' | 'release' | 'return';
   timestamp: string;
   seller?: string;
   buyer?: string | null;
@@ -25,27 +25,27 @@ const copyFeedbackTimeout = ref<{ [key: string]: NodeJS.Timeout | null }>({});
 
 const getTransactionTypeInfo = (type: string) => {
   const typeMap = {
-    deposit: { label: "Depósito", status: "completed" as const },
-    lock: { label: "Bloqueio", status: "open" as const },
-    release: { label: "Liberação", status: "completed" as const },
-    return: { label: "Retorno", status: "expired" as const },
+    deposit: { label: 'Depósito', status: 'completed' as const },
+    lock: { label: 'Bloqueio', status: 'open' as const },
+    release: { label: 'Liberação', status: 'completed' as const },
+    return: { label: 'Retorno', status: 'expired' as const },
   };
   return (
     typeMap[type as keyof typeof typeMap] || {
       label: type,
-      status: "pending" as const,
+      status: 'pending' as const,
     }
   );
 };
 
 const getTransactionTypeColor = (type: string) => {
   const colorMap = {
-    deposit: "text-emerald-600",
-    lock: "text-amber-600",
-    release: "text-emerald-600",
-    return: "text-gray-600",
+    deposit: 'text-emerald-600',
+    lock: 'text-amber-600',
+    release: 'text-emerald-600',
+    return: 'text-gray-600',
   };
-  return colorMap[type as keyof typeof colorMap] || "text-gray-600";
+  return colorMap[type as keyof typeof colorMap] || 'text-gray-600';
 };
 
 const formatAddress = (address: string) => {
@@ -79,7 +79,7 @@ const copyToClipboard = async (address: string, key: string) => {
       copyFeedback.value[key] = false;
     }, 2000);
   } catch (error) {
-    console.error("Error copying to clipboard:", error);
+    console.error('Error copying to clipboard:', error);
   }
 };
 </script>

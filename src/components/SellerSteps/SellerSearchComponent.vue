@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref } from "vue";
-import { useUser } from "@/composables/useUser";
-import CustomButton from "@/components/ui/CustomButton.vue";
-import { debounce } from "@/utils/debounce";
-import { decimalCount } from "@/utils/decimalCount";
-import { getTokenImage } from "@/utils/imagesPath";
-import { useOnboard } from "@web3-onboard/vue";
+import { ref } from 'vue';
+import { useUser } from '@/composables/useUser';
+import CustomButton from '@/components/ui/CustomButton.vue';
+import { debounce } from '@/utils/debounce';
+import { decimalCount } from '@/utils/decimalCount';
+import { getTokenImage } from '@/utils/imagesPath';
+import { useOnboard } from '@web3-onboard/vue';
 
 // Store
 const user = useUser();
@@ -18,7 +18,7 @@ const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
 
 // Emits
-const emit = defineEmits(["tokenBuy"]);
+const emit = defineEmits(['tokenBuy']);
 
 // Blockchain methods
 const connectAccount = async (): Promise<void> => {
@@ -152,8 +152,8 @@ const handleInputEvent = (event: any): void => {
   @apply text-white text-center;
 }
 
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 </style>

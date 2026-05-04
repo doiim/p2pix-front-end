@@ -3,13 +3,13 @@ interface Props {
   title: string;
   value: string;
   change?: string;
-  changeType?: "positive" | "negative" | "neutral";
+  changeType?: 'positive' | 'negative' | 'neutral';
   icon?: string;
   loading?: boolean;
 }
 
 const props = withDefaults(defineProps<Props>(), {
-  changeType: "neutral",
+  changeType: 'neutral',
   loading: false,
 });
 </script>

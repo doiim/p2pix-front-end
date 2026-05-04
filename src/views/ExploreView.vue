@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { onMounted, watch } from "vue";
-import { useUser } from "@/composables/useUser";
-import { useGraphQL } from "@/composables/useGraphQL";
-import FormCard from "@/components/ui/FormCard.vue";
-import LoadingComponent from "@/components/ui/LoadingComponent.vue";
-import AnalyticsCard from "@/components/Explorer/AnalyticsCard.vue";
-import TransactionTable from "@/components/Explorer/TransactionTable.vue";
+import { onMounted, watch } from 'vue';
+import { useUser } from '@/composables/useUser';
+import { useGraphQL } from '@/composables/useGraphQL';
+import FormCard from '@/components/ui/FormCard.vue';
+import LoadingComponent from '@/components/ui/LoadingComponent.vue';
+import AnalyticsCard from '@/components/Explorer/AnalyticsCard.vue';
+import TransactionTable from '@/components/Explorer/TransactionTable.vue';
 
 const user = useUser();
 const { network } = user;
@@ -25,11 +25,11 @@ const {
 } = useGraphQL(network);
 
 const transactionTypes = [
-  { key: "all", label: "Todas" },
-  { key: "deposit", label: "Depósitos" },
-  { key: "lock", label: "Bloqueios" },
-  { key: "release", label: "Liberações" },
-  { key: "return", label: "Retornos" },
+  { key: 'all', label: 'Todas' },
+  { key: 'deposit', label: 'Depósitos' },
+  { key: 'lock', label: 'Bloqueios' },
+  { key: 'release', label: 'Liberações' },
+  { key: 'return', label: 'Retornos' },
 ];
 
 const handleTypeFilter = (type: string) => {

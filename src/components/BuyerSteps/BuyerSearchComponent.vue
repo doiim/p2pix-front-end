@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
-import { useUser } from "@/composables/useUser";
-import SpinnerComponent from "@/components/ui/SpinnerComponent.vue";
-import CustomButton from "@/components/ui/CustomButton.vue";
-import { debounce } from "@/utils/debounce";
-import { verifyNetworkLiquidity } from "@/utils/networkLiquidity";
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import { decimalCount } from "@/utils/decimalCount";
-import { getTokenImage, getNetworkImage } from "@/utils/imagesPath";
-import { onClickOutside } from "@vueuse/core";
-import { Networks } from "@/config/networks";
-import { TokenEnum } from "@/model/NetworkEnum";
-import { getContract } from "@/blockchain/provider";
-import { reputationAbi } from "@/blockchain/abi";
-import { type Address } from "viem";
+import { ref, watch, computed } from 'vue';
+import { useUser } from '@/composables/useUser';
+import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
+import CustomButton from '@/components/ui/CustomButton.vue';
+import { debounce } from '@/utils/debounce';
+import { verifyNetworkLiquidity } from '@/utils/networkLiquidity';
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import { decimalCount } from '@/utils/decimalCount';
+import { getTokenImage, getNetworkImage } from '@/utils/imagesPath';
+import { onClickOutside } from '@vueuse/core';
+import { Networks } from '@/config/networks';
+import { TokenEnum } from '@/model/NetworkEnum';
+import { getContract } from '@/blockchain/provider';
+import { reputationAbi } from '@/blockchain/abi';
+import { type Address } from 'viem';
 
 // Store reference
 const user = useUser();
@@ -35,17 +35,17 @@ const tokenValue = ref<number>(0);
 const enableConfirmButton = ref<boolean>(false);
 const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
-const identification = ref<string>("");
+const identification = ref<string>('');
 const selectedDeposits = ref<ValidDeposit[]>();
 const reputationLimit = ref<number | null>(null);
 const exceedsReputationLimit = ref<boolean>(false);
 
-import ChevronDown from "@/assets/chevronDown.svg";
-import { useOnboard } from "@web3-onboard/vue";
-import { getParticipantID } from "@/blockchain/events";
+import ChevronDown from '@/assets/chevronDown.svg';
+import { useOnboard } from '@web3-onboard/vue';
+import { getParticipantID } from '@/blockchain/events';
 
 // Emits
-const emit = defineEmits(["tokenBuy"]);
+const emit = defineEmits(['tokenBuy']);
 
 const castAddrToKey = (address: Address): bigint => {
   return BigInt(address) << BigInt(12);
@@ -59,13 +59,13 @@ const getUserCredit = async (userAddress: Address): Promise<bigint> => {
     const userCredit = await client.readContract({
       address,
       abi,
-      functionName: "userRecord",
+      functionName: 'userRecord',
       args: [userKey],
     });
 
     return userCredit as bigint;
   } catch (error) {
-    console.error("Error fetching user credit:", error);
+    console.error('Error fetching user credit:', error);
     return BigInt(0);
   }
 };
@@ -77,12 +77,12 @@ const getReputationAddress = async (): Promise<Address | null> => {
     const reputationAddr = await client.readContract({
       address,
       abi,
-      functionName: "reputation",
+      functionName: 'reputation',
     });
 
     return reputationAddr as Address;
   } catch (error) {
-    console.error("Error fetching reputation address:", error);
+    console.error('Error fetching reputation address:', error);
     return null;
   }
 };
@@ -97,13 +97,13 @@ const getSpendLimit = async (userCredit: bigint): Promise<bigint> => {
     const spendLimit = await client.readContract({
       address: reputationAddr,
       abi: reputationAbi,
-      functionName: "limiter",
+      functionName: 'limiter',
       args: [userCredit],
     });
 
     return spendLimit as bigint;
   } catch (error) {
-    console.error("Error fetching spend limit:", error);
+    console.error('Error fetching spend limit:', error);
     return BigInt(0);
   }
 };
@@ -130,7 +130,7 @@ const checkReputationLimit = async (inputValue: number): Promise<void> => {
     exceedsReputationLimit.value = spendLimitNumber < inputValue;
     enableConfirmButton.value = !exceedsReputationLimit.value;
   } catch (error) {
-    console.error("Error checking reputation limit:", error);
+    console.error('Error checking reputation limit:', error);
     reputationLimit.value = null;
     exceedsReputationLimit.value = false;
   }
@@ -148,7 +148,7 @@ const emitConfirmButton = async (): Promise<void> => {
   );
   if (!deposit) return;
   deposit.participantID = await getParticipantID(deposit.seller, deposit.token);
-  emit("tokenBuy", deposit, tokenValue.value);
+  emit('tokenBuy', deposit, tokenValue.value);
 };
 
 // Debounce methods
@@ -440,12 +440,12 @@ const handleSubmit = async (e: Event): Promise<void> => {
   @apply text-white text-center;
 }
 
-input[type="number"] {
+input[type='number'] {
   -moz-appearance: textfield;
 }
 
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 

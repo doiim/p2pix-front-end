@@ -11,6 +11,6 @@ export const pixFormatValidation = (pixKey: string): boolean => {
 };
 
 export const postProcessKey = (pixKey: string): string => {
-  pixKey = pixKey.replace(/[-.()/]/g, "");
+  pixKey = pixKey.replace(/[-.()/]/g, '');
   return pixKey;
 };

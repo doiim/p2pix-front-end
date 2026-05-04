@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { getNetworkImage } from "@/utils/imagesPath";
-import type { NetworkConfig } from "@/model/NetworkEnum";
+import { computed } from 'vue';
+import { getNetworkImage } from '@/utils/imagesPath';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 
 const props = withDefaults(
   defineProps<{
     networks: NetworkConfig[];
-    size?: "sm" | "md" | "lg";
+    size?: 'sm' | 'md' | 'lg';
     showLabel?: boolean;
   }>(),
   {
-    size: "md",
+    size: 'md',
     showLabel: false,
   },
 );

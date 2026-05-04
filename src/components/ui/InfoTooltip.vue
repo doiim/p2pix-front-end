@@ -1,17 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue";
-import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";
+import { ref, onMounted } from 'vue';
+import { useFloating, arrow, offset, flip, shift } from '@floating-ui/vue';
 
 const props = withDefaults(
   defineProps<{
     text: string;
-    placement?: "top" | "bottom" | "left" | "right";
+    placement?: 'top' | 'bottom' | 'left' | 'right';
     iconSrc?: string;
     showOnHover?: boolean;
   }>(),
   {
-    placement: "right",
-    iconSrc: "",
+    placement: 'right',
+    iconSrc: '',
     showOnHover: true,
   },
 );

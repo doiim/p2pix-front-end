@@ -1,5 +1,6 @@
 <script setup lang="ts">
-const version = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
+const version =
+  typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
 </script>
 
 <template>

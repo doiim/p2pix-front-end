@@ -1,5 +1,5 @@
 <script setup lang="ts">
-export type FormCardPadding = "sm" | "md" | "lg";
+export type FormCardPadding = 'sm' | 'md' | 'lg';
 
 const props = withDefaults(
   defineProps<{
@@ -8,7 +8,7 @@ const props = withDefaults(
     noBorder?: boolean;
   }>(),
   {
-    padding: "md",
+    padding: 'md',
     fullWidth: true,
     noBorder: false,
   },

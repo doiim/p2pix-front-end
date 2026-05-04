@@ -1,14 +1,14 @@
-import { formatEther, type Address } from "viem";
-import { useUser } from "@/composables/useUser";
+import { formatEther, type Address } from 'viem';
+import { useUser } from '@/composables/useUser';
 
-import { getPublicClient, getWalletClient, getContract } from "./provider";
+import { getPublicClient, getWalletClient, getContract } from './provider';
 
-import { getValidDeposits, getUnreleasedLockById } from "./events";
+import { getValidDeposits, getUnreleasedLockById } from './events';
 
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import type { WalletTransaction } from "@/model/WalletTransaction";
-import type { UnreleasedLock } from "@/model/UnreleasedLock";
-import { LockStatus } from "@/model/LockStatus";
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import type { WalletTransaction } from '@/model/WalletTransaction';
+import type { UnreleasedLock } from '@/model/UnreleasedLock';
+import { LockStatus } from '@/model/LockStatus';
 
 export const updateWalletStatus = async (): Promise<void> => {
   const user = useUser();
@@ -17,7 +17,7 @@ export const updateWalletStatus = async (): Promise<void> => {
   const walletClient = getWalletClient();
 
   if (!publicClient || !walletClient) {
-    console.error("Client not initialized");
+    console.error('Client not initialized');
     return;
   }
 
@@ -53,7 +53,7 @@ const getLockStatus = async (id: bigint): Promise<LockStatus> => {
   const [sortedIDs, status] = await client.readContract({
     address,
     abi,
-    functionName: "getLocksStatus",
+    functionName: 'getLocksStatus',
     args: [[id]],
   });
   return status[0];
@@ -109,9 +109,9 @@ export const listAllTransactionByWalletAddress = async (
   };
 
   const response = await fetch(network.subgraphUrls[0], {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(subgraphQuery),
   });
@@ -129,8 +129,8 @@ export const listAllTransactionByWalletAddress = async (
         blockTimestamp: parseInt(deposit.blockTimestamp),
         amount: parseFloat(formatEther(BigInt(deposit.amount))),
         seller: deposit.seller,
-        buyer: "",
-        event: "DepositAdded",
+        buyer: '',
+        event: 'DepositAdded',
         lockStatus: undefined,
         transactionHash: deposit.transactionHash,
       });
@@ -150,7 +150,7 @@ export const listAllTransactionByWalletAddress = async (
         amount: parseFloat(formatEther(BigInt(lock.amount))),
         seller: lock.seller,
         buyer: lock.buyer,
-        event: "LockAdded",
+        event: 'LockAdded',
         lockStatus: lockStatus,
         transactionHash: lock.transactionHash,
         transactionID: lock.lockID.toString(),
@@ -166,9 +166,9 @@ export const listAllTransactionByWalletAddress = async (
         blockNumber: parseInt(release.blockNumber),
         blockTimestamp: parseInt(release.blockTimestamp),
         amount: -1, // Amount not available in this event
-        seller: "",
+        seller: '',
         buyer: release.buyer,
-        event: "LockReleased",
+        event: 'LockReleased',
         lockStatus: undefined,
         transactionHash: release.transactionHash,
         transactionID: release.lockId.toString(),
@@ -185,8 +185,8 @@ export const listAllTransactionByWalletAddress = async (
         blockTimestamp: parseInt(withdrawal.blockTimestamp),
         amount: parseFloat(formatEther(BigInt(withdrawal.amount))),
         seller: withdrawal.seller,
-        buyer: "",
-        event: "DepositWithdrawn",
+        buyer: '',
+        event: 'DepositWithdrawn',
         lockStatus: undefined,
         transactionHash: withdrawal.transactionHash,
       });
@@ -222,9 +222,9 @@ export const listReleaseTransactionByWalletAddress = async (
 
   // Fetch data from subgraph
   const response = await fetch(network.subgraphUrls[0], {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(subgraphQuery),
   });
@@ -245,7 +245,7 @@ export const listReleaseTransactionByWalletAddress = async (
       try {
         // Create a structure similar to the decoded event log
         return {
-          eventName: "LockReleased",
+          eventName: 'LockReleased',
           args: {
             buyer: release.buyer,
             lockID: BigInt(release.lockId),
@@ -256,7 +256,7 @@ export const listReleaseTransactionByWalletAddress = async (
           transactionHash: release.transactionHash,
         };
       } catch (error) {
-        console.error("Error processing subgraph data", error);
+        console.error('Error processing subgraph data', error);
         return null;
       }
     })
@@ -287,9 +287,9 @@ const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
   try {
     // Fetch data from subgraph
     const response = await fetch(network.subgraphUrls[0], {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(subgraphQuery),
     });
@@ -309,7 +309,7 @@ const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
         try {
           // Create a structure similar to the decoded event log
           return {
-            eventName: "LockAdded",
+            eventName: 'LockAdded',
             args: {
               buyer: lock.buyer,
               lockID: BigInt(lock.lockID),
@@ -322,13 +322,13 @@ const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
             transactionHash: lock.transactionHash,
           };
         } catch (error) {
-          console.error("Error processing subgraph data", error);
+          console.error('Error processing subgraph data', error);
           return null;
         }
       })
       .filter((decoded: any) => decoded !== null);
   } catch (error) {
-    console.error("Error fetching from subgraph:", error);
+    console.error('Error fetching from subgraph:', error);
   }
 };
 
@@ -356,9 +356,9 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
   try {
     // Fetch data from subgraph
     const response = await fetch(network.subgraphUrls[0], {
-      method: "POST",
+      method: 'POST',
       headers: {
-        "Content-Type": "application/json",
+        'Content-Type': 'application/json',
       },
       body: JSON.stringify(subgraphQuery),
     });
@@ -378,7 +378,7 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
         try {
           // Create a structure similar to the decoded event log
           return {
-            eventName: "LockAdded",
+            eventName: 'LockAdded',
             args: {
               buyer: lock.buyer,
               lockID: BigInt(lock.lockID),
@@ -391,13 +391,13 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
             transactionHash: lock.transactionHash,
           };
         } catch (error) {
-          console.error("Error processing subgraph data", error);
+          console.error('Error processing subgraph data', error);
           return null;
         }
       })
       .filter((decoded: any) => decoded !== null);
   } catch (error) {
-    console.error("Error fetching from subgraph:", error);
+    console.error('Error fetching from subgraph:', error);
     return [];
   }
 };
@@ -415,7 +415,7 @@ export const checkUnreleasedLock = async (
   const [sortedIDs, status] = await client.readContract({
     address,
     abi,
-    functionName: "getLocksStatus",
+    functionName: 'getLocksStatus',
     args: [lockIds],
   });
 
@@ -440,7 +440,7 @@ export const getActiveLockAmount = async (
   const [sortedIDs, status] = await client.readContract({
     address,
     abi,
-    functionName: "getLocksStatus",
+    functionName: 'getLocksStatus',
     args: [lockIds],
   });
 
@@ -448,7 +448,7 @@ export const getActiveLockAmount = async (
     client.readContract({
       address: address,
       abi,
-      functionName: "mapLocks",
+      functionName: 'mapLocks',
       args: [BigInt(id)],
     }),
   );

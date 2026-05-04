@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import type { WalletTransaction } from "@/model/WalletTransaction";
-import { TokenEnum } from "@/model/NetworkEnum";
-import { computed } from "vue";
-import StatusBadge, { type StatusType } from "../ui/StatusBadge.vue";
-import { Networks } from "@/config/networks";
+import type { WalletTransaction } from '@/model/WalletTransaction';
+import { TokenEnum } from '@/model/NetworkEnum';
+import { computed } from 'vue';
+import StatusBadge, { type StatusType } from '../ui/StatusBadge.vue';
+import { Networks } from '@/config/networks';
 
 const props = defineProps<{
   transaction: WalletTransaction;
@@ -16,16 +16,16 @@ const emit = defineEmits<{
 }>();
 
 const eventName = computed(() => {
-  if (!props.transaction.event) return "Desconhecido";
+  if (!props.transaction.event) return 'Desconhecido';
 
   const possibleEventName: { [key: string]: string } = {
-    DepositAdded: "Oferta",
-    LockAdded: "Reserva",
-    LockReleased: "Compra",
-    DepositWithdrawn: "Retirada",
+    DepositAdded: 'Oferta',
+    LockAdded: 'Reserva',
+    LockReleased: 'Compra',
+    DepositWithdrawn: 'Retirada',
   };
 
-  return possibleEventName[props.transaction.event] || "Desconhecido";
+  return possibleEventName[props.transaction.event] || 'Desconhecido';
 });
 
 const explorerName = computed(() => {
@@ -34,46 +34,46 @@ const explorerName = computed(() => {
 });
 
 const statusType = computed((): StatusType => {
-  if (eventName.value === "Reserva") {
+  if (eventName.value === 'Reserva') {
     switch (props.transaction.lockStatus) {
       case 1:
-        return "open";
+        return 'open';
       case 2:
-        return "expired";
+        return 'expired';
       case 3:
-        return "completed";
+        return 'completed';
       default:
-        return "completed";
+        return 'completed';
     }
   }
-  return "completed";
+  return 'completed';
 });
 
 const showExplorerLink = computed(() => {
-  return eventName.value !== "Reserva" || props.transaction.lockStatus !== 1;
+  return eventName.value !== 'Reserva' || props.transaction.lockStatus !== 1;
 });
 
 const showContinueButton = computed(() => {
-  return eventName.value === "Reserva" && props.transaction.lockStatus === 1;
+  return eventName.value === 'Reserva' && props.transaction.lockStatus === 1;
 });
 
 const formattedDate = computed(() => {
-  if (!props.transaction.blockTimestamp) return "";
+  if (!props.transaction.blockTimestamp) return '';
 
   const timestamp = props.transaction.blockTimestamp;
   const date = new Date(timestamp * 1000);
 
-  const day = String(date.getDate()).padStart(2, "0");
-  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, '0');
   const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, "0");
-  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
 
   return `${day}/${month}/${year} ${hours}:${minutes}`;
 });
 
 const handleExplorerClick = () => {
-  emit("openExplorer", props.transaction.transactionHash);
+  emit('openExplorer', props.transaction.transactionHash);
 };
 </script>
 

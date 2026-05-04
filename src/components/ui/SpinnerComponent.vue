@@ -10,10 +10,10 @@ const getCustomClass = () => {
   return [
     `w-${props.width}`,
     `h-${props.height}`,
-    `fill-white`,
-    "text-gray-200",
-    "animate-spin",
-    "dark:text-gray-600",
+    'fill-white',
+    'text-gray-200',
+    'animate-spin',
+    'dark:text-gray-600',
   ];
 };
 </script>

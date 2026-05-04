@@ -1,18 +1,18 @@
 <script setup lang="ts">
-import { ref, watch } from "vue";
-import { useUser } from "@/composables/useUser";
-import { onClickOutside } from "@vueuse/core";
-import { getNetworkImage } from "@/utils/imagesPath";
-import { Networks } from "@/config/networks";
-import { useOnboard } from "@web3-onboard/vue";
+import { ref, watch } from 'vue';
+import { useUser } from '@/composables/useUser';
+import { onClickOutside } from '@vueuse/core';
+import { getNetworkImage } from '@/utils/imagesPath';
+import { Networks } from '@/config/networks';
+import { useOnboard } from '@web3-onboard/vue';
 
-import ChevronDown from "@/assets/chevronDown.svg";
-import TwitterIcon from "@/assets/twitterIcon.svg";
-import LinkedinIcon from "@/assets/linkedinIcon.svg";
-import GithubIcon from "@/assets/githubIcon.svg";
-import { connectProvider } from "@/blockchain/provider";
-import { DEFAULT_NETWORK } from "@/config/networks";
-import type { NetworkConfig } from "@/model/NetworkEnum";
+import ChevronDown from '@/assets/chevronDown.svg';
+import TwitterIcon from '@/assets/twitterIcon.svg';
+import LinkedinIcon from '@/assets/linkedinIcon.svg';
+import GithubIcon from '@/assets/githubIcon.svg';
+import { connectProvider } from '@/blockchain/provider';
+import { DEFAULT_NETWORK } from '@/config/networks';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 
 interface MenuOption {
   label: string;
@@ -47,7 +47,7 @@ const connnectWallet = async (): Promise<void> => {
 
 watch(connectedWallet, async (newVal: any) => {
   connectProvider(newVal.provider);
-  const addresses = await newVal.provider.request({ method: "eth_accounts" });
+  const addresses = await newVal.provider.request({ method: 'eth_accounts' });
   user.setWalletAddress(addresses.shift());
 });
 
@@ -58,7 +58,7 @@ watch(connectedChain, (newVal: any) => {
     !Object.values(Networks).some((network) => network.id === Number(newVal.id))
   ) {
     console.log(
-      "Invalid or unsupported network detected, defaulting to Sepolia",
+      'Invalid or unsupported network detected, defaulting to Sepolia',
     );
     user.setNetwork(DEFAULT_NETWORK);
     return;
@@ -67,7 +67,7 @@ watch(connectedChain, (newVal: any) => {
 });
 
 const formatWalletAddress = (): string => {
-  if (!walletAddress.value) throw new Error("Wallet not connected");
+  if (!walletAddress.value) throw new Error('Wallet not connected');
   const walletAddressLength = walletAddress.value.length;
   const initialText = walletAddress.value.substring(0, 5);
   const finalText = walletAddress.value.substring(
@@ -79,7 +79,7 @@ const formatWalletAddress = (): string => {
 
 const disconnectUser = async (): Promise<void> => {
   user.setWalletAddress(null);
-  await disconnectWallet({ label: connectedWallet.value?.label || "" });
+  await disconnectWallet({ label: connectedWallet.value?.label || '' });
   closeMenu();
 };
 
@@ -100,7 +100,7 @@ const networkChange = async (network: NetworkConfig): Promise<void> => {
       });
       user.setNetwork(network);
     } catch (error) {
-      console.log("Error changing network", error);
+      console.log('Error changing network', error);
     }
   } else {
     // If no wallet connected, just update the network state
@@ -122,20 +122,20 @@ onClickOutside(infoMenuRef, () => {
 
 const infoMenuOptions: MenuOption[] = [
   {
-    label: "Explorar Transações",
-    route: "/explore",
+    label: 'Explorar Transações',
+    route: '/explore',
     showInDesktop: true,
     showInMobile: false,
   },
   {
-    label: "Perguntas frequentes",
-    route: "/faq",
+    label: 'Perguntas frequentes',
+    route: '/faq',
     showInDesktop: true,
     showInMobile: false,
   },
   {
-    label: "Versões",
-    route: "/versions",
+    label: 'Versões',
+    route: '/versions',
     showInDesktop: true,
     showInMobile: false,
   },
@@ -143,40 +143,40 @@ const infoMenuOptions: MenuOption[] = [
 
 const walletMenuOptions: MenuOption[] = [
   {
-    label: "Quero vender",
+    label: 'Quero vender',
     isDynamic: true,
-    dynamicLabel: () => (sellerView.value ? "Quero comprar" : "Quero vender"),
-    dynamicRoute: () => (sellerView.value ? "/" : "/seller"),
+    dynamicLabel: () => (sellerView.value ? 'Quero comprar' : 'Quero vender'),
+    dynamicRoute: () => (sellerView.value ? '/' : '/seller'),
     showInDesktop: false,
     showInMobile: true,
   },
   {
-    label: "Explorar Transações",
-    route: "/explore",
+    label: 'Explorar Transações',
+    route: '/explore',
     showInDesktop: false,
     showInMobile: true,
   },
   {
-    label: "Gerenciar Ofertas",
-    route: "/manage_bids",
+    label: 'Gerenciar Ofertas',
+    route: '/manage_bids',
     showInDesktop: true,
     showInMobile: true,
   },
   {
-    label: "Perguntas frequentes",
-    route: "/faq",
+    label: 'Perguntas frequentes',
+    route: '/faq',
     showInDesktop: false,
     showInMobile: true,
   },
   {
-    label: "Versões",
-    route: "/versions",
+    label: 'Versões',
+    route: '/versions',
     showInDesktop: false,
     showInMobile: true,
   },
   {
-    label: "Desconectar",
-    route: "/",
+    label: 'Desconectar',
+    route: '/',
     action: disconnectUser,
     showInDesktop: true,
     showInMobile: true,
@@ -330,7 +330,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
         class="default-button whitespace-nowrap w-40 sm:w-44 md:w-36 hidden md:inline-block"
       >
         <div class="topbar-text topbar-link text-center mx-auto inline-block">
-          {{ sellerView ? "Quero comprar" : "Quero vender" }}
+          {{ sellerView ? 'Quero comprar' : 'Quero vender' }}
         </div>
       </RouterLink>
       <div class="flex flex-col relative">
@@ -354,7 +354,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
             class="default-text hidden sm:inline-block text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap text-ellipsis overflow-hidden"
             :class="{ '!text-gray-900': currencyMenuOpenToggle }"
           >
-            {{ user.network.value.name || "Invalid Chain" }}
+            {{ user.network.value.name || 'Invalid Chain' }}
           </span>
           <div
             class="transition-all duration-500 ease-in-out mt-1"

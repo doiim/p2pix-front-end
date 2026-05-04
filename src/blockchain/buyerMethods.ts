@@ -1,6 +1,6 @@
-import { getContract } from "./provider";
-import { ChainContract } from "viem";
-import { parseEther, type Address, type TransactionReceipt } from "viem";
+import { getContract } from './provider';
+import { ChainContract } from 'viem';
+import { parseEther, type Address, type TransactionReceipt } from 'viem';
 
 export const addLock = async (
   sellerAddress: Address,
@@ -11,13 +11,13 @@ export const addLock = async (
   const parsedAmount = parseEther(amount.toString());
 
   if (!wallet) {
-    throw new Error("Wallet not connected");
+    throw new Error('Wallet not connected');
   }
 
   const { result, request } = await client.simulateContract({
     address,
     abi,
-    functionName: "lock",
+    functionName: 'lock',
     args: [sellerAddress, tokenAddress, parsedAmount, [], []],
     account,
   });
@@ -25,7 +25,7 @@ export const addLock = async (
   const receipt = await client.waitForTransactionReceipt({ hash });
 
   if (!receipt.status)
-    throw new Error("Transaction failed: " + receipt.transactionHash);
+    throw new Error('Transaction failed: ' + receipt.transactionHash);
 
   return result;
 };
@@ -37,13 +37,13 @@ export const withdrawDeposit = async (
   const { address, abi, wallet, client, account } = await getContract();
 
   if (!wallet) {
-    throw new Error("Wallet not connected");
+    throw new Error('Wallet not connected');
   }
 
   const { request } = await client.simulateContract({
     address,
     abi,
-    functionName: "withdraw",
+    functionName: 'withdraw',
     args: [token, parseEther(amount), []],
     account,
   });
@@ -51,7 +51,7 @@ export const withdrawDeposit = async (
   const hash = await wallet.writeContract(request);
   const receipt = await client.waitForTransactionReceipt({ hash });
 
-  return receipt.status === "success";
+  return receipt.status === 'success';
 };
 
 export const releaseLock = async (
@@ -62,13 +62,13 @@ export const releaseLock = async (
   const { address, abi, wallet, client, account } = await getContract();
 
   if (!wallet) {
-    throw new Error("Wallet not connected");
+    throw new Error('Wallet not connected');
   }
 
   const { request } = await client.simulateContract({
     address,
     abi,
-    functionName: "release",
+    functionName: 'release',
     args: [BigInt(lockID), pixTimestamp, signature],
     account,
   });

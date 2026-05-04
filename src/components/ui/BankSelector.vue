@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import bankList from "@/utils/files/isbpList.json";
+import { computed } from 'vue';
+import bankList from '@/utils/files/isbpList.json';
 
 export interface Bank {
   ISPB: string;
@@ -15,12 +15,12 @@ const props = withDefaults(
   }>(),
   {
     disabled: false,
-    placeholder: "Busque e selecione seu banco",
+    placeholder: 'Busque e selecione seu banco',
   },
 );
 
 const emit = defineEmits<{
-  "update:modelValue": [value: string];
+  'update:modelValue': [value: string];
   change: [bank: Bank];
 }>();
 
@@ -38,7 +38,7 @@ const selectedItem = computed(() => {
 });
 
 const searchQuery = computed({
-  get: () => selectedItem.value?.label || "",
+  get: () => selectedItem.value?.label || '',
   set: (value: string) => {
     // Handled by input
   },
@@ -58,8 +58,8 @@ const showBankList = computed(() => {
 });
 
 const selectBank = (bank: Bank) => {
-  emit("update:modelValue", bank.ISPB);
-  emit("change", bank);
+  emit('update:modelValue', bank.ISPB);
+  emit('change', bank);
 };
 </script>
 

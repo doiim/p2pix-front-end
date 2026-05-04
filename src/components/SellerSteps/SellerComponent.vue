@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { useUser } from "@/composables/useUser";
-import CustomButton from "@/components/ui/CustomButton.vue";
-import { postProcessKey } from "@/utils/pixKeyFormat";
-import { TokenEnum } from "@/model/NetworkEnum";
-import { getTokenImage } from "@/utils/imagesPath";
-import { useOnboard } from "@web3-onboard/vue";
-import ChevronDown from "@/assets/chevron.svg";
+import { ref, computed } from 'vue';
+import { useUser } from '@/composables/useUser';
+import CustomButton from '@/components/ui/CustomButton.vue';
+import { postProcessKey } from '@/utils/pixKeyFormat';
+import { TokenEnum } from '@/model/NetworkEnum';
+import { getTokenImage } from '@/utils/imagesPath';
+import { useOnboard } from '@web3-onboard/vue';
+import ChevronDown from '@/assets/chevron.svg';
 
 // Import the bank list
-import bankList from "@/utils/files/isbpList.json";
-import type { Participant } from "@/utils/bbPay";
+import bankList from '@/utils/files/isbpList.json';
+import type { Participant } from '@/utils/bbPay';
 
 // Define Bank interface
 interface Bank {
@@ -26,17 +26,17 @@ const formRef = ref<HTMLFormElement | null>(null);
 const user = useUser();
 const { walletAddress, selectedToken } = user;
 
-const offer = ref<string>("");
-const identification = ref<string>("");
-const account = ref<string>("");
-const branch = ref<string>("");
-const accountType = ref<string>("");
+const offer = ref<string>('');
+const identification = ref<string>('');
+const account = ref<string>('');
+const branch = ref<string>('');
+const accountType = ref<string>('');
 const selectTokenToggle = ref<boolean>(false);
-const savingsVariation = ref<string>("");
+const savingsVariation = ref<string>('');
 const errors = ref<{ [key: string]: string }>({});
 
 // Bank selection
-const bankSearchQuery = ref<string>("");
+const bankSearchQuery = ref<string>('');
 const showBankList = ref<boolean>(false);
 const selectedBank = ref<Bank | null>(null);
 
@@ -56,7 +56,7 @@ const handleBankSelect = (bank: Bank) => {
 };
 
 // Emits
-const emit = defineEmits(["approveTokens"]);
+const emit = defineEmits(['approveTokens']);
 
 // Methods
 const connectAccount = async (): Promise<void> => {
@@ -77,10 +77,10 @@ const handleSubmit = (e: Event): void => {
     accountType: accountType.value,
     account: account.value,
     branch: branch.value,
-    savingsVariation: savingsVariation.value || "",
+    savingsVariation: savingsVariation.value || '',
   };
 
-  emit("approveTokens", data);
+  emit('approveTokens', data);
 };
 
 // Token selection
@@ -328,13 +328,13 @@ const handleSelectedToken = (token: TokenEnum): void => {
   @apply text-white text-center;
 }
 
-input[type="number"] {
+input[type='number'] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
 
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 

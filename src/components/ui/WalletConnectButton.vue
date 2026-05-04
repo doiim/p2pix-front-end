@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
-import { onClickOutside } from "@vueuse/core";
-import CustomButton from "./CustomButton.vue";
+import { ref, computed } from 'vue';
+import { onClickOutside } from '@vueuse/core';
+import CustomButton from './CustomButton.vue';
 
 const props = withDefaults(
   defineProps<{
     walletAddress: string | null;
-    variant?: "primary" | "secondary" | "outline";
+    variant?: 'primary' | 'secondary' | 'outline';
     showMenu?: boolean;
   }>(),
   {
-    variant: "primary",
+    variant: 'primary',
     showMenu: true,
   },
 );
@@ -29,7 +29,7 @@ const isConnected = computed(() => {
 });
 
 const formattedAddress = computed(() => {
-  if (!props.walletAddress) return "";
+  if (!props.walletAddress) return '';
 
   const address = props.walletAddress;
   const length = address.length;
@@ -40,17 +40,17 @@ const formattedAddress = computed(() => {
 });
 
 const handleConnect = () => {
-  emit("connect");
+  emit('connect');
 };
 
 const handleDisconnect = () => {
   menuOpen.value = false;
-  emit("disconnect");
+  emit('disconnect');
 };
 
 const handleViewTransactions = () => {
   menuOpen.value = false;
-  emit("viewTransactions");
+  emit('viewTransactions');
 };
 
 const toggleMenu = () => {

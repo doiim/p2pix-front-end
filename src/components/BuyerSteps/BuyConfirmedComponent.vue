@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { withdrawDeposit } from "@/blockchain/buyerMethods";
+import { withdrawDeposit } from '@/blockchain/buyerMethods';
 import {
   getActiveLockAmount,
   listAllTransactionByWalletAddress,
   listValidDepositTransactionsByWalletAddress,
-} from "@/blockchain/wallet";
-import CustomButton from "@/components/ui/CustomButton.vue";
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import type { WalletTransaction } from "@/model/WalletTransaction";
-import { useUser } from "@/composables/useUser";
-import { onMounted, ref, watch } from "vue";
-import ListingComponent from "@/components/ListingComponent/ListingComponent.vue";
+} from '@/blockchain/wallet';
+import CustomButton from '@/components/ui/CustomButton.vue';
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import type { WalletTransaction } from '@/model/WalletTransaction';
+import { useUser } from '@/composables/useUser';
+import { onMounted, ref, watch } from 'vue';
+import ListingComponent from '@/components/ListingComponent/ListingComponent.vue';
 
 // props
 const props = defineProps<{
@@ -58,17 +58,17 @@ const callWithdraw = async (amount: string) => {
       user.network.value.tokens[user.selectedToken.value].address,
     );
     if (withdraw) {
-      console.log("Saque realizado!");
+      console.log('Saque realizado!');
       await getWalletTransactions();
     } else {
-      console.log("Não foi possível realizar o saque!");
+      console.log('Não foi possível realizar o saque!');
     }
     user.setLoadingWalletTransactions(false);
   }
 };
 
 // Emits
-const emit = defineEmits(["makeAnotherTransaction"]);
+const emit = defineEmits(['makeAnotherTransaction']);
 
 // observer
 watch(props, async (): Promise<void> => {
@@ -153,8 +153,8 @@ p {
   @apply font-medium text-base text-gray-900;
 }
 
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 </style>

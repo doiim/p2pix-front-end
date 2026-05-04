@@ -1,19 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from "vue";
-import { useUser } from "@/composables/useUser";
-import ListingComponent from "@/components/ListingComponent/ListingComponent.vue";
-import LoadingComponent from "@/components/ui/LoadingComponent.vue";
-import CustomAlert from "@/components/ui/CustomAlert.vue";
+import { ref, onMounted, watch } from 'vue';
+import { useUser } from '@/composables/useUser';
+import ListingComponent from '@/components/ListingComponent/ListingComponent.vue';
+import LoadingComponent from '@/components/ui/LoadingComponent.vue';
+import CustomAlert from '@/components/ui/CustomAlert.vue';
 import {
   listValidDepositTransactionsByWalletAddress,
   listAllTransactionByWalletAddress,
   getActiveLockAmount,
-} from "@/blockchain/wallet";
-import { withdrawDeposit } from "@/blockchain/buyerMethods";
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import type { WalletTransaction } from "@/model/WalletTransaction";
+} from '@/blockchain/wallet';
+import { withdrawDeposit } from '@/blockchain/buyerMethods';
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import type { WalletTransaction } from '@/model/WalletTransaction';
 
-import router from "@/router/index";
+import router from '@/router/index';
 
 const user = useUser();
 const { walletAddress, network, selectedToken } = user;
@@ -38,11 +38,11 @@ const callWithdraw = async (amount: string) => {
     }
 
     if (withdraw) {
-      console.log("Saque realizado!");
+      console.log('Saque realizado!');
       await getWalletTransactions();
       showAlert.value = true;
     } else {
-      console.log("Não foi possível realizar o saque!");
+      console.log('Não foi possível realizar o saque!');
     }
     loadingWithdraw.value = false;
   }
@@ -73,7 +73,7 @@ const getWalletTransactions = async () => {
 
 onMounted(async () => {
   if (!walletAddress.value) {
-    router.push({ name: "home" });
+    router.push({ name: 'home' });
   }
   await getWalletTransactions();
 });

@@ -1,13 +1,13 @@
-import { useUser } from "@/composables/useUser";
-import { formatEther, toHex, stringToHex } from "viem";
-import type { PublicClient, Address } from "viem";
-import { Networks } from "@/config/networks";
-import { getContract } from "./provider";
-import { p2PixAbi } from "./abi";
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import type { NetworkConfig } from "@/model/NetworkEnum";
-import type { UnreleasedLock } from "@/model/UnreleasedLock";
-import { ChainContract } from "viem";
+import { useUser } from '@/composables/useUser';
+import { formatEther, toHex, stringToHex } from 'viem';
+import type { PublicClient, Address } from 'viem';
+import { Networks } from '@/config/networks';
+import { getContract } from './provider';
+import { p2PixAbi } from './abi';
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import type { NetworkConfig } from '@/model/NetworkEnum';
+import type { UnreleasedLock } from '@/model/UnreleasedLock';
+import { ChainContract } from 'viem';
 
 const getNetworksLiquidity = async (): Promise<void> => {
   const user = useUser();
@@ -37,16 +37,16 @@ const getParticipantID = async (
   const participantIDHex = await client.readContract({
     address,
     abi,
-    functionName: "getPixTarget",
+    functionName: 'getPixTarget',
     args: [seller, token],
   });
 
   // Remove '0x' prefix and convert hex to UTF-8 string
   const hexString =
-    typeof participantIDHex === "string"
+    typeof participantIDHex === 'string'
       ? participantIDHex
       : toHex(participantIDHex as bigint);
-  if (!hexString) throw new Error("Participant ID not found");
+  if (!hexString) throw new Error('Participant ID not found');
   const bytes = new Uint8Array(
     hexString
       .slice(2)
@@ -54,7 +54,7 @@ const getParticipantID = async (
       .map((byte: string) => parseInt(byte, 16)),
   );
   // Remove null bytes from the end of the string
-  return new TextDecoder().decode(bytes).replace(/\0/g, "");
+  return new TextDecoder().decode(bytes).replace(/\0/g, '');
 };
 
 const getValidDeposits = async (
@@ -85,9 +85,9 @@ const getValidDeposits = async (
   };
 
   const depositLogs = await fetch(network.subgraphUrls[0], {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify(body),
   });
@@ -95,7 +95,7 @@ const getValidDeposits = async (
   // remove doubles from sellers list
   const depositData = await depositLogs.json();
   if (!depositData.data) {
-    console.error("Error fetching deposit logs");
+    console.error('Error fetching deposit logs');
     return [];
   }
   const depositAddeds = depositData.data.depositAddeds;
@@ -119,7 +119,7 @@ const getValidDeposits = async (
   const balanceCalls = sellersList.map((seller) => ({
     address: (network.contracts?.p2pix as ChainContract).address,
     abi,
-    functionName: "getBalance",
+    functionName: 'getBalance',
     args: [seller, token],
   }));
 
@@ -138,7 +138,7 @@ const getValidDeposits = async (
         remaining: Number(formatEther(mappedBalance.result as bigint)),
         seller,
         network,
-        participantID: "",
+        participantID: '',
       };
       depositList[seller + token] = validDeposit;
     }
@@ -154,7 +154,7 @@ const getUnreleasedLockById = async (
   const [, , , amount, token, seller] = await client.readContract({
     address,
     abi,
-    functionName: "mapLocks",
+    functionName: 'mapLocks',
     args: [lockID],
   });
 

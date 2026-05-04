@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { ref, watch, computed } from "vue";
-import { TokenEnum } from "@/model/NetworkEnum";
-import { decimalCount } from "@/utils/decimalCount";
-import { debounce } from "@/utils/debounce";
-import TokenSelector from "./TokenSelector.vue";
-import ErrorMessage from "./ErrorMessage.vue";
+import { ref, watch, computed } from 'vue';
+import { TokenEnum } from '@/model/NetworkEnum';
+import { decimalCount } from '@/utils/decimalCount';
+import { debounce } from '@/utils/debounce';
+import TokenSelector from './TokenSelector.vue';
+import ErrorMessage from './ErrorMessage.vue';
 
 const props = withDefaults(
   defineProps<{
@@ -20,7 +20,7 @@ const props = withDefaults(
     required?: boolean;
   }>(),
   {
-    placeholder: "0",
+    placeholder: '0',
     showTokenSelector: true,
     showConversion: true,
     conversionRate: 1,
@@ -31,13 +31,13 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  "update:modelValue": [value: number];
-  "update:selectedToken": [token: TokenEnum];
+  'update:modelValue': [value: number];
+  'update:selectedToken': [token: TokenEnum];
   error: [message: string | null];
   valid: [isValid: boolean];
 }>();
 
-const inputValue = ref<string>(String(props.modelValue || ""));
+const inputValue = ref<string>(String(props.modelValue || ''));
 const validDecimals = ref(true);
 const validRange = ref(true);
 
@@ -47,7 +47,7 @@ const convertedValue = computed(() => {
 
 const errorMessage = computed(() => {
   if (!validDecimals.value) {
-    return "Por favor utilize no máximo 2 casas decimais";
+    return 'Por favor utilize no máximo 2 casas decimais';
   }
   if (!validRange.value) {
     if (props.minValue && props.modelValue < props.minValue) {
@@ -74,8 +74,8 @@ const handleInput = (event: Event) => {
   // Validar decimais
   if (decimalCount(value) > 2) {
     validDecimals.value = false;
-    emit("error", "Por favor utilize no máximo 2 casas decimais");
-    emit("valid", false);
+    emit('error', 'Por favor utilize no máximo 2 casas decimais');
+    emit('valid', false);
     return;
   }
   validDecimals.value = true;
@@ -83,34 +83,34 @@ const handleInput = (event: Event) => {
   // Validar range
   if (props.minValue !== undefined && numValue < props.minValue) {
     validRange.value = false;
-    emit("error", `Valor mínimo: ${props.minValue}`);
-    emit("valid", false);
+    emit('error', `Valor mínimo: ${props.minValue}`);
+    emit('valid', false);
     return;
   }
   if (props.maxValue !== undefined && numValue > props.maxValue) {
     validRange.value = false;
-    emit("error", `Valor máximo: ${props.maxValue}`);
-    emit("valid", false);
+    emit('error', `Valor máximo: ${props.maxValue}`);
+    emit('valid', false);
     return;
   }
   validRange.value = true;
 
-  emit("update:modelValue", numValue);
-  emit("error", null);
-  emit("valid", true);
+  emit('update:modelValue', numValue);
+  emit('error', null);
+  emit('valid', true);
 };
 
 const debouncedHandleInput = debounce(handleInput, 500);
 
 const handleTokenChange = (token: TokenEnum) => {
-  emit("update:selectedToken", token);
+  emit('update:selectedToken', token);
 };
 
 watch(
   () => props.modelValue,
   (newVal) => {
     if (newVal !== Number(inputValue.value)) {
-      inputValue.value = String(newVal || "");
+      inputValue.value = String(newVal || '');
     }
   },
 );

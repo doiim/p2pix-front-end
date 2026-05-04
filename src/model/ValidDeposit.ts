@@ -1,5 +1,5 @@
-import type { Address } from "viem";
-import type { NetworkConfig } from "@/model/NetworkEnum";
+import type { Address } from 'viem';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 
 export type ValidDeposit = {
   token: Address;

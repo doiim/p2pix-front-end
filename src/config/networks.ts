@@ -1,5 +1,5 @@
-import { mainnet, sepolia, rootstock, rootstockTestnet } from "viem/chains";
-import { NetworkConfig } from "@/model/NetworkEnum";
+import { mainnet, sepolia, rootstock, rootstockTestnet } from 'viem/chains';
+import { NetworkConfig } from '@/model/NetworkEnum';
 // TODO: import addresses from p2pix-smart-contracts deployments
 
 export const Networks: { [key: string]: NetworkConfig } = {

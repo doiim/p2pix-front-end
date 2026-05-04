@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import { computed } from "vue";
-import { Networks } from "@/config/networks";
-import type { NetworkConfig } from "@/model/NetworkEnum";
-import { getNetworkImage } from "@/utils/imagesPath";
-import Dropdown, { type DropdownItem } from "./Dropdown.vue";
+import { computed } from 'vue';
+import { Networks } from '@/config/networks';
+import type { NetworkConfig } from '@/model/NetworkEnum';
+import { getNetworkImage } from '@/utils/imagesPath';
+import Dropdown, { type DropdownItem } from './Dropdown.vue';
 
 const props = withDefaults(
   defineProps<{
     modelValue: NetworkConfig;
     disabled?: boolean;
-    size?: "sm" | "md" | "lg";
+    size?: 'sm' | 'md' | 'lg';
     availableNetworks?: NetworkConfig[];
   }>(),
   {
     disabled: false,
-    size: "md",
+    size: 'md',
   },
 );
 
 const emit = defineEmits<{
-  "update:modelValue": [value: NetworkConfig];
+  'update:modelValue': [value: NetworkConfig];
   change: [value: NetworkConfig];
 }>();
 
@@ -32,8 +32,8 @@ const networkItems = computed((): DropdownItem<NetworkConfig>[] => {
 });
 
 const handleChange = (value: NetworkConfig) => {
-  emit("update:modelValue", value);
-  emit("change", value);
+  emit('update:modelValue', value);
+  emit('change', value);
 };
 </script>
 

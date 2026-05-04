@@ -1,36 +1,36 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref } from 'vue';
 const props = defineProps<{
   type: string;
 }>();
 
-const alertText = ref<string>("");
-const alertPaddingLeft = ref<string>("18rem");
+const alertText = ref<string>('');
+const alertPaddingLeft = ref<string>('18rem');
 
-if (props.type === "sell") {
-  alertPaddingLeft.value = "30%";
-} else if (props.type === "buy") {
-  alertPaddingLeft.value = "30%";
-} else if (props.type === "withdraw") {
-  alertPaddingLeft.value = "40%";
-} else if (props.type === "redirect") {
-  alertPaddingLeft.value = "35%";
+if (props.type === 'sell') {
+  alertPaddingLeft.value = '30%';
+} else if (props.type === 'buy') {
+  alertPaddingLeft.value = '30%';
+} else if (props.type === 'withdraw') {
+  alertPaddingLeft.value = '40%';
+} else if (props.type === 'redirect') {
+  alertPaddingLeft.value = '35%';
 }
 
 switch (props.type) {
-  case "buy":
+  case 'buy':
     alertText.value =
-      "Tudo certo! Os tokens já foram retirados da oferta e estão disponíveis na sua carteira.";
+      'Tudo certo! Os tokens já foram retirados da oferta e estão disponíveis na sua carteira.';
     break;
-  case "sell":
+  case 'sell':
     alertText.value =
-      "Tudo certo! Os tokens já foram reservados e sua oferta está disponível.";
+      'Tudo certo! Os tokens já foram reservados e sua oferta está disponível.';
     break;
-  case "redirect":
-    alertText.value = "Existe uma compra em aberto. Continuar?";
+  case 'redirect':
+    alertText.value = 'Existe uma compra em aberto. Continuar?';
     break;
-  case "withdraw":
-    alertText.value = "Tudo certo! Saque realizado com sucesso!";
+  case 'withdraw':
+    alertText.value = 'Tudo certo! Saque realizado com sucesso!';
     break;
 }
 </script>

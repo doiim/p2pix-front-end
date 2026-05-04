@@ -1,5 +1,5 @@
 <script setup lang="ts">
-export type ErrorType = "error" | "warning" | "info";
+export type ErrorType = 'error' | 'warning' | 'info';
 
 const props = withDefaults(
   defineProps<{
@@ -9,16 +9,16 @@ const props = withDefaults(
     icon?: boolean;
   }>(),
   {
-    type: "error",
+    type: 'error',
     centered: true,
     icon: false,
   },
 );
 
 const colorClasses = {
-  error: "text-red-500",
-  warning: "text-amber-500",
-  info: "text-blue-500",
+  error: 'text-red-500',
+  warning: 'text-amber-500',
+  info: 'text-blue-500',
 };
 </script>
 

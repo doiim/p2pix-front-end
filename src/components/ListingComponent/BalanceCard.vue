@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import { ref, watch, onMounted, computed } from "vue";
-import { debounce } from "@/utils/debounce";
-import { decimalCount } from "@/utils/decimalCount";
-import { useFloating, arrow, offset, flip, shift } from "@floating-ui/vue";
-import IconButton from "../ui/IconButton.vue";
-import withdrawIcon from "@/assets/withdraw.svg?url";
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import { ref, watch, onMounted, computed } from 'vue';
+import { debounce } from '@/utils/debounce';
+import { decimalCount } from '@/utils/decimalCount';
+import { useFloating, arrow, offset, flip, shift } from '@floating-ui/vue';
+import IconButton from '../ui/IconButton.vue';
+import withdrawIcon from '@/assets/withdraw.svg?url';
 
 const props = defineProps<{
   validDeposits: ValidDeposit[];
@@ -17,7 +17,7 @@ const emit = defineEmits<{
   withdraw: [amount: string];
 }>();
 
-const withdrawAmount = ref<string>("");
+const withdrawAmount = ref<string>('');
 const isCollapsibleOpen = ref<boolean>(false);
 const validDecimals = ref<boolean>(true);
 const validWithdrawAmount = ref<boolean>(true);
@@ -58,9 +58,9 @@ const handleInputEvent = (event: any): void => {
 
 const callWithdraw = () => {
   if (enableConfirmButton.value && withdrawAmount.value) {
-    emit("withdraw", withdrawAmount.value);
+    emit('withdraw', withdrawAmount.value);
     // Reset form after withdraw
-    withdrawAmount.value = "";
+    withdrawAmount.value = '';
     isCollapsibleOpen.value = false;
   }
 };
@@ -71,7 +71,7 @@ const openWithdrawForm = () => {
 
 const cancelWithdraw = () => {
   isCollapsibleOpen.value = false;
-  withdrawAmount.value = "";
+  withdrawAmount.value = '';
   validDecimals.value = true;
   validWithdrawAmount.value = true;
   enableConfirmButton.value = false;
@@ -79,7 +79,7 @@ const cancelWithdraw = () => {
 
 onMounted(() => {
   useFloating(reference, floating, {
-    placement: "right",
+    placement: 'right',
     middleware: [
       offset(10),
       flip(),
@@ -194,13 +194,13 @@ p {
   @apply bg-white text-gray-900 font-medium text-xs md:text-base px-3 py-2 rounded border-2 border-emerald-500 left-5 top-[-3rem];
 }
 
-input[type="number"] {
+input[type='number'] {
   appearance: textfield;
   -moz-appearance: textfield;
 }
 
-input[type="number"]::-webkit-inner-spin-button,
-input[type="number"]::-webkit-outer-spin-button {
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
   -webkit-appearance: none;
 }
 

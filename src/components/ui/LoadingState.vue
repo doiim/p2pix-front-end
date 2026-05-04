@@ -1,25 +1,25 @@
 <script setup lang="ts">
-import SpinnerComponent from "./SpinnerComponent.vue";
+import SpinnerComponent from './SpinnerComponent.vue';
 
 const props = withDefaults(
   defineProps<{
     message?: string;
-    size?: "sm" | "md" | "lg";
+    size?: 'sm' | 'md' | 'lg';
     centered?: boolean;
     inline?: boolean;
   }>(),
   {
-    message: "Carregando...",
-    size: "md",
+    message: 'Carregando...',
+    size: 'md',
     centered: true,
     inline: false,
   },
 );
 
 const sizeMap = {
-  sm: { spinner: "4", text: "text-sm" },
-  md: { spinner: "6", text: "text-base" },
-  lg: { spinner: "8", text: "text-lg" },
+  sm: { spinner: '4', text: 'text-sm' },
+  md: { spinner: '6', text: 'text-base' },
+  lg: { spinner: '8', text: 'text-lg' },
 };
 </script>
 

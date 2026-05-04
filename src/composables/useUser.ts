@@ -1,12 +1,12 @@
-import { ref } from "vue";
-import type { ValidDeposit } from "@/model/ValidDeposit";
-import type { Participant } from "../utils/bbPay";
-import type { Address } from "viem";
-import { DEFAULT_NETWORK, Networks } from "@/config/networks";
-import { TokenEnum, NetworkConfig } from "@/model/NetworkEnum";
+import { ref } from 'vue';
+import type { ValidDeposit } from '@/model/ValidDeposit';
+import type { Participant } from '../utils/bbPay';
+import type { Address } from 'viem';
+import { DEFAULT_NETWORK, Networks } from '@/config/networks';
+import { TokenEnum, NetworkConfig } from '@/model/NetworkEnum';
 
 const walletAddress = ref<Address | null>(null);
-const balance = ref("");
+const balance = ref('');
 const network = ref(DEFAULT_NETWORK);
 const selectedToken = ref<TokenEnum>(TokenEnum.BRZ);
 const loadingLock = ref(false);
@@ -15,7 +15,7 @@ const depositsValidList = ref<ValidDeposit[]>([]);
 const loadingWalletTransactions = ref(false);
 const loadingNetworkLiquidity = ref(false);
 const seller = ref<Participant>({} as Participant);
-const sellerId = ref("");
+const sellerId = ref('');
 
 export function useUser() {
   // Actions become regular functions
@@ -38,9 +38,9 @@ export function useUser() {
   const setNetworkById = (id: string | number) => {
     let chainId: number;
 
-    if (typeof id === "string") {
+    if (typeof id === 'string') {
       // Parse hex string or number string to number
-      if (id.startsWith("0x")) {
+      if (id.startsWith('0x')) {
         chainId = parseInt(id, 16);
       } else {
         chainId = parseInt(id, 10);

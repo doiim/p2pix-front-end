@@ -1,9 +1,9 @@
 <script setup lang="ts" generic="T">
-import { ref, computed } from "vue";
-import { onClickOutside } from "@vueuse/core";
-import ChevronDown from "@/assets/chevronDown.svg";
+import { ref, computed } from 'vue';
+import { onClickOutside } from '@vueuse/core';
+import ChevronDown from '@/assets/chevronDown.svg';
 
-defineOptions({ name: "UiDropdown" });
+defineOptions({ name: 'UiDropdown' });
 
 export interface DropdownItem<T = any> {
   value: T;
@@ -19,25 +19,25 @@ const props = withDefaults(
     placeholder?: string;
     searchable?: boolean;
     disabled?: boolean;
-    size?: "sm" | "md" | "lg";
+    size?: 'sm' | 'md' | 'lg';
     showIcon?: boolean;
   }>(),
   {
-    placeholder: "Selecione...",
+    placeholder: 'Selecione...',
     searchable: false,
     disabled: false,
-    size: "md",
+    size: 'md',
     showIcon: true,
   },
 );
 
 const emit = defineEmits<{
-  "update:modelValue": [value: T];
+  'update:modelValue': [value: T];
   change: [value: T];
 }>();
 
 const isOpen = ref(false);
-const searchQuery = ref("");
+const searchQuery = ref('');
 const dropdownRef = ref<HTMLElement | null>(null);
 
 const selectedItem = computed(() => {
@@ -57,23 +57,23 @@ const toggleDropdown = () => {
   if (!props.disabled) {
     isOpen.value = !isOpen.value;
     if (!isOpen.value) {
-      searchQuery.value = "";
+      searchQuery.value = '';
     }
   }
 };
 
 const selectItem = (item: DropdownItem<T>) => {
   if (!item.disabled) {
-    emit("update:modelValue", item.value);
-    emit("change", item.value);
+    emit('update:modelValue', item.value);
+    emit('change', item.value);
     isOpen.value = false;
-    searchQuery.value = "";
+    searchQuery.value = '';
   }
 };
 
 onClickOutside(dropdownRef, () => {
   isOpen.value = false;
-  searchQuery.value = "";
+  searchQuery.value = '';
 });
 </script>
 
