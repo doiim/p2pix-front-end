@@ -5,7 +5,5 @@ services:
       container_name: p2pix_frontend
       build:
         context: .
-      volumes:
-          - '.:/app'
       ports:
           - '3000:3000'

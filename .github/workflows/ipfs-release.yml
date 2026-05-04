@@ -16,11 +16,16 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Install bun
+        run: |
+          curl -fsSL https://bun.sh/install | bash
+          echo "$HOME/.bun/bin" >> "$GITHUB_PATH"
+
       - name: Install dependencies
-        run: npm ci
+        run: bun install --frozen-lockfile
 
       - name: Build SPA
-        run: npm run build-only
+        run: bun run build-only
 
       - name: Deploy via RSYNC
         uses: up9cloud/action-rsync@master
