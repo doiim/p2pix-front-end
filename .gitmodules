@@ -1,3 +1,8 @@
 [submodule "p2pix-smart-contracts"]
 	path = p2pix-smart-contracts
 	url = https://git.p2pix.co/doiim/p2pix-smart-contracts
+	branch = dev
+[submodule "zkPix"]
+	path = zkPix
+	url = https://git.p2pix.co/doiim/zkPix.git
+	branch = feat/fake-bb-sandbox
