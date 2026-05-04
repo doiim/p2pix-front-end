@@ -4,6 +4,7 @@ import { execSync } from "node:child_process";
 import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import vueJsx from "@vitejs/plugin-vue-jsx";
+import tailwindcss from "@tailwindcss/vite";
 import svgLoader from "vite-svg-loader";
 
 function sh(cmd: string): string {
@@ -46,7 +47,7 @@ export default defineConfig({
       },
     },
   },
-  plugins: [vue(), vueJsx(), svgLoader()],
+  plugins: [vue(), vueJsx(), tailwindcss(), svgLoader()],
   resolve: {
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
