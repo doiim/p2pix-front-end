@@ -71,29 +71,39 @@ You can also replace it with your own Alchemy Keys if you have one.
 
 The application can be tested by its trial version [https://p2pix-staging.vercel.app/](https://p2pix-staging.vercel.app/), the only requirement is to be running the smart contract of local way. To run the application locally, there are two different ways:
 
-### Run with yarn
+### Run with bun
+
 ```sh
-# Clone the repo
-git clone https://github.com/liftlearning/P2Pix-Front-End
+# Clone the repo WITH submodules (smart contracts live in p2pix-smart-contracts/)
+git clone --recurse-submodules https://github.com/liftlearning/P2Pix-Front-End
 cd P2Pix-Front-End
 
-# Install dependencies with yarn
-yarn install
+# (If you cloned without --recurse-submodules, run this once)
+git submodule update --init --recursive
+
+# Install front-end dependencies
+bun install
+
+# One-time bootstrap of the smart-contracts submodule (needed before wagmi:gen)
+cd p2pix-smart-contracts && bun install && cd ..
+
+# Generate ABI bindings from the submodule (run again whenever contracts change)
+bun run wagmi:gen
 
 # Type-Check, Compile and Minify for Production
-yarn build
+bun run build
 
 # Compile and Hot-Reload for Development (port 3000)
-yarn start
+bun start
 
 # Lint with [ESLint](https://eslint.org/)
-yarn lint
+bun run lint
 ```
 ### Run with docker-compose
 
 ```sh
-# Clone the repo
-git clone https://github.com/liftlearning/P2Pix-Front-End
+# Clone the repo WITH submodules
+git clone --recurse-submodules https://github.com/liftlearning/P2Pix-Front-End
 cd P2Pix-Front-End
 
 #1. Install [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/);
