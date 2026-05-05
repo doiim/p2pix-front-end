@@ -3,19 +3,16 @@
   "version": "1.2.0",
   "type": "module",
   "scripts": {
-    "prestart": "bun run wagmi:gen",
-    "start": "vite --host=0.0.0.0 --port 3000",
+    "start": "bun run wagmi:gen && vite --host=0.0.0.0 --port 3000",
     "build": "bun run type-check && bun run build-only",
-    "preview": "vite preview",
     "build-only": "vite build",
+    "preview": "vite preview",
     "type-check": "vue-tsc --skipLibCheck --noEmit",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,vue,json}\"",
-    "contracts:setup": "(test -f p2pix-smart-contracts/.env || cp p2pix-smart-contracts/.env.example p2pix-smart-contracts/.env) && pushd p2pix-smart-contracts && bun install && popd",
-    "prewagmi:gen": "bun run contracts:setup",
-    "wagmi:gen": "wagmi generate"
+    "wagmi:gen": "(test -f p2pix-smart-contracts/.env || cp p2pix-smart-contracts/.env.example p2pix-smart-contracts/.env) && pushd p2pix-smart-contracts && bun install && popd && wagmi generate"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
