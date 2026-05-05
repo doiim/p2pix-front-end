@@ -13,7 +13,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,vue,json}\"",
-    "contracts:setup": "pushd p2pix-smart-contracts && bun install && cp -n .env.example .env || true && popd",
+    "contracts:setup": "(test -f p2pix-smart-contracts/.env || cp p2pix-smart-contracts/.env.example p2pix-smart-contracts/.env) && pushd p2pix-smart-contracts && bun install && popd",
     "prewagmi:gen": "bun run contracts:setup",
     "wagmi:gen": "wagmi generate"
   },
