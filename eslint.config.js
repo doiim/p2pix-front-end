@@ -1,14 +1,15 @@
 import pluginVue from 'eslint-plugin-vue';
-import vueTsConfig from '@vue/eslint-config-typescript';
+import { defineConfigWithVueTs, vueTsConfigs } from '@vue/eslint-config-typescript';
 import vuePrettierConfig from '@vue/eslint-config-prettier';
 
 const sources = ['src/**/*.{ts,tsx,vue,js,mjs,cjs}', 'tests/**/*.{ts,tsx,vue,js,mjs,cjs}'];
 
-export default [
-  { ignores: ['src/generated.ts'] },
-  ...pluginVue.configs['flat/essential'].map((c) => ({ ...c, files: sources })),
-  ...vueTsConfig().map((c) => ({ ...c, files: sources })),
-  { ...vuePrettierConfig, files: sources },
+export default defineConfigWithVueTs(
+  { ignores: ['src/generated.ts', 'dist/**', 'node_modules/**'] },
+  {
+    files: sources,
+    extends: [pluginVue.configs['flat/essential'], vueTsConfigs.recommended],
+  },
   {
     files: sources,
     rules: {
@@ -26,4 +27,5 @@ export default [
       '@typescript-eslint/no-explicit-any': 'warn',
     },
   },
-];
+  { ...vuePrettierConfig, files: sources },
+);
