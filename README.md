@@ -3,13 +3,6 @@
 </p>
 <br />
 
-<center>
-
-[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=liftlearning_P2Pix-Front-End&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=liftlearning_P2Pix-Front-End)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=liftlearning_P2Pix-Front-End&metric=coverage)](https://sonarcloud.io/summary/new_code?id=liftlearning_P2Pix-Front-End)
-
-</center>
-
 This application aims to create a democratic and secure solution for the purchase and sale of ERC20 tokens, through the PIX, integrating the functionalities of smart contracts (smart contracts) of the blockchain with a receipt by digital signature. Allowing the integration of national financial system transactions to public blockchains, dispensing with custody through intermediaries.
 
 # Table of Contents
