@@ -2,30 +2,18 @@ import pluginVue from 'eslint-plugin-vue';
 import vueTsConfig from '@vue/eslint-config-typescript';
 import vuePrettierConfig from '@vue/eslint-config-prettier';
 
+const sources = ['src/**/*.{ts,tsx,vue,js,mjs,cjs}', 'tests/**/*.{ts,tsx,vue,js,mjs,cjs}'];
+
 export default [
+  { ignores: ['src/generated.ts'] },
+  ...pluginVue.configs['flat/essential'].map((c) => ({ ...c, files: sources })),
+  ...vueTsConfig().map((c) => ({ ...c, files: sources })),
+  { ...vuePrettierConfig, files: sources },
   {
-    ignores: [
-      '**',
-      '!src/**',
-      '!tests/**',
-      'src/generated.ts',
-    ],
-  },
-  ...pluginVue.configs['flat/essential'],
-  ...vueTsConfig(),
-
-  // 1. Mantemos a config base do Prettier
-  vuePrettierConfig,
-
-  {
+    files: sources,
     rules: {
-      // 2. Forçamos o ESLint a exigir aspas simples
       quotes: ['error', 'single', { avoidEscape: true }],
-
-      // 3. IMPORTANTÍSSIMO: Forçamos o PRETTIER a também usar aspas simples
-      // Isso evita que um atropele o outro
       'prettier/prettier': ['error', { singleQuote: true }],
-
       '@typescript-eslint/no-unused-vars': [
         'warn',
         {
