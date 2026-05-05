@@ -5,12 +5,9 @@ import vuePrettierConfig from '@vue/eslint-config-prettier';
 export default [
   {
     ignores: [
-      'node_modules/**',
-      'dist/**',
-      'coverage/**',
-      'public/**',
-      'p2pix-smart-contracts/**',
-      'vendor/**',
+      '**',
+      '!src/**',
+      '!tests/**',
       'src/generated.ts',
     ],
   },

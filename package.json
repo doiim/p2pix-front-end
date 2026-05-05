@@ -8,8 +8,8 @@
     "build-only": "vite build",
     "preview": "vite preview",
     "type-check": "vue-tsc --skipLibCheck --noEmit",
-    "lint": "eslint src tests --no-error-on-unmatched-pattern",
-    "lint:fix": "eslint src tests --fix --no-error-on-unmatched-pattern",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,vue,json}\"",
     "wagmi:gen": "wagmi generate"
