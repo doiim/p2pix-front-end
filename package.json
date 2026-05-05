@@ -13,9 +13,9 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,vue,json}\"",
-    "contracts:setup": "pushd p2pix-smart-contracts && bun install && ([ -f .env ] || echo 'ALCHEMY_API_KEY=placeholder' > .env) && popd",
+    "contracts:setup": "pushd p2pix-smart-contracts && bun install && cp -n .env.example .env || true && popd",
     "prewagmi:gen": "bun run contracts:setup",
-    "wagmi:gen": "bun ./node_modules/@wagmi/cli/dist/esm/cli.js generate"
+    "wagmi:gen": "wagmi generate"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
