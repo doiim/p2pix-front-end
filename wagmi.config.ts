@@ -1,5 +1,4 @@
 import { defineConfig } from '@wagmi/cli';
-import { actions } from '@wagmi/cli/plugins';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 
@@ -28,5 +27,4 @@ export default defineConfig({
       abi: loadAbi('lib/mock/mockToken.sol/MockToken.json') as never,
     },
   ],
-  plugins: [actions()],
 });
