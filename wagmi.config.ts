@@ -16,7 +16,7 @@ const loadAbi = (relPath: string) => {
 };
 
 export default defineConfig({
-  out: 'src/generated.ts',
+  out: 'src/blockchain/abi.ts',
   contracts: [
     { name: 'P2Pix', abi: loadAbi('p2pix.sol/P2PIX.json') as never },
     {

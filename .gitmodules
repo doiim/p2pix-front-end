@@ -5,4 +5,4 @@
 [submodule "zkPix"]
 	path = zkPix
 	url = https://git.p2pix.co/doiim/zkPix.git
-	branch = feat/fake-bb-sandbox
+	branch = dev

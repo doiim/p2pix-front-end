@@ -3,7 +3,7 @@ import { formatEther, toHex, stringToHex } from 'viem';
 import type { PublicClient, Address } from 'viem';
 import { Networks } from '@/config/networks';
 import { getContract } from './provider';
-import { p2PixAbi } from '@/generated';
+import { p2PixAbi } from './abi';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { NetworkConfig } from '@/model/NetworkEnum';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';

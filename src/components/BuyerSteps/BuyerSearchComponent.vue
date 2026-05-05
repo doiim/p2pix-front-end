@@ -12,7 +12,7 @@ import { onClickOutside } from '@vueuse/core';
 import { Networks } from '@/config/networks';
 import { TokenEnum } from '@/model/NetworkEnum';
 import { getContract } from '@/blockchain/provider';
-import { reputationAbi } from '@/generated';
+import { reputationAbi } from '@/blockchain/abi';
 import { type Address } from 'viem';
 
 // Store reference

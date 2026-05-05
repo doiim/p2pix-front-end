@@ -1,4 +1,4 @@
-import { p2PixAbi } from '@/generated';
+import { p2PixAbi } from './abi';
 import { updateWalletStatus } from './wallet';
 import {
   createPublicClient,
