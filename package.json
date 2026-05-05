@@ -3,6 +3,7 @@
   "version": "1.2.0",
   "type": "module",
   "scripts": {
+    "prestart": "bun run wagmi:gen",
     "start": "vite --host=0.0.0.0 --port 3000",
     "build": "bun run type-check && bun run build-only",
     "preview": "vite preview",
@@ -11,7 +12,10 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
-    "format:check": "prettier --check \"src/**/*.{ts,vue,json}\""
+    "format:check": "prettier --check \"src/**/*.{ts,vue,json}\"",
+    "contracts:compile": "cd p2pix-smart-contracts && bun install && bunx hardhat compile",
+    "prewagmi:gen": "bun run contracts:compile",
+    "wagmi:gen": "bun ./node_modules/@wagmi/cli/dist/esm/cli.js generate"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
