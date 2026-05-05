@@ -59,13 +59,16 @@ See [Vite Configuration Reference](https://vitejs.dev/config/).
 
 ## Dependencies
 
-### API
-For full operation of the application, it is necessary to correctly configure the variable that points to the api in the .env file, in the repository there is an .env.example file, just rename it to just .env and modify the variable `VITE_API_URL`. The api can be run locally see [https://github.com/liftlearning/Pix-Explorer-Back-End](https://github.com/liftlearning/Pix-Explorer-Back-End), or it can be pointed to just her staging address: [https://p2pix-block-explorer-api-staging.vercel.app/](https://p2pix-block-explorer-api-staging.vercel.app/)
+### API + RPC
 
-### Alchemy Keys
-In the .env file, set `VITE_GOERLI_API_URL=https://eth-goerli.g.alchemy.com/v2/Zu9m4b2U_EzVU_zd-vgZDOleY8OF1DNP` and `VITE_MUMBAI_API_URL=https://polygon-mumbai.g.alchemy.com/v2/ZANeCqfj6VsXGpOH6gWAP6SIVIgD9Pwv`
+Copy `.env.example` to `.env` and set the per-network variables:
 
-You can also replace it with your own Alchemy Keys if you have one.
+| Var | Purpose |
+|---|---|
+| `VITE_APP_API_URL` | zkPix middleware base URL (default `http://localhost:3001`) |
+| `VITE_SEPOLIA_API_URL`, `VITE_MAINNET_API_URL`, `VITE_RSK_API_URL` | RPC endpoints per network (Alchemy, Infura, public RPC) |
+| `VITE_SEPOLIA_TOKEN_ADDRESS`, `VITE_MAINNET_TOKEN_ADDRESS`, `VITE_RSK_TOKEN_ADDRESS` | BRZ token address per network |
+| `VITE_SEPOLIA_SUBGRAPH_URL`, `VITE_MAINNET_SUBGRAPH_URL`, `VITE_RSK_SUBGRAPH_URL` | The Graph subgraph endpoints |
 
 ## Build Setup
 
@@ -74,12 +77,8 @@ The application can be tested by its trial version [https://p2pix-staging.vercel
 ### Run with bun
 
 ```sh
-# Clone the repo WITH submodules (smart contracts live in p2pix-smart-contracts/)
-git clone --recurse-submodules https://github.com/liftlearning/P2Pix-Front-End
-cd P2Pix-Front-End
-
-# (If you cloned without --recurse-submodules, run this once)
-git submodule update --init --recursive
+# Pull the smart-contracts submodule (skip if you cloned with --recurse-submodules)
+git submodule update --init
 
 # Install front-end dependencies
 bun install
@@ -102,14 +101,12 @@ bun run lint
 ### Run with docker-compose
 
 ```sh
-# Clone the repo WITH submodules
-git clone --recurse-submodules https://github.com/liftlearning/P2Pix-Front-End
-cd P2Pix-Front-End
+# Pull the smart-contracts submodule (skip if you cloned with --recurse-submodules)
+git submodule update --init
 
 #1. Install [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/);
 #2. Install [Docker Compose](https://docs.docker.com/compose/install/).
 
-# Run docker-compose up command
 docker-compose up
 ```
 
