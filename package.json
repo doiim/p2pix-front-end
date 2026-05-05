@@ -12,7 +12,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,vue,json}\"",
-    "wagmi:gen": "(test -f p2pix-smart-contracts/.env || cp p2pix-smart-contracts/.env.example p2pix-smart-contracts/.env) && pushd p2pix-smart-contracts && bun install && popd && wagmi generate"
+    "wagmi:gen": "pushd p2pix-smart-contracts && bun install && popd && wagmi generate"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
