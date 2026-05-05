@@ -13,8 +13,8 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,vue,json}\"",
-    "contracts:compile": "pushd p2pix-smart-contracts && bun install && ALCHEMY_API_KEY=placeholder MNEMONIC='test test test test test test test test test test test junk' bunx hardhat compile && popd",
-    "prewagmi:gen": "bun run contracts:compile",
+    "contracts:setup": "pushd p2pix-smart-contracts && bun install && ([ -f .env ] || echo 'ALCHEMY_API_KEY=placeholder' > .env) && popd",
+    "prewagmi:gen": "bun run contracts:setup",
     "wagmi:gen": "bun ./node_modules/@wagmi/cli/dist/esm/cli.js generate"
   },
   "dependencies": {
