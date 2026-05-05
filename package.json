@@ -13,7 +13,7 @@
     "lint:fix": "eslint . --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,vue,json}\"",
-    "contracts:compile": "cd p2pix-smart-contracts && bun install && bunx hardhat compile",
+    "contracts:compile": "cd p2pix-smart-contracts && bun install && ALCHEMY_API_KEY=placeholder MNEMONIC='test test test test test test test test test test test junk' bunx hardhat compile",
     "prewagmi:gen": "bun run contracts:compile",
     "wagmi:gen": "bun ./node_modules/@wagmi/cli/dist/esm/cli.js generate"
   },

@@ -1,6 +1,6 @@
 import { getContract, getPublicClient, getWalletClient } from './provider';
 import { parseEther, toHex, ChainContract } from 'viem';
-import { mockTokenAbi } from './abi';
+import { mockTokenAbi } from '@/generated';
 import { useUser } from '@/composables/useUser';
 import { createParticipant } from '@/utils/bbPay';
 import type { Participant } from '@/utils/bbPay';
