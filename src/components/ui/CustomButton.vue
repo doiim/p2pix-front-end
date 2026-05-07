@@ -1,6 +1,6 @@
 <script setup lang="ts">
-export type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
-export type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
+type ButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type ButtonSize = 'sm' | 'md' | 'lg' | 'xl';
 
 const props = withDefaults(
   defineProps<{

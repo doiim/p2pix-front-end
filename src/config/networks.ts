@@ -29,6 +29,7 @@ export const Networks: { [key: string]: NetworkConfig } = {
   },
 };
 
+/** @public */
 export const NetworksTestnet: { [key: string]: NetworkConfig } = {
   sepolia: {
     ...sepolia,

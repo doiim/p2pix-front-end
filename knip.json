@@ -1,0 +1,22 @@
+{
+  "$schema": "https://unpkg.com/knip@latest/schema.json",
+  "entry": [
+    "src/router/index.ts",
+    "index.html",
+    "wagmi.config.ts"
+  ],
+  "project": [
+    "src/**/*.{ts,vue}",
+    "*.config.{ts,js}"
+  ],
+  "ignore": [
+    "p2pix-smart-contracts/**",
+    ".claude/**",
+    "babel.config.js"
+  ],
+  "ignoreUnresolved": [
+    "./abi",
+    "@/blockchain/abi"
+  ],
+  "tags": ["public"]
+}

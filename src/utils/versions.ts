@@ -19,10 +19,6 @@ export function getLatestVersion(): AppVersion | null {
   return appVersions.length > 0 ? appVersions[0] : null;
 }
 
-export function getVersionByTag(tag: string): AppVersion | null {
-  return appVersions.find((v) => v.tag === tag) || null;
-}
-
 export function getIpfsUrl(ipfsHash: string): string {
   return `https://${ipfsHash}.ipfs.dweb.link`;
 }

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-export type IconButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
-export type IconButtonSize = 'sm' | 'md' | 'lg';
-export type IconPosition = 'left' | 'right';
+type IconButtonVariant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type IconButtonSize = 'sm' | 'md' | 'lg';
+type IconPosition = 'left' | 'right';
 
 const props = withDefaults(
   defineProps<{

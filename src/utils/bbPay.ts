@@ -9,7 +9,7 @@ export interface Participant {
   savingsVariation?: string;
 }
 
-export interface ParticipantWithID extends Participant {
+interface ParticipantWithID extends Participant {
   id: string;
 }
 

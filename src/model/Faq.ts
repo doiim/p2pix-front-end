@@ -1,11 +1,11 @@
 export type Faq = Section[];
 
-export type Section = {
+type Section = {
   name: string;
   items: Question[];
 };
 
-export type Question = {
+type Question = {
   title: string;
   content: string;
   isOpen?: boolean;
