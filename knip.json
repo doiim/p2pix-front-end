@@ -11,7 +11,6 @@
   ],
   "ignore": [
     "p2pix-smart-contracts/**",
-    ".claude/**",
     "babel.config.js"
   ],
   "ignoreUnresolved": [
