@@ -113,7 +113,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
     <form ref="formRef" @submit="handleSubmit" class="main-container">
       <!-- Offer input -->
       <div
-        class="flex justify-between items-center w-full bg-white sm:px-10 px-6 py-5 rounded-lg border-y-10 gap-4"
+        class="flex justify-between items-center w-full bg-white sm:px-10 px-6 py-5 rounded-lg gap-4"
       >
         <input
           type="number"
@@ -186,7 +186,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
       </div>
       <!-- CPF or CNPJ input -->
       <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg border-y-10"
+        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
       >
         <input
           type="text"
@@ -201,7 +201,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
       </div>
       <!-- Bank selection -->
       <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg border-y-10"
+        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
       >
         <div class="relative">
           <input
@@ -236,7 +236,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
       </div>
       <!-- Account and Branch inputs -->
       <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg border-y-10"
+        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
       >
         <div class="flex gap-4">
           <div class="flex-1">
@@ -263,7 +263,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
       </div>
       <!-- Account Type Selection -->
       <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg border-y-10"
+        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
       >
         <div class="flex gap-4">
           <div class="flex-1">
@@ -287,7 +287,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
           v-if="accountType === '2'"
           type="text"
           v-model="savingsVariation"
-          class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full bg-white sm:px-10 px-6 py-4 rounded-lg border-y-10"
+          class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
           :class="{ 'text-xl font-medium': savingsVariation }"
           placeholder="Variação da poupança"
           required
