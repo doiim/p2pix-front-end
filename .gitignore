@@ -14,6 +14,8 @@ dist-ssr
 coverage
 *.local
 vendor/
+.dagrobin
+.claude
 
 /cypress/videos/
 /cypress/screenshots/

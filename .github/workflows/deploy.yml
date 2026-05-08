@@ -1,0 +1,123 @@
+name: Deploy to IPFS
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container: oven/bun:1-alpine
+    steps:
+      - name: Install required tools
+        run: apk add --no-cache git
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build SPA
+        run: bun run build-only
+
+      - name: Upload dist artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+          retention-days: 1
+
+  deploy-rsync:
+    needs: build
+    runs-on: ubuntu-latest
+    container: oven/bun:1-alpine
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Deploy via RSYNC
+        uses: up9cloud/action-rsync@v1
+        env:
+          USER: ${{ secrets.SSH_USER }}
+          HOST: ${{ secrets.SSH_HOST }}
+          KEY: ${{ secrets.SSH_KEY }}
+          SOURCE: dist/
+          TARGET: ${{ github.ref_name }}
+
+  deploy-ipfs:
+    needs: build
+    runs-on: ubuntu-latest
+    container: oven/bun:1-alpine
+    outputs:
+      cid: ${{ steps.ipfs.outputs.cid }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Deploy to IPFS
+        uses: ipshipyard/ipfs-deploy-action@v1
+        id: ipfs
+        with:
+          path-to-deploy: dist
+          set-github-status: false
+          set-pr-comment: false
+          kubo-api-url: ${{ secrets.KUBO_API_URL }}
+          kubo-api-auth: ${{ secrets.KUBO_API_AUTH }}
+          upload-car-artifact: false
+
+  deploy-pinata:
+    needs: [deploy-ipfs, deploy-rsync]
+    runs-on: ubuntu-latest
+    container: oven/bun:1-alpine
+    steps:
+      - name: Install required tools
+        run: apk add --no-cache bash curl jq git
+
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: package.json
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install Pinata CLI
+        run: curl -fsSL https://cli.pinata.cloud/install | bash
+
+      - name: Authenticate Pinata CLI
+        env:
+          PINATA_JWT: ${{ secrets.PINATA_JWT }}
+        run: echo -n "$PINATA_JWT" > ~/.pinata-files-cli
+
+      - name: Upload to Pinata
+        env:
+          PINATA_GROUP: ${{ secrets.PINATA_GROUP }}
+          IPFS_CID: ${{ needs.deploy-ipfs.outputs.cid }}
+        run: |
+          export PATH="$HOME/.local/share/pinata/:$PATH"
+          VERSION=$(jq -r .version package.json)
+          UPLOAD_JSON=$(pinata upload --group "$PINATA_GROUP" --name "p2pix_${VERSION}" ./dist)
+          CID=$(echo "$UPLOAD_JSON" | jq -r .cid)
+          if [ -z "$CID" ] || [ "$CID" = "null" ]; then
+            echo "Error: Could not parse CID. Output: $UPLOAD_JSON"
+            exit 1
+          fi
+          {
+            echo "## Deploy Summary"
+            echo "- IPFS CID (kubo): \`$IPFS_CID\`"
+            echo "- Pinata CID: \`$CID\`"
+            echo "- Version: \`$VERSION\`"
+          } >> "$GITHUB_STEP_SUMMARY"

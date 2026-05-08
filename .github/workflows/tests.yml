@@ -1,0 +1,28 @@
+name: Tests
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: tests-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    container: oven/bun:1-alpine
+    steps:
+      - name: Install required tools
+        run: apk add --no-cache git
+
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Unit tests (vitest)
+        run: bunx vitest run --passWithNoTests
+
