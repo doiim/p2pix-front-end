@@ -27,9 +27,7 @@ const props = defineProps({
       >
     </div>
     <div class="main-container">
-      <div
-        class="flex flex-col w-full bg-white px-10 py-5 rounded-lg"
-      >
+      <div class="flex flex-col w-full bg-white px-10 py-5 rounded-lg">
         <div>
           <p>Tokens ofertados</p>
           <p class="text-2xl text-gray-900">

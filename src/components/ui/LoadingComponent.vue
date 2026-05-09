@@ -16,9 +16,7 @@ const props = defineProps({
       </span>
     </div>
     <div class="main-container max-w-md">
-      <div
-        class="flex flex-col w-full bg-white sm:px-10 px-4 py-5 rounded-lg"
-      >
+      <div class="flex flex-col w-full bg-white sm:px-10 px-4 py-5 rounded-lg">
         <div
           class="flex flex-col text-center justify-center w-full items-center p-2 px-3 rounded-3xl lg:min-w-fit gap-1"
         >

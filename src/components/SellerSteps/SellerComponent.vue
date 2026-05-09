@@ -185,9 +185,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
         </div>
       </div>
       <!-- CPF or CNPJ input -->
-      <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
-      >
+      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
         <input
           type="text"
           v-model="identification"
@@ -200,9 +198,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
         />
       </div>
       <!-- Bank selection -->
-      <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
-      >
+      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
         <div class="relative">
           <input
             type="text"
@@ -235,9 +231,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
         }}</span>
       </div>
       <!-- Account and Branch inputs -->
-      <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
-      >
+      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
         <div class="flex gap-4">
           <div class="flex-1">
             <input
@@ -262,9 +256,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
         </div>
       </div>
       <!-- Account Type Selection -->
-      <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
-      >
+      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
         <div class="flex gap-4">
           <div class="flex-1">
             <select

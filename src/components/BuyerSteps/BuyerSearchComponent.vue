@@ -251,9 +251,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
     </div>
     <form class="main-container" @submit="handleSubmit">
       <div class="backdrop-blur -z-10 w-full h-full"></div>
-      <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg"
-      >
+      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg">
         <div class="flex justify-between sm:w-full items-center">
           <input
             type="number"
@@ -386,9 +384,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
         </div>
       </div>
 
-      <div
-        class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
-      >
+      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
         <input
           type="text"
           v-model="identification"
