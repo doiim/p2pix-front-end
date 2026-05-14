@@ -15,23 +15,34 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
+    container: node:lts
     steps:
-      - name: Install required tools
-        run: apk add --no-cache git
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          submodules: recursive
+
+      - name: Install bun
+        run: npm install -g bun
+
+      - name: Install submodule deps (yarn 4 via corepack)
+        run: corepack enable && yarn --cwd p2pix-smart-contracts install --immutable
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Generate contract ABIs
+        env:
+          ALCHEMY_API_KEY: dummy
+        run: bun run wagmi:gen
 
       - name: Build SPA
         run: bun run build-only
 
       - name: Upload dist artifact
-        uses: actions/upload-artifact@v4
+        # v3 pinned: Gitea Actions does not implement the v4 cache API
+        # (the runner returns ECONNREFUSED on getCacheEntry).
+        uses: actions/upload-artifact@v3
         with:
           name: dist
           path: dist/
@@ -40,9 +51,9 @@ jobs:
   deploy-rsync:
     needs: build
     runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
+    container: node:lts
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v3
         with:
           name: dist
           path: dist/
@@ -59,11 +70,14 @@ jobs:
   deploy-ipfs:
     needs: build
     runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
+    container: node:lts
     outputs:
       cid: ${{ steps.ipfs.outputs.cid }}
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Install jq
+        run: apt-get update && apt-get install -y --no-install-recommends jq
+
+      - uses: actions/download-artifact@v3
         with:
           name: dist
           path: dist/
@@ -82,16 +96,16 @@ jobs:
   deploy-pinata:
     needs: [deploy-ipfs, deploy-rsync]
     runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
+    container: node:lts
     steps:
-      - name: Install required tools
-        run: apk add --no-cache bash curl jq git
+      - name: Install jq
+        run: apt-get update && apt-get install -y --no-install-recommends jq
 
       - uses: actions/checkout@v4
         with:
           sparse-checkout: package.json
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v3
         with:
           name: dist
           path: dist/
