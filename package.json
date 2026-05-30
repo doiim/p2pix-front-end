@@ -12,7 +12,10 @@
     "lint:fix": "eslint --fix",
     "format": "prettier --write \"src/**/*.{ts,vue,json}\"",
     "format:check": "prettier --check \"src/**/*.{ts,vue,json}\"",
-    "wagmi:gen": "wagmi generate"
+    "wagmi:gen": "wagmi generate",
+    "test": "vitest run --passWithNoTests",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
