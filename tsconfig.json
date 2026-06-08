@@ -7,7 +7,6 @@
     "scripts"
   ],
   "compilerOptions": {
-    "baseUrl": ".",
     "strict": true,
     "paths": {
       "@/*": [
