@@ -151,7 +151,7 @@ const getUnreleasedLockById = async (
 ): Promise<UnreleasedLock> => {
   const { address, abi, client } = await getContract();
 
-  const [, , , amount, token, seller] = await client.readContract({
+  const [, , , amount, token, , seller] = await client.readContract({
     address,
     abi,
     functionName: 'mapLocks',
