@@ -22,7 +22,7 @@ const openItem = (index: number) => {
   });
 
   faq.value[selectedSection.value].items[index].content = marked(
-    faq.value[selectedSection.value].items[index].content
+    faq.value[selectedSection.value].items[index].content,
   ) as string;
 };
 </script>
