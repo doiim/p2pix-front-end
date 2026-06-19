@@ -2,7 +2,7 @@ import { mainnet, sepolia, rootstock, rootstockTestnet } from 'viem/chains';
 import { NetworkConfig } from '@/model/NetworkEnum';
 // TODO: import addresses from p2pix-smart-contracts deployments
 
-export const Networks: { [key: string]: NetworkConfig } = {
+const NetworksMainnet: { [key: string]: NetworkConfig } = {
   mainnet: {
     ...mainnet,
     rpcUrls: { default: { http: [import.meta.env.VITE_MAINNET_API_URL] } },
@@ -30,7 +30,7 @@ export const Networks: { [key: string]: NetworkConfig } = {
 };
 
 /** @public */
-export const NetworksTestnet: { [key: string]: NetworkConfig } = {
+const NetworksTestnet: { [key: string]: NetworkConfig } = {
   sepolia: {
     ...sepolia,
     rpcUrls: { default: { http: [import.meta.env.VITE_SEPOLIA_API_URL] } },
@@ -57,4 +57,9 @@ export const NetworksTestnet: { [key: string]: NetworkConfig } = {
   },
 };
 
-export const DEFAULT_NETWORK = Networks.mainnet;
+export const Networks = import.meta.env.PROD
+  ? NetworksMainnet
+  : NetworksTestnet;
+export const DEFAULT_NETWORK = import.meta.env.PROD
+  ? Networks.mainnet
+  : Networks.sepolia;
