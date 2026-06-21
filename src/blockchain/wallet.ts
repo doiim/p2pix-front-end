@@ -1,4 +1,8 @@
-import { formatEther, type Address } from 'viem';
+import {
+  formatEther,
+  type Address,
+  type ContractFunctionParameters,
+} from 'viem';
 import { useUser } from '@/composables/useUser';
 
 import { getPublicClient, getWalletClient, getContract } from './provider';
@@ -378,22 +382,21 @@ export const getActiveLockAmount = async (
     args: [lockIds],
   });
 
-  const mapLocksRequests = status.map((id: LockStatus) =>
-    client.readContract({
-      address: address,
-      abi,
-      functionName: 'mapLocks',
-      args: [BigInt(id)],
-    }),
-  );
+  const mapLocksRequests = sortedIDs.map((id: bigint) => ({
+    address,
+    abi,
+    functionName: 'mapLocks',
+    args: [id],
+  }));
 
   const mapLocksResults = await client.multicall({
-    contracts: mapLocksRequests as any,
+    contracts: mapLocksRequests as ContractFunctionParameters[],
   });
 
   return mapLocksResults.reduce((total: number, lock: any, index: number) => {
     if (status[index] === 1) {
-      return total + Number(formatEther(lock.amount));
+      const [, , , amount] = lock.result;
+      return total + Number(formatEther(amount));
     }
     return total;
   }, 0);
