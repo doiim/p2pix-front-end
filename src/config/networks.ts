@@ -1,5 +1,5 @@
 import type { Address } from 'viem';
-import { mainnet, sepolia, rootstock, rootstockTestnet } from 'viem/chains';
+import { mainnet, sepolia, rootstock, rootstockTestnet, arbitrum } from 'viem/chains';
 import { NetworkConfig } from '@/model/NetworkEnum';
 const artifacts = import.meta.glob<Record<string, Address>>(
   './chain-*/deployed_addresses.json',
@@ -36,6 +36,18 @@ const NetworksMainnet: { [key: string]: NetworkConfig } = {
       BRZ: { address: import.meta.env.VITE_RSK_TOKEN_ADDRESS },
     },
     subgraphUrls: [import.meta.env.VITE_RSK_SUBGRAPH_URL],
+  },
+  arbitrum: {
+    ...arbitrum,
+    rpcUrls: { default: { http: [import.meta.env.VITE_ARBITRUM_API_URL] } },
+    contracts: {
+      ...arbitrum.contracts,
+      p2pix: { address: deployments(arbitrum.id)['P2PIX#P2PIX'] },
+    },
+    tokens: {
+      BRZ: { address: import.meta.env.VITE_ARBITRUM_TOKEN_ADDRESS },
+    },
+    subgraphUrls: [import.meta.env.VITE_ARBITRUM_SUBGRAPH_URL],
   },
 };
 
