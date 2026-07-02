@@ -1,6 +1,16 @@
+import type { Address } from 'viem';
 import { mainnet, sepolia, rootstock, rootstockTestnet } from 'viem/chains';
 import { NetworkConfig } from '@/model/NetworkEnum';
-// TODO: import addresses from p2pix-smart-contracts deployments
+const artifacts = import.meta.glob<Record<string, Address>>(
+  './chain-*/deployed_addresses.json',
+  {
+    eager: true,
+    import: 'default',
+    base: '/p2pix-smart-contracts/ignition/deployments',
+  },
+);
+const deployments = (id: number) =>
+  artifacts[`./chain-${id}/deployed_addresses.json`]!;
 
 const NetworksMainnet: { [key: string]: NetworkConfig } = {
   mainnet: {
@@ -8,7 +18,7 @@ const NetworksMainnet: { [key: string]: NetworkConfig } = {
     rpcUrls: { default: { http: [import.meta.env.VITE_MAINNET_API_URL] } },
     contracts: {
       ...mainnet.contracts,
-      p2pix: { address: import.meta.env.VITE_MAINNET_P2PIX_ADDRESS },
+      p2pix: { address: deployments(mainnet.id)['P2PIX#P2PIX'] },
     },
     tokens: {
       BRZ: { address: import.meta.env.VITE_MAINNET_TOKEN_ADDRESS },
@@ -36,10 +46,10 @@ const NetworksTestnet: { [key: string]: NetworkConfig } = {
     rpcUrls: { default: { http: [import.meta.env.VITE_SEPOLIA_API_URL] } },
     contracts: {
       ...sepolia.contracts,
-      p2pix: { address: import.meta.env.VITE_SEPOLIA_P2PIX_ADDRESS },
+      p2pix: { address: deployments(sepolia.id)['P2PIX#P2PIX'] },
     },
     tokens: {
-      BRZ: { address: import.meta.env.VITE_SEPOLIA_TOKEN_ADDRESS },
+      BRZ: { address: deployments(sepolia.id)['MockToken#MockToken'] },
     },
     subgraphUrls: [import.meta.env.VITE_SEPOLIA_SUBGRAPH_URL],
   },
@@ -48,10 +58,10 @@ const NetworksTestnet: { [key: string]: NetworkConfig } = {
     rpcUrls: { default: { http: [import.meta.env.VITE_RSK_API_URL] } },
     contracts: {
       ...rootstockTestnet.contracts,
-      p2pix: { address: import.meta.env.VITE_RSK_P2PIX_ADDRESS },
+      p2pix: { address: deployments(rootstockTestnet.id)['P2PIX#P2PIX'] },
     },
     tokens: {
-      BRZ: { address: import.meta.env.VITE_RSK_TOKEN_ADDRESS },
+      BRZ: { address: deployments(rootstockTestnet.id)['MockToken#MockToken'] },
     },
     subgraphUrls: [import.meta.env.VITE_RSK_SUBGRAPH_URL],
   },
