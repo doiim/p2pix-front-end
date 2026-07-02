@@ -1,5 +1,11 @@
 import type { Address } from 'viem';
-import { mainnet, sepolia, rootstock, rootstockTestnet, arbitrum } from 'viem/chains';
+import {
+  mainnet,
+  sepolia,
+  rootstock,
+  rootstockTestnet,
+  arbitrum,
+} from 'viem/chains';
 import { NetworkConfig } from '@/model/NetworkEnum';
 const artifacts = import.meta.glob<Record<string, Address>>(
   './chain-*/deployed_addresses.json',
