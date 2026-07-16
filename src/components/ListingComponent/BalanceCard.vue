@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import type { ValidDeposit } from '@/model/ValidDeposit';
-import { ref, watch, onMounted, computed } from 'vue';
+import { ref, watch, computed } from 'vue';
 import { debounce } from '@/utils/debounce';
 import { decimalCount } from '@/utils/decimalCount';
-import { useFloating, arrow, offset, flip, shift } from '@floating-ui/vue';
 import IconButton from '../ui/IconButton.vue';
 import withdrawIcon from '@/assets/withdraw.svg?url';
 
@@ -22,12 +21,6 @@ const isCollapsibleOpen = ref<boolean>(false);
 const validDecimals = ref<boolean>(true);
 const validWithdrawAmount = ref<boolean>(true);
 const enableConfirmButton = ref<boolean>(false);
-const showInfoTooltip = ref<boolean>(false);
-const floatingArrow = ref(null);
-
-const reference = ref<HTMLElement | null>(null);
-const floating = ref<HTMLElement | null>(null);
-const infoText = ref<HTMLElement | null>(null);
 
 const remaining = computed(() => {
   if (props.validDeposits.length > 0) {
@@ -76,18 +69,6 @@ const cancelWithdraw = () => {
   validWithdrawAmount.value = true;
   enableConfirmButton.value = false;
 };
-
-onMounted(() => {
-  useFloating(reference, floating, {
-    placement: 'right',
-    middleware: [
-      offset(10),
-      flip(),
-      shift(),
-      arrow({ element: floatingArrow }),
-    ],
-  });
-});
 </script>
 
 <template>
@@ -104,23 +85,15 @@ onMounted(() => {
           <span class="text-xs font-normal text-gray-400" ref="infoText">
             {{ `com ${activeLockAmount.toFixed(2)} ${selectedToken} em lock` }}
           </span>
-          <div
-            class="absolute mt-[2px] md-view"
-            :style="{ left: `${(infoText?.clientWidth ?? 108) + 4}px` }"
-          >
+          <div class="absolute mt-[2px] md-view group">
             <img
               alt="info image"
               src="@/assets/info.svg?url"
               aria-describedby="tooltip"
-              ref="reference"
-              @mouseover="showInfoTooltip = true"
-              @mouseout="showInfoTooltip = false"
             />
             <div
               role="tooltip"
-              ref="floating"
-              class="w-56 z-50 tooltip md-view"
-              v-if="showInfoTooltip"
+              class="w-56 z-50 tooltip md-view hidden group-hover:block"
             >
               Valor "em lock" significa que a quantia está aguardando
               confirmação de compra e só estará disponível para saque caso a
