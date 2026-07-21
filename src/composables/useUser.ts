@@ -84,13 +84,6 @@ export function useUser() {
     sellerId.value = id;
   };
 
-  // Getters become computed or regular functions
-  const getValidDepositByWalletAddress = (address: string) => {
-    return depositsValidList.value
-      .filter((deposit) => deposit.seller == address)
-      .sort((a, b) => b.blockNumber - a.blockNumber);
-  };
-
   return {
     // State
     walletAddress,
@@ -118,8 +111,5 @@ export function useUser() {
     setLoadingNetworkLiquidity,
     setSeller,
     setSellerId,
-
-    // Getters
-    getValidDepositByWalletAddress,
   };
 }
