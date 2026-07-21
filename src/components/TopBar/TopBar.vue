@@ -3,7 +3,7 @@ import { ref, watch } from 'vue';
 import { useUser } from '@/composables/useUser';
 import { onClickOutside } from '@vueuse/core';
 import { getNetworkImage } from '@/utils/imagesPath';
-import { Networks } from '@/config/networks';
+import { Networks, DEFAULT_NETWORK } from '@/config/networks';
 import { useOnboard } from '@web3-onboard/vue';
 
 import ChevronDown from '@/assets/chevronDown.svg';
@@ -11,7 +11,6 @@ import TwitterIcon from '@/assets/twitterIcon.svg';
 import LinkedinIcon from '@/assets/linkedinIcon.svg';
 import GithubIcon from '@/assets/githubIcon.svg';
 import { connectProvider } from '@/blockchain/provider';
-import { DEFAULT_NETWORK } from '@/config/networks';
 import type { NetworkConfig } from '@/model/NetworkEnum';
 
 interface MenuOption {
@@ -52,18 +51,14 @@ watch(connectedWallet, async (newVal: any) => {
 });
 
 watch(connectedChain, (newVal: any) => {
-  // Check if connected chain is valid, otherwise default to Sepolia
-  if (
-    !newVal ||
-    !Object.values(Networks).some((network) => network.id === Number(newVal.id))
-  ) {
+  if (newVal && Networks.some((n) => n.id === Number(newVal.id))) {
+    user.setNetworkById(Number(newVal.id));
+  } else {
     console.log(
       'Invalid or unsupported network detected, defaulting to Sepolia',
     );
     user.setNetwork(DEFAULT_NETWORK);
-    return;
   }
-  user.setNetworkById(newVal?.id);
 });
 
 const formatWalletAddress = (): string => {

@@ -220,7 +220,7 @@ watch(walletAddress, (): void => {
 
 const availableNetworks = computed(() => {
   if (!selectedDeposits.value) return [];
-  return Object.values(Networks).filter((network) =>
+  return Networks.filter((network) =>
     selectedDeposits.value?.some((d) => d.network.id === network.id),
   );
 });

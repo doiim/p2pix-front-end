@@ -3,11 +3,11 @@ import type { WalletTransaction } from '@/model/WalletTransaction';
 import { TokenEnum } from '@/model/NetworkEnum';
 import { computed } from 'vue';
 import StatusBadge, { type StatusType } from '../ui/StatusBadge.vue';
-import { Networks } from '@/config/networks';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 
 const props = defineProps<{
   transaction: WalletTransaction;
-  networkName: keyof typeof Networks;
+  network: NetworkConfig;
   selectedToken: TokenEnum;
 }>();
 
@@ -29,8 +29,7 @@ const eventName = computed(() => {
 });
 
 const explorerName = computed(() => {
-  return Networks[(props.networkName as string).toLowerCase()].blockExplorers
-    ?.default.name;
+  return props.network.blockExplorers?.default.name;
 });
 
 const statusType = computed((): StatusType => {

@@ -15,7 +15,7 @@ const getNetworksLiquidity = async (): Promise<void> => {
 
   const depositLists: ValidDeposit[][] = [];
 
-  for (const network of Object.values(Networks)) {
+  for (const network of Networks) {
     const deposits = await getValidDeposits(
       user.network.value.tokens[user.selectedToken.value].address,
       network,

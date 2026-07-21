@@ -35,22 +35,8 @@ export function useUser() {
     network.value = chain;
   };
 
-  const setNetworkById = (id: string | number) => {
-    let chainId: number;
-
-    if (typeof id === 'string') {
-      // Parse hex string or number string to number
-      if (id.startsWith('0x')) {
-        chainId = parseInt(id, 16);
-      } else {
-        chainId = parseInt(id, 10);
-      }
-    } else {
-      chainId = id;
-    }
-
-    // Find network by chain ID
-    const chain = Object.values(Networks).find((n) => n.id === chainId);
+  const setNetworkById = (id: number) => {
+    const chain = Networks.find((n) => n.id === id);
     if (chain) {
       network.value = chain;
     }

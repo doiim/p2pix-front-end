@@ -1,4 +1,4 @@
-import type { Address } from 'viem';
+import type { Address, Chain } from 'viem';
 import {
   mainnet,
   sepolia,
@@ -7,6 +7,7 @@ import {
   arbitrum,
 } from 'viem/chains';
 import { NetworkConfig } from '@/model/NetworkEnum';
+
 const artifacts = import.meta.glob<Record<string, Address>>(
   './chain-*/deployed_addresses.json',
   {
@@ -18,76 +19,50 @@ const artifacts = import.meta.glob<Record<string, Address>>(
 const deployments = (id: number) =>
   artifacts[`./chain-${id}/deployed_addresses.json`]!;
 
-const NetworksMainnet: { [key: string]: NetworkConfig } = {
-  mainnet: {
+const p2pix = (chain: Chain) => ({
+  p2pix: { address: deployments(chain.id)['P2PIX#P2PIX'] },
+});
+
+const prodNetworks: NetworkConfig[] = [
+  {
     ...mainnet,
     rpcUrls: { default: { http: [import.meta.env.VITE_MAINNET_API_URL] } },
-    contracts: {
-      ...mainnet.contracts,
-      p2pix: { address: deployments(mainnet.id)['P2PIX#P2PIX'] },
-    },
-    tokens: {
-      BRZ: { address: import.meta.env.VITE_MAINNET_TOKEN_ADDRESS },
-    },
+    contracts: { ...mainnet.contracts, ...p2pix(mainnet) },
+    tokens: { BRZ: { address: import.meta.env.VITE_MAINNET_TOKEN_ADDRESS } },
     subgraphUrls: [import.meta.env.VITE_MAINNET_SUBGRAPH_URL],
   },
-  rootstock: {
-    ...rootstock,
-    rpcUrls: { default: { http: [import.meta.env.VITE_RSK_API_URL] } },
-    contracts: {
-      ...rootstock.contracts,
-      p2pix: { address: import.meta.env.VITE_RSK_P2PIX_ADDRESS },
-    },
-    tokens: {
-      BRZ: { address: import.meta.env.VITE_RSK_TOKEN_ADDRESS },
-    },
-    subgraphUrls: [import.meta.env.VITE_RSK_SUBGRAPH_URL],
-  },
-  arbitrum: {
+  {
     ...arbitrum,
     rpcUrls: { default: { http: [import.meta.env.VITE_ARBITRUM_API_URL] } },
-    contracts: {
-      ...arbitrum.contracts,
-      p2pix: { address: deployments(arbitrum.id)['P2PIX#P2PIX'] },
-    },
-    tokens: {
-      BRZ: { address: import.meta.env.VITE_ARBITRUM_TOKEN_ADDRESS },
-    },
+    contracts: { ...arbitrum.contracts, ...p2pix(arbitrum) },
+    tokens: { BRZ: { address: import.meta.env.VITE_ARBITRUM_TOKEN_ADDRESS } },
     subgraphUrls: [import.meta.env.VITE_ARBITRUM_SUBGRAPH_URL],
   },
-};
+];
 
-/** @public */
-const NetworksTestnet: { [key: string]: NetworkConfig } = {
-  sepolia: {
+const testNetworks: NetworkConfig[] = [
+  {
     ...sepolia,
     rpcUrls: { default: { http: [import.meta.env.VITE_SEPOLIA_API_URL] } },
-    contracts: {
-      ...sepolia.contracts,
-      p2pix: { address: deployments(sepolia.id)['P2PIX#P2PIX'] },
-    },
+    contracts: { ...sepolia.contracts, ...p2pix(sepolia) },
     tokens: {
       BRZ: { address: deployments(sepolia.id)['MockToken#MockToken'] },
     },
     subgraphUrls: [import.meta.env.VITE_SEPOLIA_SUBGRAPH_URL],
   },
-  rootstockTestnet: {
+  {
     ...rootstockTestnet,
     rpcUrls: { default: { http: [import.meta.env.VITE_RSK_API_URL] } },
-    contracts: {
-      ...rootstockTestnet.contracts,
-      p2pix: { address: deployments(rootstockTestnet.id)['P2PIX#P2PIX'] },
-    },
+    contracts: { ...rootstockTestnet.contracts, ...p2pix(rootstockTestnet) },
     tokens: {
       BRZ: { address: deployments(rootstockTestnet.id)['MockToken#MockToken'] },
     },
     subgraphUrls: [import.meta.env.VITE_RSK_SUBGRAPH_URL],
   },
-};
+];
 
-export const Networks = import.meta.env.PROD
-  ? NetworksMainnet
-  : NetworksTestnet;
-export const DEFAULT_NETWORK = import.meta.env.PROD
-  ? Networks.mainnet
-  : Networks.sepolia;
+export const Networks: NetworkConfig[] = import.meta.env.PROD
+  ? prodNetworks
+  : testNetworks;
+
+export const DEFAULT_NETWORK = Networks[0];

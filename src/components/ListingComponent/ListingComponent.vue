@@ -80,7 +80,7 @@ showInitialItems();
       :key="item.blockNumber"
       :selected-token="user.selectedToken.value"
       :transaction="item"
-      :network-name="user.network.value.name"
+      :network="user.network.value"
       @open-explorer="openEtherscanUrl"
     />
 
