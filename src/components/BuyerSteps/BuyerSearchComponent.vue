@@ -9,11 +9,14 @@ import type { ValidDeposit } from '@/model/ValidDeposit';
 import { decimalCount } from '@/utils/decimalCount';
 import { getTokenImage, getNetworkImage } from '@/utils/imagesPath';
 import { onClickOutside } from '@vueuse/core';
-import { Networks } from '@/config/networks';
+import { env } from '@/config/env';
+import { buildNetworks } from '@/config/networks';
 import { TokenEnum } from '@/model/NetworkEnum';
 import { getContract } from '@/blockchain/provider';
 import { reputationAbi } from '@/blockchain/abi';
 import { type Address } from 'viem';
+
+const { networks: Networks } = buildNetworks(env);
 
 // Store reference
 const user = useUser();

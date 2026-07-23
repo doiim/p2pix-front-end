@@ -23,17 +23,12 @@ vi.mock('@/blockchain/aaAccount', () => ({
 }));
 vi.mock('@/config/env', () => ({
   env: {
+    local: { p2pix: undefined },
     passkey: {
       accountKind: 'kernel',
       pimlicoApiKey: 'test-key',
     },
   },
-}));
-vi.mock('@/config/passkey', () => ({
-  passkeyAccountKind: 'kernel',
-  passkeyIsLocal: false,
-  resolvePasskeyChain: vi.fn(),
-  resolvePasskeyRpcUrl: vi.fn(),
 }));
 vi.mock('@/composables/useUser', () => ({
   useUser: () => ({
@@ -59,7 +54,7 @@ describe('passkey sweep paymaster safety', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getActiveAaContext.mockResolvedValue({
-      client: {},
+      erc20Client: {},
       network: {
         aa: { paymasterPolicies: { paidOperations: { token: FEE_TOKEN } } },
       },

@@ -2,12 +2,14 @@ import { ref } from 'vue';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { Participant } from '../utils/bbPay';
 import type { Address } from 'viem';
-import { DEFAULT_NETWORK, Networks } from '@/config/networks';
+import { env } from '@/config/env';
+import { buildNetworks } from '@/config/networks';
 import { TokenEnum, NetworkConfig } from '@/model/NetworkEnum';
 
+const { networks: configuredNetworks, defaultNetwork } = buildNetworks(env);
 const walletAddress = ref<Address | null>(null);
 const balance = ref('');
-const network = ref(DEFAULT_NETWORK);
+const network = ref(defaultNetwork);
 const selectedToken = ref<TokenEnum>(TokenEnum.BRZ);
 const loadingLock = ref(false);
 const sellerView = ref(false);
@@ -50,7 +52,7 @@ export function useUser() {
     }
 
     // Find network by chain ID
-    const chain = Object.values(Networks).find((n) => n.id === chainId);
+    const chain = Object.values(configuredNetworks).find((n) => n.id === chainId);
     if (chain) {
       network.value = chain;
     }

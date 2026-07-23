@@ -3,7 +3,10 @@ import type { WalletTransaction } from '@/model/WalletTransaction';
 import { TokenEnum } from '@/model/NetworkEnum';
 import { computed } from 'vue';
 import StatusBadge, { type StatusType } from '../ui/StatusBadge.vue';
-import { Networks } from '@/config/networks';
+import { env } from '@/config/env';
+import { buildNetworks } from '@/config/networks';
+
+const { networks: Networks } = buildNetworks(env);
 
 const props = defineProps<{
   transaction: WalletTransaction;

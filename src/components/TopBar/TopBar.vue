@@ -3,7 +3,8 @@ import { ref, watch } from 'vue';
 import { useUser } from '@/composables/useUser';
 import { onClickOutside } from '@vueuse/core';
 import { getNetworkImage } from '@/utils/imagesPath';
-import { Networks, DEFAULT_NETWORK } from '@/config/networks';
+import { env } from '@/config/env';
+import { buildNetworks } from '@/config/networks';
 import {
   useAppKitAccount,
   useAppKitNetwork,
@@ -24,6 +25,9 @@ import {
   PASSKEY_CONNECTOR_ID,
   resetAaAccountCache,
 } from '@/blockchain/aaAccount';
+
+const { networks: Networks, defaultNetwork: DEFAULT_NETWORK } =
+  buildNetworks(env);
 
 interface MenuOption {
   label: string;

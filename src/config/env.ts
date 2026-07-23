@@ -28,23 +28,43 @@ const optionalAddress = (key: string): `0x${string}` | undefined => {
   return v ? (v as `0x${string}`) : undefined;
 };
 
+const firstEnv = (...keys: string[]): string | undefined => {
+  for (const key of keys) {
+    const value = optional(key);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+};
+
+const firstAddressEnv = (...keys: string[]): `0x${string}` | undefined => {
+  for (const key of keys) {
+    const value = optionalAddress(key);
+    if (value !== undefined) return value;
+  }
+  return undefined;
+};
+
 const legacyBundlerUrl = optional('VITE_BUNDLER_URL');
 const legacySponsorshipPolicyId = optional(
   'VITE_PIMLICO_SPONSORSHIP_POLICY_ID',
 );
-const arbitrumSponsorshipPolicyId =
-  optional('VITE_PIMLICO_ARBITRUM_SPONSORSHIP_POLICY_ID') ??
-  optional('VITE_ARBITRUM_SPONSORSHIP_POLICY_ID') ??
-  legacySponsorshipPolicyId;
-const mainnetSponsorshipPolicyId =
-  optional('VITE_PIMLICO_MAINNET_SPONSORSHIP_POLICY_ID') ??
-  optional('VITE_MAINNET_SPONSORSHIP_POLICY_ID');
-const mainnetPaymasterToken =
-  optionalAddress('VITE_PIMLICO_MAINNET_PAYMASTER_TOKEN_ADDRESS') ??
-  optionalAddress('VITE_MAINNET_PAYMASTER_TOKEN_ADDRESS');
-const arbitrumPaymasterToken =
-  optionalAddress('VITE_PIMLICO_ARBITRUM_PAYMASTER_TOKEN_ADDRESS') ??
-  optionalAddress('VITE_ARBITRUM_PAYMASTER_TOKEN_ADDRESS');
+const arbitrumSponsorshipPolicyId = firstEnv(
+  'VITE_PIMLICO_ARBITRUM_SPONSORSHIP_POLICY_ID',
+  'VITE_ARBITRUM_SPONSORSHIP_POLICY_ID',
+  'VITE_PIMLICO_SPONSORSHIP_POLICY_ID',
+);
+const mainnetSponsorshipPolicyId = firstEnv(
+  'VITE_PIMLICO_MAINNET_SPONSORSHIP_POLICY_ID',
+  'VITE_MAINNET_SPONSORSHIP_POLICY_ID',
+);
+const mainnetPaymasterToken = firstAddressEnv(
+  'VITE_PIMLICO_MAINNET_PAYMASTER_TOKEN_ADDRESS',
+  'VITE_MAINNET_PAYMASTER_TOKEN_ADDRESS',
+);
+const arbitrumPaymasterToken = firstAddressEnv(
+  'VITE_PIMLICO_ARBITRUM_PAYMASTER_TOKEN_ADDRESS',
+  'VITE_ARBITRUM_PAYMASTER_TOKEN_ADDRESS',
+);
 
 const operationPaymasterPolicies = (
   sponsorshipPolicyId: string | undefined,
@@ -142,7 +162,7 @@ export const env = {
     // resolver — required for custom chains (anvil 31337). Defaults to the
     // local anvil RPC when VITE_LOCAL_P2PIX_ADDRESS is set, otherwise unset.
     rpcUrl:
-      optional('VITE_LOCAL_RPC_URL') ??
+      firstEnv('VITE_LOCAL_RPC_URL') ??
       (optionalAddress('VITE_LOCAL_P2PIX_ADDRESS')
         ? 'http://127.0.0.1:8545'
         : undefined),

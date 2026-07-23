@@ -12,6 +12,7 @@ import {
 } from 'viem/account-abstraction';
 
 import type { AaContext } from './aaAccount';
+import { getErrorMessage } from '@/utils/error';
 
 export type Erc20FeeEstimate = {
   token: Address;
@@ -20,16 +21,6 @@ export type Erc20FeeEstimate = {
   tokenDecimals: number;
   formattedToken: string;
   formattedUsd: string;
-};
-
-export type Erc20QuoteRecord = {
-  quoteId: Hex;
-  calldataHash: Hex;
-  chainId: number;
-  sender: Address;
-  token: Address;
-  maxAcceptedTokenCost: string;
-  expiresAt: number;
 };
 
 export type PreparedErc20Quote = Erc20FeeEstimate & {
@@ -227,25 +218,14 @@ export const prepareErc20PaymasterQuote = async (
       userOperation: operation,
     };
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    throw new Error(`ERC-20 paymaster quote unavailable: ${message}`, {
-      cause: error,
-    });
+    throw new Error(
+      `ERC-20 paymaster quote unavailable: ${getErrorMessage(error, 'unknown error')}`,
+      {
+        cause: error,
+      },
+    );
   }
 };
-
-/** Serializable metadata suitable for pending-operation persistence/auditing. */
-export const toErc20QuoteRecord = (
-  quote: PreparedErc20Quote,
-): Erc20QuoteRecord => ({
-  quoteId: quote.quoteId,
-  calldataHash: quote.calldataHash,
-  chainId: quote.chainId,
-  sender: quote.sender,
-  token: quote.token,
-  maxAcceptedTokenCost: quote.maxAcceptedTokenCost.toString(),
-  expiresAt: quote.expiresAt,
-});
 
 /**
  * Sign and broadcast the exact operation that was quoted. The Pimlico client
@@ -271,10 +251,3 @@ export const sendPreparedErc20UserOperation = async (
     entryPointAddress: context.account.entryPoint.address,
   });
 };
-
-/** @deprecated Use prepareErc20PaymasterQuote to preserve quote/send binding. */
-export const estimateErc20PaymasterFee = async (
-  context: AaContext,
-  calls: readonly AaCall[],
-): Promise<Erc20FeeEstimate> =>
-  prepareErc20PaymasterQuote(context, calls, { type: 'existing' });

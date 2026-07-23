@@ -46,8 +46,6 @@ export type AaOwnerKind = 'passkey' | 'reown';
 
 export type AaContext = {
   account: SmartAccount;
-  /** Paid-operation client kept as the default for existing callers. */
-  client: SmartAccountClient;
   sponsoredClient: SmartAccountClient;
   /** Paid operations that must already have a real ERC-20 balance. */
   erc20Client: SmartAccountClient;
@@ -69,6 +67,20 @@ export type AaRuntime = {
 
 const accountCache = new Map<string, Promise<SmartAccount>>();
 const clientCache = new Map<string, Promise<AaContext>>();
+
+const cachePromise = <T>(
+  cache: Map<string, Promise<T>>,
+  key: string,
+  factory: () => Promise<T>,
+): Promise<T> => {
+  let pending = cache.get(key);
+  if (!pending) {
+    pending = factory();
+    cache.set(key, pending);
+    pending.catch(() => cache.delete(key));
+  }
+  return pending;
+};
 
 export const getAaOwnerKind = (connectorId?: string): AaOwnerKind | null => {
   if (connectorId === PASSKEY_CONNECTOR_ID) return 'passkey';
@@ -248,13 +260,9 @@ export const getAaAccountForRuntime = async (
   // Passkey credential IDs are base64url and case-sensitive. EVM addresses
   // were normalized by getRuntimeOwnerIdentity above.
   const key = `${runtime.network.id}:${ownerKind}:${ownerIdentity}`;
-  let pending = accountCache.get(key);
-  if (!pending) {
-    pending = createKernelAccount(runtime, ownerKind);
-    accountCache.set(key, pending);
-    pending.catch(() => accountCache.delete(key));
-  }
-  return pending;
+  return cachePromise(accountCache, key, () =>
+    createKernelAccount(runtime, ownerKind),
+  );
 };
 
 const createContext = async (
@@ -283,7 +291,6 @@ const createContext = async (
 
   return {
     account,
-    client: erc20Client,
     sponsoredClient,
     erc20Client,
     erc20IncomingClient,
@@ -307,16 +314,12 @@ export const getAaContextForRuntime = async (
   if (!account) return null;
 
   const key = `${runtime.network.id}:${ownerKind}:${account.address.toLowerCase()}`;
-  let pending = clientCache.get(key);
-  if (!pending) {
-    pending = createContext(runtime, ownerKind, account);
-    clientCache.set(key, pending);
-    pending.catch(() => clientCache.delete(key));
-  }
-  return pending;
+  return cachePromise(clientCache, key, () =>
+    createContext(runtime, ownerKind, account),
+  );
 };
 
-const getActiveAaRuntime = async (
+const resolveActiveRuntime = async (
   ownerKind: AaOwnerKind,
   network: NetworkConfig,
 ): Promise<AaRuntime> => {
@@ -350,7 +353,7 @@ export const getActiveAaContext = async (): Promise<AaContext | null> => {
   const network = useUser().network.value;
   if (!network.aa) return null;
 
-  return getAaContextForRuntime(await getActiveAaRuntime(ownerKind, network));
+  return getAaContextForRuntime(await resolveActiveRuntime(ownerKind, network));
 };
 
 /** Resolve only the active counterfactual account, independent of AA infra. */
@@ -364,7 +367,7 @@ export const getActiveAaAccount = async (): Promise<SmartAccount | null> => {
     throw new Error(`AA is not configured for chain ${network.id}`);
   }
 
-  return getAaAccountForRuntime(await getActiveAaRuntime(ownerKind, network));
+  return getAaAccountForRuntime(await resolveActiveRuntime(ownerKind, network));
 };
 
 export const getEffectiveWalletAddress = async (

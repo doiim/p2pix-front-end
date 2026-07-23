@@ -11,7 +11,7 @@ import {
   type NetworkConfig,
   type OperationPaymasterPolicies,
 } from '@/model/NetworkEnum';
-import { env, type Env } from '@/config/env';
+import type { Env } from '@/config/env';
 
 export const isTestnetEnvironment = (env?: Env) => {
   return (
@@ -158,17 +158,3 @@ export const buildNetworks = (env: Env) => {
 
   return { networks, wagmiNetworks, defaultNetwork };
 };
-
-/** Resolves the Kernel configuration from the active trading chain. */
-export const getAaNetworkConfig = (
-  chainId: number,
-  networks: Record<string, NetworkConfig> = Networks,
-): AaNetworkConfig | undefined =>
-  Object.values(networks).find((network) => network.id === chainId)?.aa;
-
-// @deprecated Eager singleton kept for module-load consumers (useUser,
-// events, etc.). Migrate callers to `getWagmiConfig().chains` and remove
-// — duplicates work that `setupAppKit(env)` already does.
-const _singleton = buildNetworks(env);
-export const Networks = _singleton.networks;
-export const DEFAULT_NETWORK = _singleton.defaultNetwork;

@@ -36,6 +36,18 @@ const showAlert = ref(false);
 const alertMessage = ref('');
 const alertType = ref<'success' | 'error'>('success');
 
+const parseTokenList = (): Address[] =>
+  tokenList.value
+    .split(/[\n,]+/)
+    .map((address) => address.trim())
+    .filter(Boolean) as Address[];
+
+const notify = (type: 'success' | 'error', message: string) => {
+  alertMessage.value = message;
+  alertType.value = type;
+  showAlert.value = true;
+};
+
 onMounted(async () => {
   if (!walletAddress.value) {
     router.push({ name: 'home' });
@@ -48,59 +60,49 @@ onMounted(async () => {
 
 const handleSweep = async () => {
   const recipient = sweepRecipient.value.trim() as Address;
-  const addresses = tokenList.value
-    .split(/[\n,]+/)
-    .map((a) => a.trim())
-    .filter(Boolean) as Address[];
+  const addresses = parseTokenList();
 
   if (!recipient || addresses.length === 0) {
-    alertMessage.value =
-      'Informe um endereço de destino e pelo menos um endereço de token.';
-    alertType.value = 'error';
-    showAlert.value = true;
+    notify(
+      'error',
+      'Informe um endereço de destino e pelo menos um endereço de token.',
+    );
     return;
   }
 
   const result = await sweep(addresses, recipient);
   if (result) {
-    alertMessage.value = `Varredura enviada! userOpHash: ${result.userOpHash.slice(0, 10)}...`;
-    alertType.value = 'success';
-    showAlert.value = true;
+    notify(
+      'success',
+      `Varredura enviada! userOpHash: ${result.userOpHash.slice(0, 10)}...`,
+    );
   } else {
-    alertMessage.value = error.value ?? 'Falha ao varrer';
-    alertType.value = 'error';
-    showAlert.value = true;
+    notify('error', error.value ?? 'Falha ao varrer');
   }
 };
 
 const handleAddOwner = async () => {
   const eoa = recoveryEoa.value.trim() as Address;
   if (!eoa || !eoa.startsWith('0x')) {
-    alertMessage.value = 'Informe um endereço EOA válido (0x...)';
-    alertType.value = 'error';
-    showAlert.value = true;
+    notify('error', 'Informe um endereço EOA válido (0x...)');
     return;
   }
 
   const hash = await addRecoveryOwner(eoa);
   if (hash) {
-    alertMessage.value = `Proprietário de recuperação adicionado! userOpHash: ${hash.slice(0, 10)}...`;
-    alertType.value = 'success';
-    showAlert.value = true;
+    notify(
+      'success',
+      `Proprietário de recuperação adicionado! userOpHash: ${hash.slice(0, 10)}...`,
+    );
     recoveryEoa.value = '';
     await refreshOwners();
   } else {
-    alertMessage.value = error.value ?? 'Falha ao adicionar proprietário';
-    alertType.value = 'error';
-    showAlert.value = true;
+    notify('error', error.value ?? 'Falha ao adicionar proprietário');
   }
 };
 
 const handleRefreshBalances = async () => {
-  const addresses = tokenList.value
-    .split(/[\n,]+/)
-    .map((a) => a.trim())
-    .filter(Boolean) as Address[];
+  const addresses = parseTokenList();
   if (addresses.length > 0) {
     await refreshBalances(addresses);
   }

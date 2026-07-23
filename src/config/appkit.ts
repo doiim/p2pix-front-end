@@ -11,12 +11,6 @@ import {
 
 import { buildNetworks } from '@/config/networks';
 import type { Env } from '@/config/env';
-import {
-  passkeyIsLocal,
-  passkeyChain,
-  passkeyRpcUrl,
-  passkeyAccountKind,
-} from '@/config/passkey';
 
 let _adapter: WagmiAdapter | undefined;
 let _reownEoaMigration: Promise<'eoa'> | undefined;
@@ -69,6 +63,11 @@ export const setupAppKit = (env: Env): WagmiAdapter => {
   if (_adapter) return _adapter;
 
   const { wagmiNetworks, defaultNetwork } = buildNetworks(env);
+  const passkeyIsLocal = Boolean(env.local.p2pix);
+  const passkeyAccountKind = passkeyIsLocal
+    ? env.passkey.accountKind
+    : 'kernel';
+  const defaultPasskeyRpcUrl = defaultNetwork.rpcUrls?.default?.http?.[0];
 
   // The connector's PasskeyConnectorConfig names the Pimlico key
   // `bundlerApiKey`; env.passkey exposes it as `pimlicoApiKey`. Without this
@@ -100,8 +99,8 @@ export const setupAppKit = (env: Env): WagmiAdapter => {
         bundlerApiKey: env.passkey.pimlicoApiKey,
         rpName: 'P2Pix',
         accountKind: passkeyAccountKind,
-        chainId: Number(passkeyChain.id),
-        rpcUrl: passkeyRpcUrl,
+        chainId: Number(defaultNetwork.id),
+        rpcUrl: defaultPasskeyRpcUrl,
         entryPointAddress: undefined,
         webauthnPluginAddress: undefined,
         factoryAddress: undefined,

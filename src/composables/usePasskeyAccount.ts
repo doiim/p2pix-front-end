@@ -16,6 +16,7 @@ import {
 import {
   type Address,
   type Hex,
+  type Chain,
   type PublicClient,
   createPublicClient,
   http,
@@ -25,19 +26,22 @@ import {
   createBundlerClient,
 } from 'viem/account-abstraction';
 import { env } from '@/config/env';
-import {
-  passkeyIsLocal,
-  passkeyAccountKind,
-  resolvePasskeyChain,
-  resolvePasskeyRpcUrl,
-} from '@/config/passkey';
 import { useUser } from '@/composables/useUser';
 import { getActiveAaContext, readPasskeySession } from '@/blockchain/aaAccount';
+import { getErrorMessage } from '@/utils/error';
 
 let _publicClient: PublicClient | null = null;
 let _publicClientChainId: number | null = null;
 let _bundlerClient: BundlerClient | null = null;
 let _building = false;
+const passkeyIsLocal = Boolean(env.local.p2pix);
+const passkeyAccountKind: 'kernel' | 'exactly-mode' = passkeyIsLocal
+  ? env.passkey.accountKind
+  : 'kernel';
+
+const resolvePasskeyChain = (activeNetwork: Chain): Chain => activeNetwork;
+const resolvePasskeyRpcUrl = (activeNetwork: Chain): string =>
+  activeNetwork.rpcUrls.default.http[0];
 
 /**
  * `sweepAll` transfers each requested token's full balance. The Pimlico fee
@@ -126,7 +130,7 @@ export function usePasskeyAccount() {
   const getBundlerClient = async (): Promise<BundlerClient | null> => {
     if (!passkeyIsLocal) {
       const context = await getActiveAaContext();
-      return (context?.client as unknown as BundlerClient) ?? null;
+      return (context?.erc20Client as unknown as BundlerClient) ?? null;
     }
     if (_bundlerClient) return _bundlerClient;
     if (_building) return null;
@@ -177,8 +181,7 @@ export function usePasskeyAccount() {
       });
       return _bundlerClient;
     } catch (e) {
-      error.value =
-        e instanceof Error ? e.message : 'Failed to build bundler client';
+      error.value = getErrorMessage(e, 'Failed to build bundler client');
       return null;
     } finally {
       _building = false;
@@ -196,7 +199,7 @@ export function usePasskeyAccount() {
       ethBalance.value = result.eth;
       balances.value = result.tokens;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to fetch balances';
+      error.value = getErrorMessage(e, 'Failed to fetch balances');
     }
   };
 
@@ -213,7 +216,7 @@ export function usePasskeyAccount() {
       owners.value = eoaOwners;
       ownersPublicKeys.value = pkOwners;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Failed to list owners';
+      error.value = getErrorMessage(e, 'Failed to list owners');
     }
   };
 
@@ -225,7 +228,7 @@ export function usePasskeyAccount() {
     error.value = null;
     lastUserOpHash.value = null;
     try {
-      let client: BundlerClient | null;
+      let bundlerClient: BundlerClient | null;
       if (!passkeyIsLocal) {
         const context = await getActiveAaContext();
         if (!context) throw new Error('AA context not available');
@@ -235,16 +238,16 @@ export function usePasskeyAccount() {
         );
         // The default client has balanceOverride=false and therefore simulates
         // against the real token balance. Incoming-balance override is release-only.
-        client = context.client as unknown as BundlerClient;
+        bundlerClient = context.erc20Client as unknown as BundlerClient;
       } else {
-        client = await getBundlerClient();
+        bundlerClient = await getBundlerClient();
       }
-      if (!client) throw new Error('Bundler client not available');
-      const result = await sweepAll(client, tokenAddresses, recipient);
+      if (!bundlerClient) throw new Error('Bundler client not available');
+      const result = await sweepAll(bundlerClient, tokenAddresses, recipient);
       lastUserOpHash.value = result.userOpHash;
       return result;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Sweep failed';
+      error.value = getErrorMessage(e, 'Sweep failed');
       return null;
     } finally {
       busy.value = false;
@@ -258,8 +261,8 @@ export function usePasskeyAccount() {
     error.value = null;
     lastUserOpHash.value = null;
     try {
-      const client = await getBundlerClient();
-      if (!client) throw new Error('Bundler client not available');
+      const bundlerClient = await getBundlerClient();
+      if (!bundlerClient) throw new Error('Bundler client not available');
       if (!pluginAddress) {
         throw new Error(
           accountKind === 'kernel'
@@ -267,11 +270,15 @@ export function usePasskeyAccount() {
             : 'Plugin address not configured',
         );
       }
-      const userOpHash = await addOwner(client, pluginAddress, eoaAddress);
+      const userOpHash = await addOwner(
+        bundlerClient,
+        pluginAddress,
+        eoaAddress,
+      );
       lastUserOpHash.value = userOpHash;
       return userOpHash;
     } catch (e) {
-      error.value = e instanceof Error ? e.message : 'Add owner failed';
+      error.value = getErrorMessage(e, 'Add owner failed');
       return null;
     } finally {
       busy.value = false;

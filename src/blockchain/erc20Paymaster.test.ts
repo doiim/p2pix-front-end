@@ -11,7 +11,6 @@ import {
   formatErc20Fee,
   prepareErc20PaymasterQuote,
   sendPreparedErc20UserOperation,
-  toErc20QuoteRecord,
 } from './erc20Paymaster';
 import { requestFirstLockAuthorization } from '@/utils/bbPay';
 
@@ -261,26 +260,6 @@ describe('ERC-20 paymaster quote binding', () => {
       maxAcceptedTokenCost: 1_000n,
       realTokenBalance: 0n,
     });
-  });
-
-  it('persists auditable quote metadata without serializing bigint UserOperation fields', async () => {
-    const { context } = makeContext();
-    const quote = await prepareErc20PaymasterQuote(
-      context,
-      [{ to: TARGET, data: '0x1234' }],
-      { type: 'existing' },
-    );
-
-    const record = toErc20QuoteRecord(quote);
-    expect(record).toMatchObject({
-      quoteId: quote.quoteId,
-      calldataHash: quote.calldataHash,
-      chainId: 1,
-      sender: SENDER,
-      token: TOKEN,
-      maxAcceptedTokenCost: '1000',
-    });
-    expect(() => JSON.stringify(record)).not.toThrow();
   });
 
   it('signs and sends the exact prepared UserOperation without preparing again', async () => {

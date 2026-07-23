@@ -1,7 +1,8 @@
 import { useUser } from '@/composables/useUser';
 import { formatEther, toHex, ChainContract } from 'viem';
 import type { PublicClient, Address } from 'viem';
-import { Networks } from '@/config/networks';
+import { env } from '@/config/env';
+import { buildNetworks } from '@/config/networks';
 import { getContract } from './provider';
 import { fetchSubgraph } from './wallet';
 import { p2PixAbi } from './abi';
@@ -9,13 +10,15 @@ import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { NetworkConfig } from '@/model/NetworkEnum';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
 
+const { networks: configuredNetworks } = buildNetworks(env);
+
 const getNetworksLiquidity = async (): Promise<void> => {
   const user = useUser();
   user.setLoadingNetworkLiquidity(true);
 
   const depositLists: ValidDeposit[][] = [];
 
-  for (const network of Object.values(Networks)) {
+  for (const network of Object.values(configuredNetworks)) {
     const deposits = await getValidDeposits(
       user.network.value.tokens[user.selectedToken.value].address,
       network,

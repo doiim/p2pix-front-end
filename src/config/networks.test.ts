@@ -1,8 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { env, type Env } from '@/config/env';
-import { buildNetworks, getAaNetworkConfig } from '@/config/networks';
-import { resolvePasskeyChain, resolvePasskeyRpcUrl } from '@/config/passkey';
+import { buildNetworks } from '@/config/networks';
 
 const ADDRESS_A = `0x${'1'.repeat(40)}` as const;
 const ADDRESS_B = `0x${'2'.repeat(40)}` as const;
@@ -84,7 +83,7 @@ describe('buildNetworks', () => {
     });
     const { networks } = buildNetworks(configured);
 
-    expect(getAaNetworkConfig(1, networks)).toEqual({
+    expect(networks.ethereum?.aa).toEqual({
       bundlerUrl: 'https://mainnet-bundler.example',
       paymasterPolicies: {
         firstLock: { sponsorshipPolicyId: 'mainnet-first-lock' },
@@ -92,7 +91,7 @@ describe('buildNetworks', () => {
       },
       paymasterPolicy: { type: 'erc20', token: ADDRESS_B },
     });
-    expect(getAaNetworkConfig(42161, networks)).toEqual({
+    expect(networks.arbitrum?.aa).toEqual({
       bundlerUrl: 'https://legacy.example',
       paymasterPolicies: {
         firstLock: { sponsorshipPolicyId: 'arb-first-lock' },
@@ -100,7 +99,9 @@ describe('buildNetworks', () => {
       },
       paymasterPolicy: { type: 'erc20', token: ADDRESS_B },
     });
-    expect(getAaNetworkConfig(11155111, networks)).toBeUndefined();
+    expect(
+      Object.values(networks).find((network) => network.id === 11155111)?.aa,
+    ).toBeUndefined();
   });
 
   it('preserves local anvil as the default exactly-mode-compatible AA rail', () => {
@@ -112,24 +113,5 @@ describe('buildNetworks', () => {
     expect(defaultNetwork.id).toBe(31337);
     expect(networks.localhost.aa?.paymasterPolicies).toEqual({});
     expect(networks.localhost.aa?.paymasterPolicy).toBeUndefined();
-  });
-});
-
-describe('active smart-account chain resolution', () => {
-  it('uses the selected trading chain and its RPC overlay', () => {
-    const { networks } = buildNetworks(
-      makeEnv({
-        ethereum: {
-          rpc: 'https://eth.example',
-          p2pix: ADDRESS_A,
-          token: ADDRESS_B,
-          subgraph: undefined,
-        },
-      }),
-    );
-
-    const selected = networks.ethereum;
-    expect(resolvePasskeyChain(selected).id).toBe(1);
-    expect(resolvePasskeyRpcUrl(selected)).toBe('https://eth.example');
   });
 });
