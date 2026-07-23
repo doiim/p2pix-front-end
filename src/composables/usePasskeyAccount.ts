@@ -13,7 +13,6 @@ import {
   type SweepResult,
   type OwnerPublicKey,
 } from '@doiim/passkeys/smart-account';
-import type { StoredSession } from '@doiim/passkeys/storage';
 import {
   type Address,
   type Hex,
@@ -28,38 +27,37 @@ import {
 import { env } from '@/config/env';
 import {
   passkeyIsLocal,
-  passkeyChain,
-  passkeyRpcUrl,
   passkeyAccountKind,
+  resolvePasskeyChain,
+  resolvePasskeyRpcUrl,
 } from '@/config/passkey';
 import { useUser } from '@/composables/useUser';
-
-const SESSION_KEY = 'doiim:passkey';
-
-function readStoredSession(): StoredSession | null {
-  if (typeof window === 'undefined') return null;
-  const raw = window.localStorage.getItem(SESSION_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as Partial<StoredSession>;
-    if (
-      parsed?.credentialId &&
-      parsed?.smartAccountAddress &&
-      parsed?.publicKeyX &&
-      parsed?.publicKeyY &&
-      parsed?.salt
-    ) {
-      return parsed as StoredSession;
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
+import { getActiveAaContext, readPasskeySession } from '@/blockchain/aaAccount';
 
 let _publicClient: PublicClient | null = null;
+let _publicClientChainId: number | null = null;
 let _bundlerClient: BundlerClient | null = null;
 let _building = false;
+
+/**
+ * `sweepAll` transfers each requested token's full balance. The Pimlico fee
+ * token must retain the quoted maximum until postOp, so sweeping it is unsafe.
+ */
+export const assertSweepPreservesPaymasterFeeToken = (
+  tokenAddresses: readonly Address[],
+  paymasterToken?: Address,
+): void => {
+  if (
+    paymasterToken &&
+    tokenAddresses.some(
+      (token) => token.toLowerCase() === paymasterToken.toLowerCase(),
+    )
+  ) {
+    throw new Error(
+      'Cannot sweep the ERC-20 paymaster fee token because its balance must cover UserOperation gas',
+    );
+  }
+};
 
 export function usePasskeyAccount() {
   const user = useUser();
@@ -78,15 +76,19 @@ export function usePasskeyAccount() {
   const accountKind = passkeyAccountKind;
   const pluginAddress =
     accountKind === 'kernel' ? undefined : env.passkey.webauthnPluginAddress;
-  const entryPointAddress = passkeyIsLocal ? env.passkey.entryPointAddress : undefined;
+  const entryPointAddress = passkeyIsLocal
+    ? env.passkey.entryPointAddress
+    : undefined;
   const factoryAddress =
     accountKind === 'kernel' ? undefined : env.passkey.factoryAddress;
   const bundlerApiKey = env.passkey.pimlicoApiKey;
   const bundlerUrl = env.passkey.bundlerUrl;
   const sponsorshipPolicyId = env.passkey.sponsorshipPolicyId;
 
-  const isReady =
-    accountKind === 'kernel'
+  const activeAa = user.network.value.aa;
+  const isReady = !passkeyIsLocal
+    ? Boolean(activeAa && (bundlerApiKey || activeAa.bundlerUrl || bundlerUrl))
+    : accountKind === 'kernel'
       ? Boolean(bundlerApiKey || bundlerUrl)
       : Boolean(pluginAddress) &&
         Boolean(entryPointAddress) &&
@@ -94,17 +96,19 @@ export function usePasskeyAccount() {
         Boolean(bundlerApiKey || bundlerUrl);
 
   const getPublicClient = (): PublicClient => {
-    if (_publicClient) return _publicClient;
-
-    // Off local dev the passkey account lives on a fixed chain (Arbitrum One),
-    // independent of the app's active trading network.
     if (!passkeyIsLocal) {
+      const chain = resolvePasskeyChain(user.network.value);
+      if (_publicClient && _publicClientChainId === chain.id)
+        return _publicClient;
       _publicClient = createPublicClient({
-        chain: passkeyChain,
-        transport: http(passkeyRpcUrl),
+        chain,
+        transport: http(resolvePasskeyRpcUrl(chain)),
       });
+      _publicClientChainId = chain.id;
       return _publicClient;
     }
+
+    if (_publicClient) return _publicClient;
 
     const chain = user.network.value;
     let rpcUrl = 'http://127.0.0.1:8545';
@@ -120,16 +124,20 @@ export function usePasskeyAccount() {
   };
 
   const getBundlerClient = async (): Promise<BundlerClient | null> => {
+    if (!passkeyIsLocal) {
+      const context = await getActiveAaContext();
+      return (context?.client as unknown as BundlerClient) ?? null;
+    }
     if (_bundlerClient) return _bundlerClient;
     if (_building) return null;
 
-    const session = readStoredSession();
+    const session = readPasskeySession();
     if (!session) return null;
     if (!isReady) return null;
 
     _building = true;
     try {
-      const chainId = passkeyIsLocal ? user.network.value.id : passkeyChain.id;
+      const chainId = user.network.value.id;
       const pc = getPublicClient();
 
       const account =
@@ -178,15 +186,13 @@ export function usePasskeyAccount() {
   };
 
   const refreshBalances = async (tokenAddresses: Address[]): Promise<void> => {
-    const session = readStoredSession();
-    if (!session) return;
+    const session = readPasskeySession();
+    const context = passkeyIsLocal ? null : await getActiveAaContext();
+    const address = context?.account.address ?? session?.smartAccountAddress;
+    if (!address) return;
     const pc = getPublicClient();
     try {
-      const result = await getTokenBalances(
-        pc,
-        session.smartAccountAddress,
-        tokenAddresses,
-      );
+      const result = await getTokenBalances(pc, address, tokenAddresses);
       ethBalance.value = result.eth;
       balances.value = result.tokens;
     } catch (e) {
@@ -196,7 +202,7 @@ export function usePasskeyAccount() {
 
   const refreshOwners = async (): Promise<void> => {
     if (!pluginAddress) return;
-    const session = readStoredSession();
+    const session = readPasskeySession();
     if (!session) return;
     const pc = getPublicClient();
     try {
@@ -219,7 +225,20 @@ export function usePasskeyAccount() {
     error.value = null;
     lastUserOpHash.value = null;
     try {
-      const client = await getBundlerClient();
+      let client: BundlerClient | null;
+      if (!passkeyIsLocal) {
+        const context = await getActiveAaContext();
+        if (!context) throw new Error('AA context not available');
+        assertSweepPreservesPaymasterFeeToken(
+          tokenAddresses,
+          context.network.aa?.paymasterPolicies.paidOperations?.token,
+        );
+        // The default client has balanceOverride=false and therefore simulates
+        // against the real token balance. Incoming-balance override is release-only.
+        client = context.client as unknown as BundlerClient;
+      } else {
+        client = await getBundlerClient();
+      }
       if (!client) throw new Error('Bundler client not available');
       const result = await sweepAll(client, tokenAddresses, recipient);
       lastUserOpHash.value = result.userOpHash;
@@ -259,9 +278,9 @@ export function usePasskeyAccount() {
     }
   };
 
-  const session = readStoredSession();
+  const session = readPasskeySession();
   const smartAccountAddress: Address | null =
-    session?.smartAccountAddress ?? null;
+    session?.smartAccountAddress ?? user.walletAddress.value;
 
   return {
     busy,
@@ -277,6 +296,6 @@ export function usePasskeyAccount() {
     addRecoveryOwner,
     refreshBalances,
     refreshOwners,
-    readStoredSession,
+    readStoredSession: readPasskeySession,
   };
 }

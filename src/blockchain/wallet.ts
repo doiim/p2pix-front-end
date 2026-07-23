@@ -2,6 +2,7 @@ import { formatEther, type Address } from 'viem';
 import { getAccount } from '@wagmi/core';
 import { getWagmiConfig } from '@/config/appkit';
 import { useUser } from '@/composables/useUser';
+import { getEffectiveWalletAddress } from './aaAccount';
 
 import { getPublicClient, getContract } from './provider';
 
@@ -36,11 +37,14 @@ export const fetchSubgraph = async <T>(
 
 export const updateWalletStatus = async (): Promise<void> => {
   const user = useUser();
-  const { address } = getAccount(getWagmiConfig());
+  const { address: connectorAddress } = getAccount(getWagmiConfig());
 
-  if (!address) {
+  if (!connectorAddress) {
     return;
   }
+
+  const address = await getEffectiveWalletAddress(connectorAddress);
+  if (!address) return;
 
   const publicClient = getPublicClient();
   const balance = await publicClient.getBalance({ address });

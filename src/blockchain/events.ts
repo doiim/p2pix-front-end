@@ -132,7 +132,9 @@ const getUnreleasedLockById = async (
 ): Promise<UnreleasedLock> => {
   const { address, abi, client } = await getContract();
 
-  const [, , , amount, token, , seller] = await client.readContract({
+  // P2Pix v2 inserts orderId after lockID:
+  // [lockID, orderId, expirationBlock, pixTarget, amount, token, buyer, seller].
+  const [, , , , amount, token, , seller] = await client.readContract({
     address,
     abi,
     functionName: 'mapLocks',

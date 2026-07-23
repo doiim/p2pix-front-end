@@ -5,22 +5,31 @@ import CustomModal from '@/components/ui/CustomModal.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import { createSolicitation, getSolicitation, type Offer } from '@/utils/bbPay';
 import { getParticipantID } from '@/blockchain/events';
-import { getUnreleasedLockById } from '@/blockchain/events';
+import {
+  assertLockAcceptableForPix,
+  getP2PixLock,
+  getTokenDecimals,
+} from '@/blockchain/buyerMethods';
 import QRCode from 'qrcode';
+import { formatUnits, type Hex } from 'viem';
 
 // Props
 interface Props {
   lockID: string;
+  orderID?: Hex;
 }
 
 const props = defineProps<Props>();
 
 const qrCode = ref<string>('');
 const qrCodeSvg = ref<string>('');
+const errorMessage = ref<string>('');
 const showWarnModal = ref<boolean>(true);
-const pixTimestamp = ref<string>('');
-const releaseSignature = ref<string>('');
-const solicitationData = ref<any>(null);
+const releaseAuthorization = ref<Awaited<ReturnType<typeof getSolicitation>>>();
+const solicitationData = ref<{
+  numeroSolicitacao?: string | number;
+  informacoesPIX?: { textoQrCode?: string };
+} | null>(null);
 const pollingInterval = ref<NodeJS.Timeout | null>(null);
 const copyFeedback = ref<boolean>(false);
 const copyFeedbackTimeout = ref<NodeJS.Timeout | null>(null);
@@ -44,7 +53,7 @@ const generateQrCodeSvg = async (text: string) => {
 };
 
 // Emits
-const emit = defineEmits(['pixValidated']);
+const emit = defineEmits(['pixValidated', 'error']);
 
 // Function to check solicitation status
 const checkSolicitationStatus = async () => {
@@ -54,12 +63,11 @@ const checkSolicitationStatus = async () => {
 
   try {
     const response = await getSolicitation(
-      solicitationData.value.numeroSolicitacao,
+      BigInt(solicitationData.value.numeroSolicitacao),
     );
 
     if (response.signature) {
-      pixTimestamp.value = response.pixTimestamp;
-      releaseSignature.value = response.signature;
+      releaseAuthorization.value = response;
       // Stop polling when payment is confirmed
       if (pollingInterval.value) {
         clearInterval(pollingInterval.value);
@@ -106,15 +114,24 @@ const copyToClipboard = async () => {
 
 onMounted(async () => {
   try {
-    const { tokenAddress, sellerAddress, amount } = await getUnreleasedLockById(
-      BigInt(props.lockID),
-    );
+    const lock = await getP2PixLock(BigInt(props.lockID));
+    assertLockAcceptableForPix(lock, props.orderID);
 
-    const participantId = await getParticipantID(sellerAddress, tokenAddress);
+    const [participantId, tokenDecimals] = await Promise.all([
+      getParticipantID(lock.seller, lock.token),
+      getTokenDecimals(lock.token),
+    ]);
 
     const offer: Offer = {
-      amount,
+      amount: Number(formatUnits(lock.amount, tokenDecimals)),
       sellerId: participantId,
+      orderId: lock.orderId,
+      lockId: lock.lockID.toString(),
+      chainId: lock.chainId,
+      contractAddress: lock.contractAddress,
+      buyer: lock.buyer,
+      seller: lock.seller,
+      token: lock.token,
     };
 
     const response = await createSolicitation(offer);
@@ -131,6 +148,11 @@ onMounted(async () => {
     startPolling();
   } catch (error) {
     console.error('Error creating solicitation:', error);
+    errorMessage.value =
+      error instanceof Error
+        ? error.message
+        : 'Não foi possível gerar o PIX.';
+    emit('error', errorMessage.value);
   }
 });
 
@@ -170,6 +192,12 @@ onUnmounted(() => {
           class="w-48 h-48 flex items-center justify-center"
         ></div>
         <div
+          v-else-if="errorMessage"
+          class="w-48 h-48 flex items-center justify-center rounded-lg text-center text-sm text-red-600 p-2"
+        >
+          {{ errorMessage }}
+        </div>
+        <div
           v-else
           class="w-48 h-48 flex items-center justify-center rounded-lg"
         >
@@ -201,12 +229,12 @@ onUnmounted(() => {
         </div>
       </div>
       <CustomButton
-        :is-disabled="releaseSignature === ''"
+        :is-disabled="!releaseAuthorization"
         :text="
-          releaseSignature ? 'Enviar para a rede' : 'Validando pagamento...'
+          releaseAuthorization ? 'Enviar para a rede' : 'Validando pagamento...'
         "
         @button-clicked="
-          emit('pixValidated', { pixTimestamp, signature: releaseSignature })
+          releaseAuthorization && emit('pixValidated', releaseAuthorization)
         "
       />
     </div>

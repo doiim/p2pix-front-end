@@ -28,6 +28,32 @@ const optionalAddress = (key: string): `0x${string}` | undefined => {
   return v ? (v as `0x${string}`) : undefined;
 };
 
+const legacyBundlerUrl = optional('VITE_BUNDLER_URL');
+const legacySponsorshipPolicyId = optional(
+  'VITE_PIMLICO_SPONSORSHIP_POLICY_ID',
+);
+const arbitrumSponsorshipPolicyId =
+  optional('VITE_PIMLICO_ARBITRUM_SPONSORSHIP_POLICY_ID') ??
+  optional('VITE_ARBITRUM_SPONSORSHIP_POLICY_ID') ??
+  legacySponsorshipPolicyId;
+const mainnetSponsorshipPolicyId =
+  optional('VITE_PIMLICO_MAINNET_SPONSORSHIP_POLICY_ID') ??
+  optional('VITE_MAINNET_SPONSORSHIP_POLICY_ID');
+const mainnetPaymasterToken =
+  optionalAddress('VITE_PIMLICO_MAINNET_PAYMASTER_TOKEN_ADDRESS') ??
+  optionalAddress('VITE_MAINNET_PAYMASTER_TOKEN_ADDRESS');
+const arbitrumPaymasterToken =
+  optionalAddress('VITE_PIMLICO_ARBITRUM_PAYMASTER_TOKEN_ADDRESS') ??
+  optionalAddress('VITE_ARBITRUM_PAYMASTER_TOKEN_ADDRESS');
+
+const operationPaymasterPolicies = (
+  sponsorshipPolicyId: string | undefined,
+  token: `0x${string}` | undefined,
+) => ({
+  ...(sponsorshipPolicyId ? { firstLock: { sponsorshipPolicyId } } : {}),
+  ...(token ? { paidOperations: { token } } : {}),
+});
+
 export const env = {
   reownProjectId: required('VITE_REOWN_PROJECT_ID'),
   environment: optional('VITE_ENVIRONMENT'),
@@ -63,6 +89,13 @@ export const env = {
     subgraph: optional('VITE_ARBITRUM_SUBGRAPH_URL'),
   },
 
+  ethereum: {
+    rpc: optional('VITE_MAINNET_API_URL'),
+    p2pix: optionalAddress('VITE_MAINNET_P2PIX_ADDRESS'),
+    token: optionalAddress('VITE_MAINNET_TOKEN_ADDRESS'),
+    subgraph: optional('VITE_MAINNET_SUBGRAPH_URL'),
+  },
+
   local: {
     p2pix: optionalAddress('VITE_LOCAL_P2PIX_ADDRESS'),
     token: optionalAddress('VITE_LOCAL_TOKEN_ADDRESS'),
@@ -71,10 +104,10 @@ export const env = {
   passkey: {
     rpId: optional('VITE_PASSKEY_RP_ID'),
     pimlicoApiKey: optional('VITE_PIMLICO_API_KEY'),
-    // Pimlico sponsorship-policy id. When set (on a non-local chain), passkey
-    // UserOps (withdraw, sweep, …) are gas-sponsored by the policy. Left empty
-    // locally — anvil (31337) uses the self-bundler regardless.
-    sponsorshipPolicyId: optional('VITE_PIMLICO_SPONSORSHIP_POLICY_ID'),
+    // Legacy sponsorship-policy id retained for older connector configuration.
+    // Production operation routing uses the chain-scoped firstLock policy below;
+    // sweep/recovery must never inherit sponsorship from this field.
+    sponsorshipPolicyId: legacySponsorshipPolicyId,
     // 'exactly-mode' (default): requires webauthnPluginAddress/factoryAddress
     // from a live deployment of exactly/webauthn-owner-plugin. 'kernel':
     // ZeroDev Kernel via permissionless — no custom deploy needed, only a
@@ -87,7 +120,23 @@ export const env = {
     webauthnPluginAddress: optionalAddress('VITE_WEBAUTHN_PLUGIN_ADDRESS'),
     factoryAddress: optionalAddress('VITE_WEBAUTHN_FACTORY_ADDRESS'),
     entryPointAddress: optionalAddress('VITE_ENTRYPOINT_ADDRESS'),
-    bundlerUrl: optional('VITE_BUNDLER_URL'),
+    bundlerUrl: legacyBundlerUrl,
+    /** Chain-specific bundler overrides; the legacy URL remains the fallback. */
+    bundlerUrls: {
+      1: optional('VITE_MAINNET_BUNDLER_URL'),
+      42161: optional('VITE_ARBITRUM_BUNDLER_URL'),
+    },
+    /** Both operation rails may be configured simultaneously on each chain. */
+    paymasterPolicies: {
+      1: operationPaymasterPolicies(
+        mainnetSponsorshipPolicyId,
+        mainnetPaymasterToken,
+      ),
+      42161: operationPaymasterPolicies(
+        arbitrumSponsorshipPolicyId,
+        arbitrumPaymasterToken,
+      ),
+    },
     // RPC URL the passkey connector uses for chain reads (factory.getAddress,
     // EntryPoint nonce/userOpHash, tx receipts). Bypasses wagmi's getClient
     // resolver — required for custom chains (anvil 31337). Defaults to the

@@ -3,6 +3,9 @@ import { ref, computed, watch, onMounted } from 'vue';
 import { useAppKitAccount, useAppKitNetwork } from '@doiim/reown-appkit/vue';
 import type { AppKitNetwork } from '@doiim/reown-appkit/networks';
 import { useUser } from '@/composables/useUser';
+import { getAccount } from '@wagmi/core';
+import { getWagmiConfig } from '@/config/appkit';
+import { PASSKEY_CONNECTOR_ID } from '@/blockchain/aaAccount';
 
 const user = useUser();
 const { network } = user;
@@ -14,8 +17,12 @@ const targetNetworkName = computed(() => network.value.name);
 
 const checkNetwork = () => {
   if (appKitAccount.value.isConnected && appKitNetwork.value.chainId) {
+    const connectorId = getAccount(getWagmiConfig()).connector?.id;
+    const usesAppAaChain =
+      connectorId === PASSKEY_CONNECTOR_ID && Boolean(network.value.aa);
     isWrongNetwork.value =
-      Number(appKitNetwork.value.chainId) !== network.value.id;
+      Number(appKitNetwork.value.chainId) !== network.value.id &&
+      !usesAppAaChain;
   } else {
     isWrongNetwork.value = false;
   }

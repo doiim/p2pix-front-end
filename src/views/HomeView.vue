@@ -5,14 +5,19 @@ import BuyConfirmedComponent from '@/components/BuyerSteps/BuyConfirmedComponent
 import { ref, onMounted, watch } from 'vue';
 import { useUser } from '@/composables/useUser';
 import QrCodeComponent from '@/components/BuyerSteps/QrCodeComponent.vue';
-import { addLock, releaseLock } from '@/blockchain/buyerMethods';
+import {
+  prepareLock,
+  prepareRelease,
+  submitLock,
+  submitRelease,
+} from '@/blockchain/buyerMethods';
 import { updateWalletStatus, checkUnreleasedLock } from '@/blockchain/wallet';
 import { getNetworksLiquidity } from '@/blockchain/events';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
-import { getSolicitation } from '@/utils/bbPay';
-import type { Address } from 'viem';
+import type { ReleaseAuthorization } from '@/utils/bbPay';
+import { formatUnits, type Address, type Hex } from 'viem';
 
 enum Step {
   Search,
@@ -30,6 +35,7 @@ const participantID = ref<string>();
 const sellerAddress = ref<Address>();
 const tokenAmount = ref<number>();
 const lockID = ref<string>('');
+const orderId = ref<Hex>();
 const loadingRelease = ref<boolean>(false);
 const showModal = ref<boolean>(false);
 const showBuyAlert = ref<boolean>(false);
@@ -46,35 +52,86 @@ const confirmBuyClick = async (
     flowStep.value = Step.Buy;
     user.setLoadingLock(true);
 
-    await addLock(selectedDeposit.seller, selectedDeposit.token, tokenValue)
-      .then((_lockID) => {
-        lockID.value = String(_lockID);
-      })
-      .catch((err) => {
-        console.log(err);
-        flowStep.value = Step.Search;
-      });
+    try {
+      const prepared = await prepareLock(
+        selectedDeposit.seller,
+        selectedDeposit.token,
+        tokenValue,
+      );
 
-    user.setLoadingLock(false);
+      const confirmed =
+        prepared.policy === 'sponsored'
+          ? window.confirm(
+              'Primeiro lock elegível: deployment da smart account e lock serão patrocinados, sem débito no seu saldo. Confirmar compra?',
+            )
+          : prepared.policy === 'erc20' && prepared.quote
+            ? window.confirm(
+                `Custo máximo desta operação: ${prepared.quote.formattedToken} em ERC-20, aproximadamente US$ ${prepared.quote.formattedUsd}. Confirmar compra?`,
+              )
+            : window.confirm(
+                'Esta carteira externa pagará o gas da operação em moeda nativa. Confirmar compra?',
+              );
+      if (!confirmed) {
+        flowStep.value = Step.Search;
+        return;
+      }
+
+      const submission = await submitLock(prepared);
+      lockID.value = String(submission.lockID);
+      orderId.value = submission.orderId;
+    } catch (error) {
+      console.error(error);
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível criar o lock antes do PIX.',
+      );
+      flowStep.value = Step.Search;
+    } finally {
+      user.setLoadingLock(false);
+    }
   }
 };
 
-const releaseTransaction = async (params: {
-  pixTimestamp: `0x${string}` & { lenght: 34 };
-  signature: `0x${string}`;
-}) => {
+const releaseTransaction = async (authorization: ReleaseAuthorization) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
-  const release = await releaseLock(
-    BigInt(lockID.value),
-    params.pixTimestamp,
-    params.signature,
-  );
+  try {
+    const prepared = await prepareRelease(BigInt(lockID.value), authorization);
+    if (prepared.policy === 'erc20' && prepared.quote) {
+      const netAmount = formatUnits(
+        prepared.lock.amount - prepared.quote.maxAcceptedTokenCost,
+        prepared.quote.tokenDecimals,
+      );
+      const confirmed = window.confirm(
+        `Liberação paga em ERC-20: custo máximo ${prepared.quote.formattedToken} (aprox. US$ ${prepared.quote.formattedUsd}); recebimento líquido mínimo estimado ${netAmount}. Confirmar?`,
+      );
+      if (!confirmed) {
+        flowStep.value = Step.Buy;
+        return;
+      }
+    }
 
-  await updateWalletStatus();
-  loadingRelease.value = false;
+    await submitRelease(prepared);
+    await updateWalletStatus();
+  } catch (error) {
+    console.error(error);
+    window.alert(
+      error instanceof Error
+        ? error.message
+        : 'Não foi possível liberar os tokens.',
+    );
+    flowStep.value = Step.Buy;
+  } finally {
+    loadingRelease.value = false;
+  }
+};
+
+const handleQrError = (message: string) => {
+  window.alert(message || 'Não foi possível gerar o PIX.');
+  flowStep.value = Step.Search;
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
@@ -82,6 +139,7 @@ const checkForUnreleasedLocks = async (): Promise<void> => {
   const lock = await checkUnreleasedLock(walletAddress.value);
   if (lock) {
     lockID.value = String(lock.lockID);
+    orderId.value = undefined;
     tokenAmount.value = lock.amount;
     sellerAddress.value = lock.sellerAddress;
     showModal.value = true;
@@ -95,6 +153,7 @@ if (paramLockID) {
   const lockToRedirect = await getUnreleasedLockById(paramLockID);
   if (lockToRedirect) {
     lockID.value = String(lockToRedirect.lockID);
+    orderId.value = undefined;
     tokenAmount.value = lockToRedirect.amount;
     sellerAddress.value = lockToRedirect.sellerAddress;
     flowStep.value = Step.Buy;
@@ -140,7 +199,9 @@ onMounted(async () => {
     <div v-if="flowStep == Step.Buy">
       <QrCodeComponent
         :lockID="lockID"
+        :orderID="orderId"
         @pix-validated="releaseTransaction"
+        @error="handleQrError"
         v-if="!loadingLock"
       />
       <LoadingComponent

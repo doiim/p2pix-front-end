@@ -17,6 +17,13 @@ import TwitterIcon from '@/assets/twitterIcon.svg';
 import LinkedinIcon from '@/assets/linkedinIcon.svg';
 import GithubIcon from '@/assets/githubIcon.svg';
 import type { NetworkConfig } from '@/model/NetworkEnum';
+import { getAccount } from '@wagmi/core';
+import { getWagmiConfig } from '@/config/appkit';
+import {
+  getEffectiveWalletAddress,
+  PASSKEY_CONNECTOR_ID,
+  resetAaAccountCache,
+} from '@/blockchain/aaAccount';
 
 interface MenuOption {
   label: string;
@@ -44,11 +51,31 @@ const { connectWallet } = useConnectWallet();
 const { disconnect } = useDisconnect();
 const appKitAccount = useAppKitAccount();
 const appKitNetwork = useAppKitNetwork();
+let addressResolution = 0;
+
+const syncEffectiveAddress = async (connectorAddress?: string) => {
+  const resolution = ++addressResolution;
+  if (!connectorAddress) {
+    user.setWalletAddress(null);
+    return;
+  }
+  try {
+    const effective = await getEffectiveWalletAddress(
+      connectorAddress as `0x${string}`,
+    );
+    if (resolution === addressResolution) {
+      user.setWalletAddress((effective ?? connectorAddress) as `0x${string}`);
+    }
+  } catch (error) {
+    if (resolution === addressResolution) user.setWalletAddress(null);
+    console.error('[aa] failed to derive the effective wallet address', error);
+  }
+};
 
 watch(
   () => appKitAccount.value.address,
   (newAddress) => {
-    user.setWalletAddress(newAddress ? (newAddress as `0x${string}`) : null);
+    void syncEffectiveAddress(newAddress);
   },
 );
 
@@ -63,6 +90,8 @@ watch(
       return;
     }
     user.setNetworkById(Number(newChainId));
+    resetAaAccountCache();
+    void syncEffectiveAddress(appKitAccount.value.address);
   },
 );
 
@@ -78,6 +107,7 @@ const formatWalletAddress = (): string => {
 };
 
 const disconnectUser = async (): Promise<void> => {
+  resetAaAccountCache();
   user.setWalletAddress(null);
   await disconnect();
   closeMenu();
@@ -95,6 +125,17 @@ const networkChange = async (targetNetwork: NetworkConfig): Promise<void> => {
       await appKitNetwork.value.switchNetwork(targetNetwork as AppKitNetwork);
       user.setNetwork(targetNetwork);
     } catch (error) {
+      // The passkey connector is intentionally single-chain at the EIP-1193
+      // layer. Our owner-agnostic Kernel client can still derive/send on the
+      // selected AA trading chain, so keep AppKit as the login rail and switch
+      // the application execution context here.
+      const connectorId = getAccount(getWagmiConfig()).connector?.id;
+      if (connectorId === PASSKEY_CONNECTOR_ID && targetNetwork.aa) {
+        user.setNetwork(targetNetwork);
+        resetAaAccountCache();
+        await syncEffectiveAddress(appKitAccount.value.address);
+        return;
+      }
       console.log('Error changing network', error);
     }
   } else {

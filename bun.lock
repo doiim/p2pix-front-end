@@ -28,6 +28,7 @@
         "@wagmi/vue": "^0.5.11",
         "graphql": "^16.13.2",
         "marked": "^18.0.3",
+        "permissionless": "^0.3.6",
         "qrcode": "^1.5.4",
         "viem": "^2.48.8",
         "vite-svg-loader": "^5.1.1",
