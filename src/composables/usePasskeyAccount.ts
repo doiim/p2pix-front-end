@@ -26,6 +26,12 @@ import {
   createBundlerClient,
 } from 'viem/account-abstraction';
 import { env } from '@/config/env';
+import {
+  passkeyIsLocal,
+  passkeyChain,
+  passkeyRpcUrl,
+  passkeyAccountKind,
+} from '@/config/passkey';
 import { useUser } from '@/composables/useUser';
 
 const SESSION_KEY = 'doiim:passkey';
@@ -65,10 +71,16 @@ export function usePasskeyAccount() {
   const balances = ref<TokenBalance[]>([]);
   const ethBalance = ref<bigint>(0n);
 
-  const accountKind = env.passkey.accountKind;
-  const pluginAddress = env.passkey.webauthnPluginAddress;
-  const entryPointAddress = env.passkey.entryPointAddress;
-  const factoryAddress = env.passkey.factoryAddress;
+  // Read the passkey chain/mode from the single source of truth (config/passkey)
+  // so account operations here target the SAME chain + kind the connector used
+  // to derive the account. In kernel mode the exactly-mode plugin/factory and
+  // the local EntryPoint don't apply — drop them so they can't be misused.
+  const accountKind = passkeyAccountKind;
+  const pluginAddress =
+    accountKind === 'kernel' ? undefined : env.passkey.webauthnPluginAddress;
+  const entryPointAddress = passkeyIsLocal ? env.passkey.entryPointAddress : undefined;
+  const factoryAddress =
+    accountKind === 'kernel' ? undefined : env.passkey.factoryAddress;
   const bundlerApiKey = env.passkey.pimlicoApiKey;
   const bundlerUrl = env.passkey.bundlerUrl;
   const sponsorshipPolicyId = env.passkey.sponsorshipPolicyId;
@@ -83,6 +95,17 @@ export function usePasskeyAccount() {
 
   const getPublicClient = (): PublicClient => {
     if (_publicClient) return _publicClient;
+
+    // Off local dev the passkey account lives on a fixed chain (Arbitrum One),
+    // independent of the app's active trading network.
+    if (!passkeyIsLocal) {
+      _publicClient = createPublicClient({
+        chain: passkeyChain,
+        transport: http(passkeyRpcUrl),
+      });
+      return _publicClient;
+    }
+
     const chain = user.network.value;
     let rpcUrl = 'http://127.0.0.1:8545';
 
@@ -106,7 +129,7 @@ export function usePasskeyAccount() {
 
     _building = true;
     try {
-      const chain = user.network.value;
+      const chainId = passkeyIsLocal ? user.network.value.id : passkeyChain.id;
       const pc = getPublicClient();
 
       const account =
@@ -130,7 +153,7 @@ export function usePasskeyAccount() {
             });
 
       const bundlerCfg = {
-        chainId: chain.id,
+        chainId,
         entryPointAddress: account.entryPoint.address,
         publicClient: pc,
         bundlerApiKey,

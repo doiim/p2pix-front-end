@@ -2,6 +2,7 @@ import {
   sepolia,
   rootstock,
   rootstockTestnet,
+  arbitrum,
 } from '@doiim/reown-appkit/networks';
 import type { AppKitNetwork } from '@doiim/reown-appkit/networks';
 import { NetworkConfig } from '@/model/NetworkEnum';
@@ -49,6 +50,20 @@ export const buildNetworks = (env: Env) => {
     : rootstock;
   const rootstockConfig = overlay(rootstockBase, env.rsk);
 
+  // Arbitrum One (42161) — must be a registered network so AppKit accepts the
+  // passkey smart account's chain (kernel mode runs there — see config/passkey.ts).
+  // Without this, connecting a passkey triggers AppKit's "unsupported network"
+  // modal. P2Pix trading on Arbitrum activates once VITE_ARBITRUM_P2PIX_ADDRESS /
+  // _TOKEN_ADDRESS / _SUBGRAPH_URL are set (contracts + subgraph deployed there);
+  // until then it's an AA-only chain. RPC falls back to the Reown transport when
+  // VITE_ARBITRUM_API_URL is unset.
+  const arbitrumConfig = overlay(arbitrum as AppKitNetwork, {
+    rpc: env.arbitrum.rpc,
+    p2pix: env.arbitrum.p2pix,
+    token: env.arbitrum.token,
+    subgraph: env.arbitrum.subgraph,
+  });
+
   const localAnvil: NetworkConfig | null = env.local.p2pix
     ? {
         id: 31337,
@@ -68,12 +83,14 @@ export const buildNetworks = (env: Env) => {
   const networks: { [key: string]: NetworkConfig } = {
     sepolia: sepoliaConfig,
     rootstock: rootstockConfig,
+    arbitrum: arbitrumConfig,
     ...(localAnvil ? { localhost: localAnvil } : {}),
   };
 
   const wagmiNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
     sepoliaConfig as AppKitNetwork,
     rootstockConfig as AppKitNetwork,
+    arbitrumConfig as AppKitNetwork,
     ...(localAnvil ? [localAnvil as AppKitNetwork] : []),
   ];
 

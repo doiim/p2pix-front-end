@@ -18,9 +18,9 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@doiim/passkeys": "0.3.0-alpha.6",
+    "@doiim/passkeys": "0.3.0-alpha.7",
     "@doiim/reown-appkit": "1.8.19-doiim.11",
-    "@doiim/reown-appkit-adapter-wagmi": "1.8.19-doiim.11",
+    "@doiim/reown-appkit-adapter-wagmi": "1.8.19-doiim.12",
     "@doiim/reown-appkit-common": "1.8.19-doiim.11",
     "@doiim/reown-appkit-controllers": "1.8.19-doiim.11",
     "@doiim/reown-appkit-utils": "1.8.19-doiim.11",
@@ -77,9 +77,9 @@
   "overrides": {
     "axios": "^1.15.2",
     "viem": "2.49.3",
-    "@doiim/passkeys": "0.3.0-alpha.6",
+    "@doiim/passkeys": "0.3.0-alpha.7",
     "@doiim/reown-appkit": "1.8.19-doiim.11",
-    "@doiim/reown-appkit-adapter-wagmi": "1.8.19-doiim.11",
+    "@doiim/reown-appkit-adapter-wagmi": "1.8.19-doiim.12",
     "@doiim/reown-appkit-common": "1.8.19-doiim.11",
     "@doiim/reown-appkit-controllers": "1.8.19-doiim.11",
     "@doiim/reown-appkit-utils": "1.8.19-doiim.11",

@@ -51,6 +51,18 @@ export const env = {
     subgraph: optional('VITE_RSK_SUBGRAPH_URL'),
   },
 
+  // Arbitrum One (42161) — the chain the passkey smart account runs on off
+  // local dev (see config/passkey.ts). The passkey connector only needs the
+  // RPC (falls back to viem's default arbitrum RPC when unset). The p2pix/token/
+  // subgraph fields enable P2Pix trading on Arbitrum once the contracts +
+  // subgraph are deployed there — leave empty until then.
+  arbitrum: {
+    rpc: optional('VITE_ARBITRUM_API_URL'),
+    p2pix: optionalAddress('VITE_ARBITRUM_P2PIX_ADDRESS'),
+    token: optionalAddress('VITE_ARBITRUM_TOKEN_ADDRESS'),
+    subgraph: optional('VITE_ARBITRUM_SUBGRAPH_URL'),
+  },
+
   local: {
     p2pix: optionalAddress('VITE_LOCAL_P2PIX_ADDRESS'),
     token: optionalAddress('VITE_LOCAL_TOKEN_ADDRESS'),

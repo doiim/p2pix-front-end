@@ -55,7 +55,7 @@ const handleSweep = async () => {
 
   if (!recipient || addresses.length === 0) {
     alertMessage.value =
-      'Enter a destination address and at least one token address.';
+      'Informe um endereço de destino e pelo menos um endereço de token.';
     alertType.value = 'error';
     showAlert.value = true;
     return;
@@ -63,11 +63,11 @@ const handleSweep = async () => {
 
   const result = await sweep(addresses, recipient);
   if (result) {
-    alertMessage.value = `Sweep submitted! userOpHash: ${result.userOpHash.slice(0, 10)}...`;
+    alertMessage.value = `Varredura enviada! userOpHash: ${result.userOpHash.slice(0, 10)}...`;
     alertType.value = 'success';
     showAlert.value = true;
   } else {
-    alertMessage.value = error.value ?? 'Sweep failed';
+    alertMessage.value = error.value ?? 'Falha ao varrer';
     alertType.value = 'error';
     showAlert.value = true;
   }
@@ -76,7 +76,7 @@ const handleSweep = async () => {
 const handleAddOwner = async () => {
   const eoa = recoveryEoa.value.trim() as Address;
   if (!eoa || !eoa.startsWith('0x')) {
-    alertMessage.value = 'Enter a valid EOA address (0x...)';
+    alertMessage.value = 'Informe um endereço EOA válido (0x...)';
     alertType.value = 'error';
     showAlert.value = true;
     return;
@@ -84,13 +84,13 @@ const handleAddOwner = async () => {
 
   const hash = await addRecoveryOwner(eoa);
   if (hash) {
-    alertMessage.value = `Recovery owner added! userOpHash: ${hash.slice(0, 10)}...`;
+    alertMessage.value = `Proprietário de recuperação adicionado! userOpHash: ${hash.slice(0, 10)}...`;
     alertType.value = 'success';
     showAlert.value = true;
     recoveryEoa.value = '';
     await refreshOwners();
   } else {
-    alertMessage.value = error.value ?? 'Add owner failed';
+    alertMessage.value = error.value ?? 'Falha ao adicionar proprietário';
     alertType.value = 'error';
     showAlert.value = true;
   }
@@ -116,23 +116,23 @@ const handleRefreshBalances = async () => {
 
     <template v-else>
       <div class="text-container">
-        <span class="text font-bold text-2xl">Passkey Account</span>
+        <span class="text font-bold text-3xl leading-9">Conta Passkey</span>
       </div>
 
       <template v-if="!isReady">
         <div class="main-container max-w-md">
           <p class="text-gray-400 text-sm text-center">
             <template v-if="env.passkey.accountKind === 'kernel'">
-              Passkey account features are not configured. Set
-              VITE_PIMLICO_API_KEY (or VITE_BUNDLER_URL) in .env.local.
+              Os recursos da conta passkey não estão configurados. Defina
+              VITE_PIMLICO_API_KEY (ou VITE_BUNDLER_URL) em .env.local.
             </template>
             <template v-else>
-              Passkey account features are not configured. Set
+              Os recursos da conta passkey não estão configurados. Defina
               VITE_WEBAUTHN_PLUGIN_ADDRESS, VITE_FACTORY_ADDRESS,
-              VITE_ENTRYPOINT_ADDRESS, and VITE_PIMLICO_API_KEY (or
-              VITE_BUNDLER_URL) in .env.local. Alternatively, set
-              VITE_ACCOUNT_KIND=kernel to use a Kernel smart account instead,
-              which only needs the Pimlico key.
+              VITE_ENTRYPOINT_ADDRESS e VITE_PIMLICO_API_KEY (ou
+              VITE_BUNDLER_URL) em .env.local. Como alternativa, defina
+              VITE_ACCOUNT_KIND=kernel para usar uma smart account Kernel, que
+              precisa apenas da chave Pimlico.
             </template>
           </p>
         </div>
@@ -153,14 +153,14 @@ const handleRefreshBalances = async () => {
               :class="{ active: activeTab === 'sweep' }"
               @click="activeTab = 'sweep'"
             >
-              Sweep
+              Varrer
             </button>
             <button
               class="tab-button"
               :class="{ active: activeTab === 'recovery' }"
               @click="activeTab = 'recovery'"
             >
-              Recovery
+              Recuperação
             </button>
           </div>
 
@@ -176,110 +176,113 @@ const handleRefreshBalances = async () => {
             {{ alertMessage }}
           </div>
 
-          <!-- Sweep Tab -->
+          <!-- Aba Varrer -->
           <div v-if="activeTab === 'sweep'" class="flex flex-col gap-4 w-full">
-            <div>
-              <label class="block text-sm font-semibold mb-1 text-gray-900"
-                >Destination Address</label
-              >
+            <div
+              class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
+            >
               <input
                 v-model="sweepRecipient"
                 type="text"
-                placeholder="0x..."
-                class="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white text-sm focus:border-amber-500 focus:outline-none"
+                placeholder="Endereço de destino (0x...)"
+                class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full"
               />
             </div>
-            <div>
-              <label class="block text-sm font-semibold mb-1 text-gray-900"
-                >Token Addresses</label
+            <div class="flex flex-col w-full gap-1">
+              <div
+                class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
               >
-              <textarea
-                v-model="tokenList"
-                rows="4"
-                placeholder="0x...&#10;0x..."
-                class="w-full px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white text-sm focus:border-amber-500 focus:outline-none"
-              />
-              <p class="text-xs text-gray-400 mt-1">
-                One address per line, or comma-separated. ETH is always swept.
+                <textarea
+                  v-model="tokenList"
+                  rows="4"
+                  placeholder="Endereços dos tokens (0x...)&#10;0x..."
+                  class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full resize-y"
+                />
+              </div>
+              <p class="text-xs text-gray-400">
+                Um endereço por linha ou separados por vírgula. ETH é sempre
+                varrido.
               </p>
             </div>
             <div class="flex gap-2">
               <CustomButton
-                text="Refresh Balances"
+                text="Atualizar saldos"
+                variant="outline"
                 :loading="busy"
                 @button-clicked="handleRefreshBalances"
               />
               <CustomButton
-                text="Sweep All"
+                text="Varrer tudo"
                 :loading="busy"
                 @button-clicked="handleSweep"
               />
             </div>
-            <div v-if="balances.length > 0 || ethBalance > 0n">
-              <p class="text-sm font-semibold mb-2 text-gray-900">Balances</p>
-              <div class="text-sm text-gray-600">
+            <div v-if="balances.length > 0 || ethBalance > 0n" class="w-full">
+              <p class="text-sm font-semibold mb-2 text-white">Saldos</p>
+              <div class="text-sm text-gray-300">
                 <p>ETH: {{ ethBalance.toString() }}</p>
                 <p v-for="b in balances" :key="b.address" class="truncate">
                   {{ b.address.slice(0, 10) }}...:
-                  {{ b.balance.toString() }} (decimals: {{ b.decimals }})
+                  {{ b.balance.toString() }} (decimais: {{ b.decimals }})
                 </p>
               </div>
             </div>
-            <div v-if="lastUserOpHash" class="text-xs text-green-600 break-all">
-              Last userOpHash: {{ lastUserOpHash }}
+            <div v-if="lastUserOpHash" class="text-xs text-green-400 break-all">
+              Último userOpHash: {{ lastUserOpHash }}
             </div>
           </div>
 
-          <!-- Recovery Tab -->
+          <!-- Aba Recuperação -->
           <div
             v-if="activeTab === 'recovery'"
             class="flex flex-col gap-4 w-full"
           >
-            <div>
-              <label class="block text-sm font-semibold mb-1 text-gray-900"
-                >Add Recovery EOA</label
+            <div class="flex gap-2 w-full">
+              <div
+                class="flex flex-col flex-1 bg-white sm:px-10 px-6 py-4 rounded-lg"
               >
-              <div class="flex gap-2">
                 <input
                   v-model="recoveryEoa"
                   type="text"
-                  placeholder="0x..."
-                  class="flex-1 px-4 py-2 rounded bg-gray-800 border border-gray-700 text-white text-sm focus:border-amber-500 focus:outline-none"
-                />
-                <CustomButton
-                  text="Add Owner"
-                  :loading="busy"
-                  @button-clicked="handleAddOwner"
+                  placeholder="Adicionar EOA de recuperação (0x...)"
+                  class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full"
                 />
               </div>
+              <CustomButton
+                text="Adicionar proprietário"
+                :full-width="false"
+                :loading="busy"
+                @button-clicked="handleAddOwner"
+              />
             </div>
-            <div v-if="lastUserOpHash" class="text-xs text-green-600 break-all">
-              Last userOpHash: {{ lastUserOpHash }}
+            <div v-if="lastUserOpHash" class="text-xs text-green-400 break-all">
+              Último userOpHash: {{ lastUserOpHash }}
             </div>
-            <div>
-              <p class="text-sm font-semibold mb-2 text-gray-900">
-                Current Owners
+            <div class="w-full">
+              <p class="text-sm font-semibold mb-2 text-white">
+                Proprietários atuais
               </p>
               <div
                 v-if="owners.length === 0 && ownersPublicKeys.length === 0"
                 class="text-sm text-gray-400"
               >
-                No EOA owners listed. Passkey owners are managed by the plugin.
+                Nenhum proprietário EOA listado. Os proprietários passkey são
+                gerenciados pelo plugin.
               </div>
               <div
                 v-if="owners.length > 0"
-                class="text-sm text-gray-600 space-y-1"
+                class="text-sm text-gray-300 space-y-1"
               >
-                <p class="text-xs text-gray-400 mb-1">EOA Owners:</p>
+                <p class="text-xs text-gray-400 mb-1">Proprietários EOA:</p>
                 <p v-for="(owner, i) in owners" :key="i" class="break-all">
                   {{ owner }}
                 </p>
               </div>
               <div
                 v-if="ownersPublicKeys.length > 0"
-                class="text-sm text-gray-600 space-y-1 mt-2"
+                class="text-sm text-gray-300 space-y-1 mt-2"
               >
-                <p class="text-xs text-gray-400 mb-1">Passkey Owners:</p>
+                <p class="text-xs text-gray-400 mb-1">Proprietários Passkey:</p>
                 <p
                   v-for="(pk, i) in ownersPublicKeys"
                   :key="i"
@@ -312,10 +315,14 @@ const handleRefreshBalances = async () => {
 }
 
 .tab-button {
-  @apply px-4 py-2 rounded text-gray-400 font-semibold text-sm transition-colors border border-gray-700;
+  @apply px-4 py-2 rounded-lg text-gray-300 font-semibold text-sm transition-colors border-2 border-gray-500 cursor-pointer;
+}
+
+.tab-button:hover {
+  @apply bg-white/5;
 }
 
 .tab-button.active {
-  @apply text-white border-amber-500 bg-amber-500/10;
+  @apply text-white border-amber-300 bg-amber-300/10;
 }
 </style>
