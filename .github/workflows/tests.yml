@@ -13,15 +13,25 @@ concurrency:
 jobs:
   unit:
     runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
+    container: node:lts
     steps:
-      - name: Install required tools
-        run: apk add --no-cache git
-
       - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install bun
+        run: npm install -g bun
+
+      - name: Install submodule deps (yarn 4 via corepack)
+        run: corepack enable && yarn --cwd p2pix-smart-contracts install --immutable
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Generate contract ABIs
+        env:
+          ALCHEMY_API_KEY: dummy
+        run: bun run wagmi:gen
 
       - name: Unit tests (vitest)
         run: bunx vitest run --passWithNoTests

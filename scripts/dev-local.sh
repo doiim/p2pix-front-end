@@ -1,16 +1,9 @@
 #!/usr/bin/env bash
-# Bootstrap the P2Pix front-end for local development.
+# Bootstrap P2Pix on one local Kernel / EntryPoint 0.7 rail.
 #
-#   ./scripts/dev-local.sh           # vanilla anvil node (chainId 31337)
-#   LOCAL_FORK=1 ./scripts/dev-local.sh   # fork Sepolia (needs ALCHEMY_API_KEY in submodule .env)
-#
-# Anvil (not hardhat node) is used so the ERC-4337 stack — whose
-# UpgradeableModularAccount is ~34KB — can be deployed without hitting
-# hardhat's EIP-170 contract size cap. p2pix's hardhat-based deploys still
-# work because they use the `localhost` network (RPC at 127.0.0.1:8545).
-#
-# Steps: submodule → install → anvil node (bg) → deploy1+2 → 4337 deploy →
-#        patch .env.local with deployed addresses → wagmi:gen → bun start.
+# The local chain forks Sepolia state while retaining chainId 31337. That gives
+# Anvil the canonical EntryPoint and Kernel v0.3.1 deployments; Alto provides a
+# real ERC-4337 v0.7 bundler at http://127.0.0.1:4337.
 
 set -euo pipefail
 
@@ -19,44 +12,170 @@ SC_DIR="$ROOT/p2pix-smart-contracts"
 ENV_FILE="$ROOT/.env.local"
 NODE_LOG="$ROOT/.anvil-node.log"
 NODE_PID_FILE="$ROOT/.anvil-node.pid"
+ALTO_LOG="$ROOT/.alto.log"
+ALTO_PID_FILE="$ROOT/.alto.pid"
+ENTRYPOINT07="0x0000000071727De22E5E9d8BAf0edAc6f37da032"
+ENTRYPOINT07_SENDER_CREATOR="0xEFC2c1444eBCC4Db75e7613d20C6a62fF67A167C"
+KERNEL_META_FACTORY="0xd703aaE79538628d27099B8c4f621bE4CCd142d5"
+KERNEL_FACTORY="0xaac5D4240AF87249B3f71BC8E4A2cae074A3E419"
+KERNEL_ACCOUNT_LOGIC="0xBAC849bB641841b44E965fB01A4Bf5F074f84b4D"
+KERNEL_WEBAUTHN_VALIDATOR="0x7ab16Ff354AcB328452F1D445b3Ddee9a91e9e69"
+KERNEL_ECDSA_VALIDATOR="0x845ADb2C711129d4f3966735eD98a9F09fC4cE57"
+P256_FALLBACK_VERIFIER="0xc2b78104907F722DaBac4C69f826a522B2754De4"
+ANVIL_ACCOUNT_0_PK="0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80"
+# Keep Alto's utility/beneficiary separate from Anvil's heavily pre-funded
+# default accounts. PimlicoSimulations computes a beneficiary balance delta;
+# using the 10,000 ETH default account makes filterOps underflow on Anvil.
+ALTO_UTILITY_PK="0x7c85211829437e4e42df0cd40d5b3d514ed817ca2b731f52d9b1a6e7ed58eaf1"
+
+stop_process() {
+  local pid_file="$1"
+  local label="$2"
+  if [[ ! -f "$pid_file" ]]; then
+    return
+  fi
+
+  local pid
+  pid="$(<"$pid_file")"
+  if [[ -n "$pid" ]] && kill -0 "$pid" 2>/dev/null; then
+    echo "→ stopping $label (pid $pid)"
+    kill "$pid" 2>/dev/null || true
+    wait "$pid" 2>/dev/null || true
+  fi
+  rm -f "$pid_file"
+}
 
 cleanup() {
-  if [[ -f "$NODE_PID_FILE" ]]; then
-    local pid
-    pid="$(cat "$NODE_PID_FILE" 2>/dev/null || true)"
-    if [[ -n "${pid:-}" ]] && kill -0 "$pid" 2>/dev/null; then
-      echo "→ stopping anvil node (pid $pid)"
-      kill "$pid" 2>/dev/null || true
-      wait "$pid" 2>/dev/null || true
-    fi
-    rm -f "$NODE_PID_FILE"
-  fi
+  stop_process "$ALTO_PID_FILE" "Alto"
+  stop_process "$NODE_PID_FILE" "Anvil"
 }
 trap cleanup EXIT INT TERM
 
-echo "→ syncing submodule (init only — won't reset existing checkouts)"
-# `update --init` would reset every submodule HEAD to the commit recorded in
-# the parent repo's index, blowing away local fork commits in vendor/reown-appkit
-# before they're bumped here. We init missing submodules but leave initialized
-# ones alone — the dev is responsible for keeping them on the right SHA.
+wait_for_rpc() {
+  local url="$1"
+  local method="$2"
+  local log_file="$3"
+  for i in {1..60}; do
+    if curl --silent --fail \
+      -H 'content-type: application/json' \
+      --data "{\"jsonrpc\":\"2.0\",\"method\":\"$method\",\"params\":[],\"id\":1}" \
+      "$url" >/dev/null; then
+      return
+    fi
+    sleep 0.5
+  done
+  echo "✗ $url did not become ready; see $log_file" >&2
+  exit 1
+}
+
+echo "→ syncing missing submodules without resetting existing checkouts"
 git -C "$ROOT" submodule init
 for sm in $(git -C "$ROOT" submodule status | awk '/^-/ {print $2}'); do
-  echo "  initializing $sm (recursive)"
   git -C "$ROOT" submodule update --init --recursive -- "$sm"
 done
 
 if [[ ! -d "$ROOT/node_modules" ]]; then
-  echo "→ installing front-end deps"
+  echo "→ installing front-end dependencies"
   (cd "$ROOT" && bun install)
 fi
-
 if [[ ! -d "$SC_DIR/node_modules" ]]; then
-  echo "→ installing smart-contract deps"
+  echo "→ installing smart-contract dependencies"
   (cd "$SC_DIR" && bun install)
 fi
 
-echo "→ resetting deploys/localhost.json"
-cat > "$SC_DIR/deploys/localhost.json" <<'JSON'
+for command_name in anvil cast curl bun; do
+  if ! command -v "$command_name" >/dev/null 2>&1; then
+    echo "✗ $command_name is required" >&2
+    exit 1
+  fi
+done
+
+FORK_RPC_URL="${LOCAL_FORK_RPC_URL:-${VITE_SEPOLIA_API_URL:-}}"
+if [[ -z "$FORK_RPC_URL" && -n "${ALCHEMY_API_KEY:-}" ]]; then
+  FORK_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+fi
+if [[ -z "$FORK_RPC_URL" && -f "$SC_DIR/.env" ]]; then
+  ALCHEMY_API_KEY="$(sed -n 's/^ALCHEMY_API_KEY=//p' "$SC_DIR/.env" | tr -d '\"' | head -1)"
+  if [[ -n "$ALCHEMY_API_KEY" && "$ALCHEMY_API_KEY" != "{INSERT_API_KEY}" ]]; then
+    FORK_RPC_URL="https://eth-sepolia.g.alchemy.com/v2/$ALCHEMY_API_KEY"
+  fi
+fi
+FORK_RPC_URL="${FORK_RPC_URL:-https://ethereum-sepolia-rpc.publicnode.com}"
+
+echo "→ starting Anvil fork with local chainId 31337 (logs: $NODE_LOG)"
+(
+  exec anvil \
+    --host 127.0.0.1 \
+    --port 8545 \
+    --chain-id 31337 \
+    --fork-url "$FORK_RPC_URL" \
+    --disable-code-size-limit
+) >"$NODE_LOG" 2>&1 &
+echo $! >"$NODE_PID_FILE"
+wait_for_rpc "http://127.0.0.1:8545" "eth_chainId" "$NODE_LOG"
+
+for contract_address in \
+  "$ENTRYPOINT07" \
+  "$ENTRYPOINT07_SENDER_CREATOR" \
+  "$KERNEL_META_FACTORY" \
+  "$KERNEL_FACTORY" \
+  "$KERNEL_ACCOUNT_LOGIC" \
+  "$KERNEL_WEBAUTHN_VALIDATOR" \
+  "$KERNEL_ECDSA_VALIDATOR" \
+  "$P256_FALLBACK_VERIFIER"; do
+  if [[ "$(cast code --rpc-url http://127.0.0.1:8545 "$contract_address")" == "0x" ]]; then
+    echo "✗ required Kernel/EntryPoint contract missing at $contract_address" >&2
+    exit 1
+  fi
+done
+
+normalize_address() {
+  tr '[:upper:]' '[:lower:]'
+}
+
+if [[ "$(cast call --rpc-url http://127.0.0.1:8545 "$KERNEL_META_FACTORY" \
+  'approved(address)(bool)' "$KERNEL_FACTORY")" != "true" ]]; then
+  echo "✗ Kernel MetaFactory has not approved the expected factory" >&2
+  exit 1
+fi
+if [[ "$(cast call --rpc-url http://127.0.0.1:8545 "$KERNEL_FACTORY" \
+  'implementation()(address)' | normalize_address)" != \
+  "$(printf '%s' "$KERNEL_ACCOUNT_LOGIC" | normalize_address)" ]]; then
+  echo "✗ Kernel factory points to an unexpected implementation" >&2
+  exit 1
+fi
+
+ALTO_UTILITY_ADDRESS="$(cast wallet address --private-key "$ALTO_UTILITY_PK")"
+cast rpc \
+  --rpc-url http://127.0.0.1:8545 \
+  anvil_setBalance \
+  "$ALTO_UTILITY_ADDRESS" \
+  0xDE0B6B3A7640000 >/dev/null
+
+echo "→ starting Alto EntryPoint 0.7 bundler (logs: $ALTO_LOG)"
+(
+  cd "$ROOT"
+  exec bunx @pimlico/alto@0.0.20 \
+    --entrypoints "$ENTRYPOINT07" \
+    --executor-private-keys "$ANVIL_ACCOUNT_0_PK" \
+    --utility-private-key "$ALTO_UTILITY_PK" \
+    --rpc-url http://127.0.0.1:8545 \
+    --port 4337 \
+    --safe-mode false \
+    --min-entity-stake 0 \
+    --min-entity-unstake-delay 0 \
+    --max-block-range 100 \
+    --enable-cors true \
+    --enable-debug-endpoints true \
+    --utility-wallet-monitor false \
+    --refilling-wallets false \
+    --log-level warn
+) >"$ALTO_LOG" 2>&1 &
+echo $! >"$ALTO_PID_FILE"
+wait_for_rpc "http://127.0.0.1:4337" "eth_supportedEntryPoints" "$ALTO_LOG"
+
+echo "→ resetting and deploying local P2Pix contracts"
+cat >"$SC_DIR/deploys/localhost.json" <<'JSON'
 {
   "signers": [
     "0xf39Fd6e51aad88F6F4ce6aB8827279cffFb92266",
@@ -66,63 +185,20 @@ cat > "$SC_DIR/deploys/localhost.json" <<'JSON'
   "token": ""
 }
 JSON
-
-if ! command -v anvil >/dev/null 2>&1; then
-  echo "✗ anvil not found — install foundry: https://getfoundry.sh" >&2
-  exit 1
-fi
-
-echo "→ starting anvil node (logs: $NODE_LOG)"
-ANVIL_ARGS=(--host 127.0.0.1 --port 8545 --chain-id 31337 --disable-code-size-limit)
-if [[ "${LOCAL_FORK:-0}" == "1" ]]; then
-  if [[ -z "${ALCHEMY_API_KEY:-}" ]]; then
-    if [[ -f "$SC_DIR/.env" ]] && grep -q '^ALCHEMY_API_KEY=' "$SC_DIR/.env"; then
-      ALCHEMY_API_KEY="$(grep '^ALCHEMY_API_KEY=' "$SC_DIR/.env" | cut -d= -f2- | tr -d '"')"
-    fi
-  fi
-  if [[ -z "${ALCHEMY_API_KEY:-}" || "$ALCHEMY_API_KEY" == "{INSERT_API_KEY}" ]]; then
-    echo "✗ LOCAL_FORK=1 needs ALCHEMY_API_KEY (env var or p2pix-smart-contracts/.env)" >&2
-    exit 1
-  fi
-  ANVIL_ARGS+=(--fork-url "https://eth-sepolia.g.alchemy.com/v2/$ALCHEMY_API_KEY")
-fi
-
-(anvil "${ANVIL_ARGS[@]}" >"$NODE_LOG" 2>&1) &
-echo $! > "$NODE_PID_FILE"
-
-echo "→ waiting for RPC on 127.0.0.1:8545"
-for i in {1..30}; do
-  if curl -s -o /dev/null -w "%{http_code}" \
-      -H 'content-type: application/json' \
-      --data '{"jsonrpc":"2.0","method":"eth_chainId","params":[],"id":1}' \
-      http://127.0.0.1:8545 | grep -q "200"; then
-    break
-  fi
-  sleep 0.5
-  if [[ $i == 30 ]]; then
-    echo "✗ anvil node did not come up; see $NODE_LOG" >&2
-    exit 1
-  fi
-done
-
-echo "→ deploying mock token"
 (cd "$SC_DIR" && bun run deploy1:localhost)
-
-echo "→ deploying P2PIX + reputation + multicall"
 (cd "$SC_DIR" && bun run deploy2:localhost)
 
 TOKEN_ADDR="$(node -e "console.log(require('$SC_DIR/deploys/localhost.json').token)")"
 P2PIX_ADDR="$(node -e "console.log(require('$SC_DIR/deploys/localhost.json').p2pix)")"
-
 if [[ -z "$TOKEN_ADDR" || -z "$P2PIX_ADDR" ]]; then
-  echo "✗ deploy did not write addresses to deploys/localhost.json" >&2
+  echo "✗ deploy did not write token/P2Pix addresses" >&2
   exit 1
 fi
+[[ -f "$ENV_FILE" ]] || {
+  echo "✗ $ENV_FILE missing — create it from the project template" >&2
+  exit 1
+}
 
-echo "→ patching .env.local (token=$TOKEN_ADDR, p2pix=$P2PIX_ADDR)"
-[[ -f "$ENV_FILE" ]] || { echo "✗ $ENV_FILE missing — create from template"; exit 1; }
-
-# Portable in-place sed (BSD/macOS + GNU).
 sed_inplace() {
   if sed --version >/dev/null 2>&1; then
     sed -i "$@"
@@ -130,61 +206,40 @@ sed_inplace() {
     sed -i '' "$@"
   fi
 }
-sed_inplace -E "s|^VITE_LOCAL_TOKEN_ADDRESS=.*|VITE_LOCAL_TOKEN_ADDRESS=$TOKEN_ADDR|" "$ENV_FILE"
-sed_inplace -E "s|^VITE_LOCAL_P2PIX_ADDRESS=.*|VITE_LOCAL_P2PIX_ADDRESS=$P2PIX_ADDR|" "$ENV_FILE"
 
-ERC4337_DIR="$ROOT/vendor/erc-4337"
-if [[ -d "$ERC4337_DIR" && -f "$ERC4337_DIR/script/DeployAll.s.sol" ]]; then
-  if command -v forge >/dev/null 2>&1; then
-    echo "→ deploying ERC-4337 stack (EntryPoint + WebauthnOwnerPlugin + factory)"
-    if (cd "$ERC4337_DIR" && mkdir -p deployments && \
-        forge script script/DeployAll.s.sol \
-          --rpc-url http://127.0.0.1:8545 \
-          --broadcast \
-          --private-key 0xac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80 \
-          --disable-code-size-limit \
-          -vv); then
-      PLUGIN_ADDR="$(grep '^WEBAUTHN_PLUGIN_ADDRESS=' "$ERC4337_DIR/deployments/local.env" | cut -d= -f2)"
-      FACTORY_ADDR="$(grep '^WEBAUTHN_ACCOUNT_FACTORY=' "$ERC4337_DIR/deployments/local.env" | cut -d= -f2)"
-      ENTRYPOINT_ADDR="$(grep '^ENTRYPOINT_ADDRESS=' "$ERC4337_DIR/deployments/local.env" | cut -d= -f2)"
-      if [[ -n "$PLUGIN_ADDR" ]]; then
-        echo "→ patching .env.local (webauthn plugin=$PLUGIN_ADDR, factory=$FACTORY_ADDR, entrypoint=$ENTRYPOINT_ADDR, rpId=localhost)"
-        sed_inplace -E "s|^VITE_WEBAUTHN_PLUGIN_ADDRESS=.*|VITE_WEBAUTHN_PLUGIN_ADDRESS=$PLUGIN_ADDR|" "$ENV_FILE"
-        sed_inplace -E "s|^VITE_WEBAUTHN_FACTORY_ADDRESS=.*|VITE_WEBAUTHN_FACTORY_ADDRESS=$FACTORY_ADDR|" "$ENV_FILE"
-        sed_inplace -E "s|^VITE_ENTRYPOINT_ADDRESS=.*|VITE_ENTRYPOINT_ADDRESS=$ENTRYPOINT_ADDR|" "$ENV_FILE"
-        if grep -q '^VITE_PASSKEY_RP_ID=[[:space:]]*$' "$ENV_FILE"; then
-          sed_inplace -E "s|^VITE_PASSKEY_RP_ID=.*|VITE_PASSKEY_RP_ID=localhost|" "$ENV_FILE"
-        fi
-      fi
-    else
-      echo "⚠  ERC-4337 deploy failed — passkey wiring skipped (front-end still boots)."
-    fi
+upsert_env() {
+  local key="$1"
+  local value="$2"
+  if grep -q "^${key}=" "$ENV_FILE"; then
+    sed_inplace -E "s|^${key}=.*|${key}=${value}|" "$ENV_FILE"
   else
-    echo "⚠  forge not found — skipping ERC-4337 deploy. Install foundry: https://getfoundry.sh"
+    printf '\n%s=%s\n' "$key" "$value" >>"$ENV_FILE"
   fi
+}
+
+echo "→ wiring .env.local to Kernel/Alto"
+upsert_env VITE_LOCAL_TOKEN_ADDRESS "$TOKEN_ADDR"
+upsert_env VITE_LOCAL_P2PIX_ADDRESS "$P2PIX_ADDR"
+upsert_env VITE_LOCAL_RPC_URL "http://127.0.0.1:8545"
+upsert_env VITE_BUNDLER_URL "http://127.0.0.1:4337"
+if grep -q '^VITE_PASSKEY_RP_ID=[[:space:]]*$' "$ENV_FILE"; then
+  upsert_env VITE_PASSKEY_RP_ID "localhost"
 fi
 
 echo "→ generating wagmi ABIs"
 (cd "$ROOT" && bun run wagmi:gen)
 
-if ! grep -q '^VITE_REOWN_PROJECT_ID=.\+' "$ENV_FILE"; then
-  echo "⚠  VITE_REOWN_PROJECT_ID is empty — wallet connect won't open the modal."
-  echo "   Get one at https://cloud.reown.com and add it to .env.local."
-fi
+cat <<INFO
 
-cat <<'INFO'
+ℹ  Local AA is Kernel v0.3.1 + EntryPoint 0.7:
+   Anvil RPC:  http://127.0.0.1:8545 (chainId 31337, Sepolia state fork)
+   Alto RPC:   http://127.0.0.1:4337
+   EntryPoint: $ENTRYPOINT07
 
-ℹ  The front-end exposes an "Anvil (Local)" network (chainId 31337) when
-   VITE_LOCAL_P2PIX_ADDRESS is set in .env.local. Sepolia stays on 11155111.
-   In Metamask: Add network manually → http://127.0.0.1:8545, chainId 31337.
-   LOCAL_FORK=1 is only useful if you want Sepolia state forked into the node.
-
-   ERC-4337 / passkey addresses written to .env.local after deploy:
-     VITE_WEBAUTHN_PLUGIN_ADDRESS   — WebauthnOwnerPlugin contract
-     VITE_WEBAUTHN_FACTORY_ADDRESS  — WebauthnAccountFactory contract
-     VITE_ENTRYPOINT_ADDRESS        — ERC-4337 EntryPoint contract
+   The app dev-funds only the active counterfactual Kernel account through
+   Anvil's local RPC. No verifying paymaster or Exactly-mode contract is used.
 
 INFO
 
-echo "→ starting front-end on http://localhost:3000 (Ctrl-C stops front + anvil node)"
+echo "→ starting front-end on http://localhost:3000"
 (cd "$ROOT" && bun start)

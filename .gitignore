@@ -1,5 +1,4 @@
 # Local dev bootstrap
-*.log
 *.pid
 
 # Logs
@@ -13,8 +12,6 @@ dist
 dist-ssr
 coverage
 *.local
-vendor/
-.dagrobin
 .claude
 
 /cypress/videos/

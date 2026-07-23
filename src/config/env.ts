@@ -45,9 +45,6 @@ const firstAddressEnv = (...keys: string[]): `0x${string}` | undefined => {
 };
 
 const legacyBundlerUrl = optional('VITE_BUNDLER_URL');
-const legacySponsorshipPolicyId = optional(
-  'VITE_PIMLICO_SPONSORSHIP_POLICY_ID',
-);
 const arbitrumSponsorshipPolicyId = firstEnv(
   'VITE_PIMLICO_ARBITRUM_SPONSORSHIP_POLICY_ID',
   'VITE_ARBITRUM_SPONSORSHIP_POLICY_ID',
@@ -74,6 +71,13 @@ const operationPaymasterPolicies = (
   ...(token ? { paidOperations: { token } } : {}),
 });
 
+// Backendless by default: the first-lock subsidy is decided client-side by
+// fee-token affordability and bounded by the Pimlico policy caps. Set
+// VITE_AA_SPONSORSHIP_MODE=backend once the /aa/first-lock-authorization
+// endpoint + Pimlico webhook exist to gate one sponsored lock per identity.
+const sponsorshipMode: 'caps-only' | 'backend' =
+  optional('VITE_AA_SPONSORSHIP_MODE') === 'backend' ? 'backend' : 'caps-only';
+
 export const env = {
   reownProjectId: required('VITE_REOWN_PROJECT_ID'),
   environment: optional('VITE_ENVIRONMENT'),
@@ -97,11 +101,9 @@ export const env = {
     subgraph: optional('VITE_RSK_SUBGRAPH_URL'),
   },
 
-  // Arbitrum One (42161) — the chain the passkey smart account runs on off
-  // local dev (see config/passkey.ts). The passkey connector only needs the
-  // RPC (falls back to viem's default arbitrum RPC when unset). The p2pix/token/
-  // subgraph fields enable P2Pix trading on Arbitrum once the contracts +
-  // subgraph are deployed there — leave empty until then.
+  // Arbitrum One (42161). The connector derives the same Kernel account on
+  // each configured chain; these fields enable P2Pix trading on Arbitrum once
+  // the contracts and subgraph are deployed there.
   arbitrum: {
     rpc: optional('VITE_ARBITRUM_API_URL'),
     p2pix: optionalAddress('VITE_ARBITRUM_P2PIX_ADDRESS'),
@@ -124,22 +126,8 @@ export const env = {
   passkey: {
     rpId: optional('VITE_PASSKEY_RP_ID'),
     pimlicoApiKey: optional('VITE_PIMLICO_API_KEY'),
-    // Legacy sponsorship-policy id retained for older connector configuration.
-    // Production operation routing uses the chain-scoped firstLock policy below;
-    // sweep/recovery must never inherit sponsorship from this field.
-    sponsorshipPolicyId: legacySponsorshipPolicyId,
-    // 'exactly-mode' (default): requires webauthnPluginAddress/factoryAddress
-    // from a live deployment of exactly/webauthn-owner-plugin. 'kernel':
-    // ZeroDev Kernel via permissionless — no custom deploy needed, only a
-    // bundler (pimlicoApiKey or bundlerUrl above).
-    accountKind:
-      (optional('VITE_ACCOUNT_KIND') as
-        | 'exactly-mode'
-        | 'kernel'
-        | undefined) ?? 'exactly-mode',
-    webauthnPluginAddress: optionalAddress('VITE_WEBAUTHN_PLUGIN_ADDRESS'),
-    factoryAddress: optionalAddress('VITE_WEBAUTHN_FACTORY_ADDRESS'),
-    entryPointAddress: optionalAddress('VITE_ENTRYPOINT_ADDRESS'),
+    /** How the first-lock subsidy is gated. See {@link sponsorshipMode}. */
+    sponsorshipMode,
     bundlerUrl: legacyBundlerUrl,
     /** Chain-specific bundler overrides; the legacy URL remains the fallback. */
     bundlerUrls: {
@@ -157,10 +145,8 @@ export const env = {
         arbitrumPaymasterToken,
       ),
     },
-    // RPC URL the passkey connector uses for chain reads (factory.getAddress,
-    // EntryPoint nonce/userOpHash, tx receipts). Bypasses wagmi's getClient
-    // resolver — required for custom chains (anvil 31337). Defaults to the
-    // local anvil RPC when VITE_LOCAL_P2PIX_ADDRESS is set, otherwise unset.
+    // RPC URL used by the passkey connector for Kernel account reads. The
+    // inline client is required for custom local chains.
     rpcUrl:
       firstEnv('VITE_LOCAL_RPC_URL') ??
       (optionalAddress('VITE_LOCAL_P2PIX_ADDRESS')

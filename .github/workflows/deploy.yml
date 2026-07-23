@@ -36,6 +36,13 @@ jobs:
           ALCHEMY_API_KEY: dummy
         run: bun run wagmi:gen
 
+      - name: Quality gates
+        run: |
+          bun run format:check
+          bun run lint
+          bun run test
+          bun run type-check
+
       - name: Resolve passkey rpId (WebAuthn credential scope)
         # A passkey is cryptographically bound to its rpId, and any origin whose
         # host is a registrable suffix of that rpId can assert it. So the rpId
@@ -66,11 +73,7 @@ jobs:
       - name: Build SPA
         env:
           VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
-          # Demo/staging uses kernel-mode passkey accounts (ZeroDev Kernel via
-          # Pimlico) instead of exactly-mode, since exactly-mode requires a
-          # live deployment of exactly/webauthn-owner-plugin that doesn't
-          # exist for this environment. Kernel mode only needs a bundler key.
-          VITE_ACCOUNT_KIND: kernel
+          # Passkeys and Reown EOA owners share Kernel v0.3.1 / EntryPoint 0.7.
           VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
           # Scopes the WebAuthn passkey (see "Resolve passkey rpId" step above).
           VITE_PASSKEY_RP_ID: ${{ env.VITE_PASSKEY_RP_ID }}

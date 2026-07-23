@@ -6,11 +6,7 @@ import {
   mainnet,
 } from '@doiim/reown-appkit/networks';
 import type { AppKitNetwork } from '@doiim/reown-appkit/networks';
-import {
-  type AaNetworkConfig,
-  type NetworkConfig,
-  type OperationPaymasterPolicies,
-} from '@/model/NetworkEnum';
+import { type AaNetworkConfig, type NetworkConfig } from '@/model/NetworkEnum';
 import type { Env } from '@/config/env';
 
 export const isTestnetEnvironment = (env?: Env) => {
@@ -54,24 +50,11 @@ const overlay = (base: AppKitNetwork, cfg: NetworkOverlay): NetworkConfig =>
 const hasTradingDeployment = (cfg: NetworkOverlay): boolean =>
   Boolean(cfg.p2pix && cfg.token);
 
-const getConfiguredPaymasterPolicies = (
-  env: Env,
-  chainId: 1 | 42161,
-): OperationPaymasterPolicies => env.passkey.paymasterPolicies[chainId];
-
 const buildAaConfig = (env: Env, chainId: 1 | 42161): AaNetworkConfig => {
-  const paymasterPolicies = getConfiguredPaymasterPolicies(env, chainId);
   return {
     bundlerUrl: env.passkey.bundlerUrls[chainId] ?? env.passkey.bundlerUrl,
-    paymasterPolicies,
-    ...(paymasterPolicies.paidOperations
-      ? {
-          paymasterPolicy: {
-            type: 'erc20' as const,
-            token: paymasterPolicies.paidOperations.token,
-          },
-        }
-      : {}),
+    paymasterPolicies: env.passkey.paymasterPolicies[chainId],
+    sponsorshipMode: env.passkey.sponsorshipMode,
   };
 };
 
@@ -132,8 +115,9 @@ export const buildNetworks = (env: Env) => {
         },
         subgraphUrls: [],
         aa: {
-          bundlerUrl: env.passkey.bundlerUrl,
+          bundlerUrl: env.passkey.bundlerUrl ?? 'http://127.0.0.1:4337',
           paymasterPolicies: {},
+          localSelfFunded: true,
         },
       }
     : null;

@@ -7,15 +7,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@doiim/passkeys/smart-account', () => ({
-  addOwner: vi.fn(),
-  buildBundlerTransport: vi.fn(),
-  buildPaymasterSetup: vi.fn(),
   getTokenBalances: vi.fn(),
-  listOwners: vi.fn(),
-  listOwnersPublicKeys: vi.fn(),
   sweepAll: mocks.sweepAll,
-  toKernelPasskeyAccount: vi.fn(),
-  toPasskeyAccount: vi.fn(),
 }));
 vi.mock('@/blockchain/aaAccount', () => ({
   getActiveAaContext: mocks.getActiveAaContext,
@@ -25,7 +18,6 @@ vi.mock('@/config/env', () => ({
   env: {
     local: { p2pix: undefined },
     passkey: {
-      accountKind: 'kernel',
       pimlicoApiKey: 'test-key',
     },
   },
@@ -54,7 +46,9 @@ describe('passkey sweep paymaster safety', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getActiveAaContext.mockResolvedValue({
+      account: { address: `0x${'4'.repeat(40)}` },
       erc20Client: {},
+      fundingMode: 'paymaster',
       network: {
         aa: { paymasterPolicies: { paidOperations: { token: FEE_TOKEN } } },
       },

@@ -306,29 +306,28 @@ export const getActiveLockAmount = async (
 
   const lockIds = lockSeller.map((lock) => lock.args.lockID);
 
-  const [_sortedIDs, status] = await client.readContract({
+  const [sortedIDs, status] = await client.readContract({
     address,
     abi,
     functionName: 'getLocksStatus',
     args: [lockIds],
   });
 
-  const mapLocksRequests = status.map((id: LockStatus) =>
-    client.readContract({
-      address: address,
-      abi,
-      functionName: 'mapLocks',
-      args: [BigInt(id)],
-    }),
-  );
+  const mapLocksRequests = sortedIDs.map((id) => ({
+    address,
+    abi,
+    functionName: 'mapLocks' as const,
+    args: [id],
+  }));
 
   const mapLocksResults = await client.multicall({
-    contracts: mapLocksRequests as any,
+    contracts: mapLocksRequests,
   });
 
-  return mapLocksResults.reduce((total: number, lock: any, index: number) => {
-    if (status[index] === 1) {
-      return total + Number(formatEther(lock.amount));
+  return mapLocksResults.reduce((total, lock, index) => {
+    if (status[index] === LockStatus.Active && lock.status === 'success') {
+      const [, , , , amount] = lock.result;
+      return total + Number(formatEther(amount));
     }
     return total;
   }, 0);

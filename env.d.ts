@@ -39,10 +39,6 @@ interface ImportMetaEnv {
   readonly VITE_ARBITRUM_PAYMASTER_TOKEN_ADDRESS?: `0x${string}`;
   readonly VITE_MAINNET_BUNDLER_URL?: string;
   readonly VITE_ARBITRUM_BUNDLER_URL?: string;
-  readonly VITE_ACCOUNT_KIND?: 'exactly-mode' | 'kernel';
-  readonly VITE_WEBAUTHN_PLUGIN_ADDRESS?: `0x${string}`;
-  readonly VITE_WEBAUTHN_FACTORY_ADDRESS?: `0x${string}`;
-  readonly VITE_ENTRYPOINT_ADDRESS?: `0x${string}`;
   readonly VITE_BUNDLER_URL?: string;
 }
 

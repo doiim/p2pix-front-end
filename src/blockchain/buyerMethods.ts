@@ -17,9 +17,12 @@ import {
   decodeEventLog,
   encodeFunctionData,
   erc20Abi,
+  concatHex,
   isAddress,
   isHex,
+  keccak256,
   parseUnits,
+  stringToHex,
   type Address,
   type Hex,
   type Log,
@@ -28,6 +31,21 @@ import {
 } from 'viem';
 
 type AaCall = { to: Address; data: Hex; value: bigint };
+
+const FIRST_LOCK_AUTHORIZATION_SUFFIX_TAG = '0x444f49494d464c31' as const; // "DOIIMFL1"
+
+/**
+ * Appending this fixed tag + digest to Kernel callData gives the sponsorship
+ * webhook a signed, tamper-evident binding to the one-time authorization
+ * without publishing the opaque authorizationId on-chain.
+ */
+export const buildFirstLockAuthorizationSuffix = (
+  authorizationId: string,
+): Hex =>
+  concatHex([
+    FIRST_LOCK_AUTHORIZATION_SUFFIX_TAG,
+    keccak256(stringToHex(authorizationId)),
+  ]);
 
 /** Minimum on-chain window left before a new PIX solicitation is shown. */
 export const pixSettlementSafetyBlocks = (chainId: number): bigint => {
@@ -44,7 +62,11 @@ const readTokenDecimals = (
   client: Pick<PublicClient, 'readContract'>,
   token: Address,
 ): Promise<number> =>
-  client.readContract({ address: token, abi: erc20Abi, functionName: 'decimals' });
+  client.readContract({
+    address: token,
+    abi: erc20Abi,
+    functionName: 'decimals',
+  });
 
 /** Read a token's decimals over a read-only RPC provider. */
 export const getTokenDecimals = async (token: Address): Promise<number> => {
@@ -71,12 +93,11 @@ export type PreparedLock = {
   seller: Address;
   token: Address;
   amount: bigint;
-  amountInput: number;
   contractAddress: Address;
   chainId: number;
   accountAddress?: Address;
   call: AaCall;
-  policy: 'sponsored' | 'erc20' | 'eoa';
+  policy: 'sponsored' | 'erc20' | 'self-funded' | 'eoa';
   authorization?: FirstLockAuthorization & { eligible: true };
   quote?: PreparedErc20Quote;
 };
@@ -94,7 +115,7 @@ export type PreparedRelease = {
   lock: P2PixLock;
   authorization: ReleaseAuthorization;
   call: AaCall;
-  policy: 'erc20' | 'eoa';
+  policy: 'erc20' | 'self-funded' | 'eoa';
   quote?: PreparedErc20Quote;
 };
 
@@ -320,6 +341,58 @@ const buildReleaseCall = (
   value: 0n,
 });
 
+const assertPreparedLockCall = (
+  prepared: PreparedLock,
+  address: Address,
+  abi: readonly unknown[],
+): void => {
+  const expected = buildLockCall(
+    address,
+    abi,
+    prepared.orderId,
+    prepared.seller,
+    prepared.token,
+    prepared.amount,
+  );
+  if (
+    prepared.call.to.toLowerCase() !== expected.to.toLowerCase() ||
+    prepared.call.data.toLowerCase() !== expected.data.toLowerCase() ||
+    prepared.call.value !== expected.value
+  ) {
+    throw new Error('Prepared lock call changed after authorization');
+  }
+};
+
+const firstLockPaymasterContext = (
+  aa: AaContext,
+  prepared: PreparedLock,
+  authorization: FirstLockAuthorization & { eligible: true },
+) => {
+  const sponsorshipPolicyId =
+    aa.network.aa?.paymasterPolicies.firstLock?.sponsorshipPolicyId;
+  if (!sponsorshipPolicyId?.trim()) {
+    throw new Error('AA first-lock sponsorship policy is unavailable');
+  }
+
+  return {
+    sponsorshipPolicyId,
+    meta: {
+      flow: 'p2pix-first-lock-v1',
+      authorizationId: authorization.authorizationId,
+      authorizationDigest: keccak256(
+        stringToHex(authorization.authorizationId),
+      ),
+      orderId: prepared.orderId,
+      chainId: String(prepared.chainId),
+      sender: aa.account.address,
+      contractAddress: prepared.contractAddress,
+      seller: prepared.seller,
+      token: prepared.token,
+      amount: prepared.amount.toString(),
+    },
+  };
+};
+
 export const getP2PixLock = async (lockID: bigint): Promise<P2PixLock> => {
   const { address, abi, client } = await getContract(true);
   const [lock, currentBlock, chainId] = await Promise.all([
@@ -405,47 +478,76 @@ export const prepareLock = async (
   });
   const { orderId } = intent;
   const call = buildLockCall(address, abi, orderId, seller, token, amount);
+  const prepared = {
+    orderId,
+    seller,
+    token,
+    amount,
+    contractAddress: address,
+    chainId,
+    accountAddress,
+    call,
+  };
 
   if (!aa) {
     return {
-      orderId,
-      seller,
-      token,
-      amount,
-      amountInput,
-      contractAddress: address,
-      chainId,
-      accountAddress,
-      call,
+      ...prepared,
       policy: 'eoa',
     };
   }
 
+  if (aa.fundingMode === 'self-funded') {
+    return { ...prepared, policy: 'self-funded' };
+  }
+
   await assertErc20PaymasterTokenSupported(aa, token);
 
-  const authorization = await requestFirstLockAuthorization({
-    orderId,
-    chainId: aa.network.id,
-    sender: aa.account.address,
-    contractAddress: address,
-    seller,
-    token,
-    amount: amount.toString(),
-  });
-
-  if (authorization.eligible) {
-    return {
+  if (aa.sponsorshipMode === 'backend') {
+    // Authoritative gate: a valid positive decision sponsors; a valid negative
+    // decision selects ERC-20. Boundary failures throw (fail closed).
+    const authorization = await requestFirstLockAuthorization({
       orderId,
+      chainId: aa.network.id,
+      sender: aa.account.address,
+      contractAddress: address,
       seller,
       token,
-      amount,
-      amountInput,
-      contractAddress: address,
-      chainId: aa.network.id,
-      accountAddress: aa.account.address,
-      call,
+      amount: amount.toString(),
+    });
+
+    if (authorization.eligible) {
+      return {
+        ...prepared,
+        policy: 'sponsored',
+        authorization,
+      };
+    }
+
+    const quote = await prepareErc20PaymasterQuote(aa, [call], {
+      type: 'existing',
+    });
+    return {
+      ...prepared,
+      policy: 'erc20',
+      quote,
+    };
+  }
+
+  // caps-only (backendless): sponsor a p2pix lock only when the account cannot
+  // pay the fee token itself — an empty counterfactual account, i.e. the first
+  // purchase. Once it holds the token (after a release), it pays in ERC-20. The
+  // paid token equals the traded token (asserted above), so the lock token's
+  // balance is the fee-token balance. Abuse is bounded by the Pimlico caps.
+  const feeTokenBalance = await client.readContract({
+    address: token,
+    abi: erc20Abi,
+    functionName: 'balanceOf',
+    args: [aa.account.address],
+  });
+  if (feeTokenBalance === 0n) {
+    return {
+      ...prepared,
       policy: 'sponsored',
-      authorization,
     };
   }
 
@@ -453,15 +555,7 @@ export const prepareLock = async (
     type: 'existing',
   });
   return {
-    orderId,
-    seller,
-    token,
-    amount,
-    amountInput,
-    contractAddress: address,
-    chainId: aa.network.id,
-    accountAddress: aa.account.address,
-    call,
+    ...prepared,
     policy: 'erc20',
     quote,
   };
@@ -517,6 +611,7 @@ export const submitLock = async (
   if (address.toLowerCase() !== prepared.contractAddress.toLowerCase()) {
     throw new Error('P2Pix contract changed after preparing the lock');
   }
+  assertPreparedLockCall(prepared, address, abi);
   const aa = await getActiveAaContext();
 
   if (aa) {
@@ -527,26 +622,54 @@ export const submitLock = async (
 
     let userOpHash: Hex;
     if (prepared.policy === 'sponsored') {
-      if (
-        !prepared.authorization?.eligible ||
-        prepared.authorization.orderId.toLowerCase() !==
-          prepared.orderId.toLowerCase() ||
-        prepared.authorization.expiresAtMs <= Date.now()
-      ) {
-        throw new Error(
-          'First-lock sponsorship authorization expired or missing',
-        );
+      if (prepared.authorization) {
+        // backend mode: the one-time authorization must still be valid and is
+        // bound into the userOp for the Pimlico sponsorship webhook to verify.
+        if (
+          !prepared.authorization.eligible ||
+          prepared.authorization.orderId.toLowerCase() !==
+            prepared.orderId.toLowerCase() ||
+          prepared.authorization.expiresAtMs <= Date.now()
+        ) {
+          throw new Error(
+            'First-lock sponsorship authorization expired or missing',
+          );
+        }
+        userOpHash = await aa.sponsoredClient.sendUserOperation({
+          calls: [prepared.call],
+          dataSuffix: buildFirstLockAuthorizationSuffix(
+            prepared.authorization.authorizationId,
+          ),
+          paymasterContext: firstLockPaymasterContext(
+            aa,
+            prepared,
+            prepared.authorization,
+          ),
+        });
+      } else {
+        // caps-only mode: no backend authorization; the Pimlico policy caps are
+        // the sole gate. The sponsored client already pins the firstLock policy.
+        if (aa.sponsorshipMode !== 'caps-only') {
+          throw new Error('Sponsored lock is missing its authorization');
+        }
+        userOpHash = await aa.sponsoredClient.sendUserOperation({
+          calls: [prepared.call],
+        });
+      }
+    } else if (prepared.policy === 'erc20') {
+      if (!prepared.quote) throw new Error('Paid lock quote is missing');
+      userOpHash = await sendPreparedErc20UserOperation(aa, prepared.quote);
+    } else {
+      if (aa.fundingMode !== 'self-funded') {
+        throw new Error('Self-funded lock is only available on local Anvil');
       }
       userOpHash = await aa.sponsoredClient.sendUserOperation({
         calls: [prepared.call],
       });
-    } else {
-      if (!prepared.quote) throw new Error('Paid lock quote is missing');
-      userOpHash = await sendPreparedErc20UserOperation(aa, prepared.quote);
     }
 
     const receiptClient =
-      prepared.policy === 'sponsored' ? aa.sponsoredClient : aa.erc20Client;
+      prepared.policy === 'erc20' ? aa.erc20Client : aa.sponsoredClient;
     const userOpReceipt = await receiptClient.waitForUserOperationReceipt({
       hash: userOpHash,
     });
@@ -577,6 +700,9 @@ export const submitLock = async (
     );
   }
   if (!wallet) throw new Error('Wallet not connected');
+  if ((await client.getChainId()) !== prepared.chainId) {
+    throw new Error('Active chain changed after preparing the EOA lock');
+  }
   if (
     !account ||
     account.toLowerCase() !== prepared.accountAddress?.toLowerCase()
@@ -641,6 +767,10 @@ export const prepareRelease = async (
     throw new Error('Active Kernel account is not the buyer of this lock');
   }
 
+  if (aa.fundingMode === 'self-funded') {
+    return { lock, authorization, call, policy: 'self-funded' };
+  }
+
   const quote = await prepareErc20PaymasterQuote(aa, [call], {
     type: 'incoming',
     token: lock.token,
@@ -654,7 +784,7 @@ export const submitRelease = async (
 ): Promise<TransactionReceipt> => {
   const aa = await getActiveAaContext();
   if (aa) {
-    if (prepared.policy !== 'erc20' || !prepared.quote) {
+    if (prepared.policy === 'eoa') {
       throw new Error(
         'Prepared EOA release cannot be submitted by an AA session',
       );
@@ -673,7 +803,18 @@ export const submitRelease = async (
       );
     }
 
-    const userOpHash = await sendPreparedErc20UserOperation(aa, prepared.quote);
+    let userOpHash: Hex;
+    if (prepared.policy === 'self-funded') {
+      if (aa.fundingMode !== 'self-funded') {
+        throw new Error('Self-funded release is only available on local Anvil');
+      }
+      userOpHash = await aa.erc20Client.sendUserOperation({
+        calls: [prepared.call],
+      });
+    } else {
+      if (!prepared.quote) throw new Error('Paid release quote is missing');
+      userOpHash = await sendPreparedErc20UserOperation(aa, prepared.quote);
+    }
     const userOpReceipt = await aa.erc20Client.waitForUserOperationReceipt({
       hash: userOpHash,
     });

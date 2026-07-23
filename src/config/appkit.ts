@@ -63,48 +63,20 @@ export const setupAppKit = (env: Env): WagmiAdapter => {
   if (_adapter) return _adapter;
 
   const { wagmiNetworks, defaultNetwork } = buildNetworks(env);
-  const passkeyIsLocal = Boolean(env.local.p2pix);
-  const passkeyAccountKind = passkeyIsLocal
-    ? env.passkey.accountKind
-    : 'kernel';
   const defaultPasskeyRpcUrl = defaultNetwork.rpcUrls?.default?.http?.[0];
 
-  // The connector's PasskeyConnectorConfig names the Pimlico key
-  // `bundlerApiKey`; env.passkey exposes it as `pimlicoApiKey`. Without this
-  // remap the key never reaches the connector, and kernel mode throws
-  // PasskeyConfigError ("bundlerApiKey (or bundlerUrl) is required").
-  //
-  // `rpcUrl` is always supplied so the connector uses its inline-client path
-  // instead of wagmi's getClient resolver — that resolver returns no client in
-  // the bundled build ("no public client available for chainId ...").
-  //
-  // Off local dev the passkey account starts on AppKit's active/default trading
-  // chain in kernel mode (see config/passkey.ts), so no
-  // custom plugin/factory/EntryPoint is needed, and any exactly-mode / local
-  // addresses from env are dropped so they can't leak into the kernel account
-  // derivation (kernel uses the canonical EntryPoint 0.7).
-  const passkeyConfig = passkeyIsLocal
-    ? {
-        ...env.passkey,
-        bundlerApiKey: env.passkey.pimlicoApiKey,
-        rpName: 'P2Pix',
-        chainId: Number(defaultNetwork.id),
-        rpcUrl:
-          env.passkey.rpcUrl ||
-          defaultNetwork.rpcUrls?.default?.http?.[0] ||
-          undefined,
-      }
-    : {
-        ...env.passkey,
-        bundlerApiKey: env.passkey.pimlicoApiKey,
-        rpName: 'P2Pix',
-        accountKind: passkeyAccountKind,
-        chainId: Number(defaultNetwork.id),
-        rpcUrl: defaultPasskeyRpcUrl,
-        entryPointAddress: undefined,
-        webauthnPluginAddress: undefined,
-        factoryAddress: undefined,
-      };
+  // Every passkey uses the same Kernel v0.3.1 / EntryPoint v0.7 account rail.
+  // `rpcUrl` keeps custom local chains on the connector's inline-client path.
+  const passkeyConfig = {
+    rpId: env.passkey.rpId,
+    rpName: 'P2Pix',
+    accountKind: 'kernel' as const,
+    chainId: Number(defaultNetwork.id),
+    rpcUrl: env.passkey.rpcUrl || defaultPasskeyRpcUrl,
+    bundlerApiKey: env.passkey.pimlicoApiKey,
+    bundlerUrl:
+      defaultNetwork.aa?.bundlerUrl ?? env.passkey.bundlerUrl ?? undefined,
+  };
 
   const adapter = new WagmiAdapter({
     networks: wagmiNetworks,

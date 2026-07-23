@@ -29,8 +29,6 @@ export type PreparedErc20Quote = Erc20FeeEstimate & {
   chainId: number;
   sender: Address;
   expiresAt: number;
-  maxAcceptedTokenCost: bigint;
-  realTokenBalance: bigint;
   userOperation: UserOperation<'0.7'>;
 };
 
@@ -213,8 +211,6 @@ export const prepareErc20PaymasterQuote = async (
       chainId: context.network.id,
       sender: context.account.address,
       expiresAt: Date.now() + QUOTE_VALIDITY_MS,
-      maxAcceptedTokenCost: cost.costInToken,
-      realTokenBalance,
       userOperation: operation,
     };
   } catch (error) {

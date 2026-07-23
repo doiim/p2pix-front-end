@@ -10,12 +10,18 @@ import {
   type WalletClient,
   http,
   isAddress,
+  isHex,
+  parseEther,
+  toHex,
   zeroAddress,
 } from 'viem';
 import {
   createPaymasterClient,
   entryPoint07Address,
+  type GetPaymasterStubDataParameters,
+  type GetPaymasterStubDataReturnType,
   type SmartAccount,
+  type UserOperation,
 } from 'viem/account-abstraction';
 import {
   createSmartAccountClient,
@@ -53,6 +59,9 @@ export type AaContext = {
   erc20IncomingClient: SmartAccountClient;
   ownerKind: AaOwnerKind;
   network: NetworkConfig;
+  fundingMode: 'paymaster' | 'self-funded';
+  /** First-lock subsidy gating. Defaults to backendless `caps-only`. */
+  sponsorshipMode: 'caps-only' | 'backend';
   pimlicoClient?: PimlicoClient;
 };
 
@@ -96,11 +105,19 @@ export const readPasskeySession = (): StoredSession | null => {
   try {
     const parsed = JSON.parse(raw) as Partial<StoredSession>;
     if (
-      parsed.credentialId &&
-      parsed.smartAccountAddress &&
-      parsed.publicKeyX &&
-      parsed.publicKeyY &&
-      parsed.salt
+      typeof parsed.credentialId === 'string' &&
+      parsed.credentialId.length > 0 &&
+      typeof parsed.smartAccountAddress === 'string' &&
+      isAddress(parsed.smartAccountAddress) &&
+      typeof parsed.publicKeyX === 'string' &&
+      isHex(parsed.publicKeyX) &&
+      parsed.publicKeyX.length === 66 &&
+      typeof parsed.publicKeyY === 'string' &&
+      isHex(parsed.publicKeyY) &&
+      parsed.publicKeyY.length === 66 &&
+      typeof parsed.salt === 'string' &&
+      isHex(parsed.salt) &&
+      parsed.salt.length === 66
     ) {
       return parsed as StoredSession;
     }
@@ -108,6 +125,25 @@ export const readPasskeySession = (): StoredSession | null => {
     // Corrupt storage is treated as a logged-out passkey session.
   }
   return null;
+};
+
+const persistMigratedPasskeySession = (session: StoredSession): void => {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(PASSKEY_SESSION_KEY, JSON.stringify(session));
+  // A legacy credentials map can contain several stale Exactly addresses.
+  // Keep only the authenticated credential; other passkeys self-repair when
+  // they are selected again.
+  window.localStorage.setItem(
+    'doiim:passkey:credentials',
+    JSON.stringify({
+      [session.credentialId]: {
+        smartAccountAddress: session.smartAccountAddress,
+        publicKeyX: session.publicKeyX,
+        publicKeyY: session.publicKeyY,
+        salt: session.salt,
+      },
+    }),
+  );
 };
 
 export const resetAaAccountCache = (): void => {
@@ -120,6 +156,20 @@ const pimlicoUrl = (chainId: number, aa: AaNetworkConfig): string | undefined =>
   (env.passkey.pimlicoApiKey
     ? `https://api.pimlico.io/v2/${chainId}/rpc?apikey=${env.passkey.pimlicoApiKey}`
     : undefined);
+
+const isLoopbackBundlerUrl = (value: string): boolean => {
+  try {
+    const url = new URL(value);
+    return (
+      url.protocol === 'http:' &&
+      (url.hostname === '127.0.0.1' ||
+        url.hostname === 'localhost' ||
+        url.hostname === '[::1]')
+    );
+  } catch {
+    return false;
+  }
+};
 
 export const validateAaPaymasterPolicies = (aa: AaNetworkConfig) => {
   const firstLock = aa.paymasterPolicies.firstLock;
@@ -158,7 +208,7 @@ export const buildPolicyScopedClients = ({
     transport: http(url),
     entryPoint: account.entryPoint,
   });
-  const paymaster = createPaymasterClient({ transport: http(url) });
+  const erc20Paymaster = createPaymasterClient({ transport: http(url) });
   const estimateFeesPerGas = async () =>
     (await pimlicoClient.getUserOperationGasPrice()).fast;
   const common = {
@@ -166,18 +216,42 @@ export const buildPolicyScopedClients = ({
     chain: network as Chain,
     client: publicClient,
     bundlerTransport: http(url),
-    paymaster,
   } as const;
+  const sponsoredPaymaster = {
+    getPaymasterStubData: async ({
+      chainId,
+      context,
+      entryPointAddress,
+      ...request
+    }: GetPaymasterStubDataParameters): Promise<GetPaymasterStubDataReturnType> => {
+      if (
+        chainId !== network.id ||
+        entryPointAddress.toLowerCase() !==
+          account.entryPoint.address.toLowerCase() ||
+        account.entryPoint.version !== '0.7'
+      ) {
+        throw new Error(
+          'Sponsored UserOperation context does not match Kernel',
+        );
+      }
+
+      const result = await pimlicoClient.sponsorUserOperation({
+        userOperation: request as UserOperation<'0.7'>,
+        sponsorshipPolicyId: firstLock.sponsorshipPolicyId,
+        paymasterContext: context,
+      });
+      return { ...result, isFinal: true };
+    },
+  };
   const sponsoredClient = createSmartAccountClient({
     ...common,
-    paymasterContext: {
-      sponsorshipPolicyId: firstLock.sponsorshipPolicyId,
-    },
+    paymaster: sponsoredPaymaster,
     userOperation: { estimateFeesPerGas },
   });
   const buildErc20Client = (balanceOverride: boolean) =>
     createSmartAccountClient({
       ...common,
+      paymaster: erc20Paymaster,
       paymasterContext: { token: paidOperations.token },
       userOperation: {
         estimateFeesPerGas,
@@ -194,6 +268,59 @@ export const buildPolicyScopedClients = ({
     sponsoredClient,
     erc20Client,
     erc20IncomingClient,
+    pimlicoClient,
+  };
+};
+
+const buildLocalSelfFundedClients = async ({
+  account,
+  network,
+  publicClient,
+  url,
+}: {
+  account: SmartAccount;
+  network: NetworkConfig;
+  publicClient: PublicClient;
+  url: string;
+}) => {
+  const runtimeChainId = await publicClient.getChainId();
+  if (network.id !== 31337 || runtimeChainId !== 31337) {
+    throw new Error('Local self-funded AA is restricted to Anvil chain 31337');
+  }
+
+  const minimumBalance = parseEther('10');
+  if (
+    (await publicClient.getBalance({ address: account.address })) <
+    minimumBalance
+  ) {
+    await publicClient.request({
+      method: 'anvil_setBalance',
+      params: [account.address, toHex(parseEther('100'))],
+    } as never);
+  }
+
+  const pimlicoClient = createPimlicoClient({
+    chain: network as Chain,
+    transport: http(url),
+    entryPoint: account.entryPoint,
+  });
+  const common = {
+    account,
+    chain: network as Chain,
+    client: publicClient,
+    bundlerTransport: http(url),
+    userOperation: {
+      estimateFeesPerGas: async () =>
+        (await pimlicoClient.getUserOperationGasPrice()).fast,
+    },
+  } as const;
+
+  // Keep clients isolated by operation even though local Anvil does not use a
+  // paymaster. Production must never accidentally collapse these policy seams.
+  return {
+    sponsoredClient: createSmartAccountClient(common),
+    erc20Client: createSmartAccountClient(common),
+    erc20IncomingClient: createSmartAccountClient(common),
     pimlicoClient,
   };
 };
@@ -215,13 +342,27 @@ const createKernelAccount = async (
   if (ownerKind === 'passkey') {
     const session = readPasskeySession();
     if (!session) throw new Error('Passkey session not available');
-    return toKernelPasskeyAccount({
+    const account = await toKernelPasskeyAccount({
       client: publicClient,
       credentialId: session.credentialId,
       publicKeyX: session.publicKeyX,
       publicKeyY: session.publicKeyY,
       rpId: env.passkey.rpId,
     });
+    if (
+      session.smartAccountAddress.toLowerCase() !==
+      account.address.toLowerCase()
+    ) {
+      const migrated = {
+        ...session,
+        smartAccountAddress: account.address,
+      };
+      persistMigratedPasskeySession(migrated);
+      throw new Error(
+        'Passkey session migrated to the Kernel account; reload once to reconnect safely',
+      );
+    }
+    return account;
   }
 
   if (runtime.reownAccountType !== 'eoa') {
@@ -250,10 +391,6 @@ export const getAaAccountForRuntime = async (
   const ownerKind = getAaOwnerKind(runtime.connectorId);
   if (!ownerKind || !runtime.network.aa) return null;
 
-  // Local development keeps the existing exactly-mode account and v0.6
-  // self-bundler. The generic Kernel rail targets EntryPoint v0.7.
-  if (runtime.network.id === 31337) return null;
-
   const ownerIdentity = getRuntimeOwnerIdentity(runtime, ownerKind);
   if (!ownerIdentity) return null;
 
@@ -274,20 +411,33 @@ const createContext = async (
   const aa = network.aa;
   if (!aa) throw new Error(`AA is not configured for chain ${network.id}`);
 
-  const url = pimlicoUrl(network.id, aa);
+  const url = aa.localSelfFunded ? aa.bundlerUrl : pimlicoUrl(network.id, aa);
   if (!url) {
     throw new Error(
       `Bundler not configured for chain ${network.id}: set VITE_PIMLICO_API_KEY or a chain bundler URL`,
     );
   }
+  if (aa.localSelfFunded && !isLoopbackBundlerUrl(url)) {
+    throw new Error(
+      'Local self-funded AA requires a loopback HTTP bundler URL',
+    );
+  }
 
+  const fundingMode = aa.localSelfFunded ? 'self-funded' : 'paymaster';
   const { sponsoredClient, erc20Client, erc20IncomingClient, pimlicoClient } =
-    buildPolicyScopedClients({
-      account,
-      network,
-      publicClient,
-      url,
-    });
+    aa.localSelfFunded
+      ? await buildLocalSelfFundedClients({
+          account,
+          network,
+          publicClient,
+          url,
+        })
+      : buildPolicyScopedClients({
+          account,
+          network,
+          publicClient,
+          url,
+        });
 
   return {
     account,
@@ -296,6 +446,8 @@ const createContext = async (
     erc20IncomingClient,
     ownerKind,
     network,
+    fundingMode,
+    sponsorshipMode: aa.sponsorshipMode ?? 'caps-only',
     pimlicoClient,
   };
 };
@@ -305,10 +457,6 @@ export const getAaContextForRuntime = async (
 ): Promise<AaContext | null> => {
   const ownerKind = getAaOwnerKind(runtime.connectorId);
   if (!ownerKind || !runtime.network.aa) return null;
-
-  // Local development keeps the existing exactly-mode account and v0.6
-  // self-bundler. The generic Kernel rail targets EntryPoint v0.7.
-  if (runtime.network.id === 31337) return null;
 
   const account = await getAaAccountForRuntime(runtime);
   if (!account) return null;
@@ -351,9 +499,21 @@ export const getActiveAaContext = async (): Promise<AaContext | null> => {
   if (!ownerKind) return null;
 
   const network = useUser().network.value;
-  if (!network.aa) return null;
+  if (!network.aa) {
+    throw new Error(
+      `AA is not configured for chain ${network.id}; refusing to use the connector EOA`,
+    );
+  }
 
-  return getAaContextForRuntime(await resolveActiveRuntime(ownerKind, network));
+  const context = await getAaContextForRuntime(
+    await resolveActiveRuntime(ownerKind, network),
+  );
+  if (!context) {
+    throw new Error(
+      `Could not resolve the ${ownerKind} AA context on chain ${network.id}; refusing to use the connector EOA`,
+    );
+  }
+  return context;
 };
 
 /** Resolve only the active counterfactual account, independent of AA infra. */
@@ -379,12 +539,6 @@ export const getEffectiveWalletAddress = async (
 
   const account = await getActiveAaAccount();
   if (account) return account.address;
-
-  // The local passkey connector already exposes its exactly-mode smart-account
-  // address, so this is not an owner-EOA fallback.
-  if (ownerKind === 'passkey' && useUser().network.value.id === 31337) {
-    return fallback;
-  }
 
   throw new Error(
     `Could not derive the ${ownerKind} Kernel account; refusing to use the connector EOA`,

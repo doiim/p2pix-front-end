@@ -10,6 +10,7 @@ import {
   getP2PixLock,
   getTokenDecimals,
 } from '@/blockchain/buyerMethods';
+import { getErrorMessage } from '@/utils/error';
 import QRCode from 'qrcode';
 import { formatUnits, type Hex } from 'viem';
 
@@ -148,10 +149,10 @@ onMounted(async () => {
     startPolling();
   } catch (error) {
     console.error('Error creating solicitation:', error);
-    errorMessage.value =
-      error instanceof Error
-        ? error.message
-        : 'Não foi possível gerar o PIX.';
+    errorMessage.value = getErrorMessage(
+      error,
+      'Não foi possível gerar o PIX.',
+    );
     emit('error', errorMessage.value);
   }
 });

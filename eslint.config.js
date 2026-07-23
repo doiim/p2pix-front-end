@@ -5,7 +5,14 @@ import vuePrettierConfig from '@vue/eslint-config-prettier';
 const sources = ['src/**/*.{ts,tsx,vue,js,mjs,cjs}', 'tests/**/*.{ts,tsx,vue,js,mjs,cjs}'];
 
 export default defineConfigWithVueTs(
-  { ignores: ['src/generated.ts', 'dist/**', 'node_modules/**', 'vendor/**'] },
+  {
+    ignores: [
+      'src/generated.ts',
+      'src/blockchain/abi.ts',
+      'dist/**',
+      'node_modules/**',
+    ],
+  },
   {
     files: sources,
     extends: [pluginVue.configs['flat/essential'], vueTsConfigs.recommended],

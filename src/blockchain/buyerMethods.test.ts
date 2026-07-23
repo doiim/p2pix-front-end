@@ -36,6 +36,7 @@ vi.mock('./erc20Paymaster', () => ({
 
 import {
   assertLockAcceptableForPix,
+  buildFirstLockAuthorizationSuffix,
   getLockIdFromLogs,
   pixSettlementSafetyBlocks,
   prepareLock,
@@ -138,11 +139,17 @@ const lockLog = (lockID = 11n, orderId = ORDER): Log =>
     }),
   }) as Log;
 
-const makeContract = (existingLockID = 0n, decimals = 18) => {
+const makeContract = (
+  existingLockID = 0n,
+  decimals = 18,
+  chainId = 1,
+  feeTokenBalance = 0n,
+) => {
   const readContract = vi.fn(async ({ functionName }) => {
     if (functionName === 'lockIdByBuyerOrderId') return existingLockID;
     if (functionName === 'mapLocks') return lockTuple(existingLockID || 11n);
     if (functionName === 'decimals') return decimals;
+    if (functionName === 'balanceOf') return feeTokenBalance;
     throw new Error(`unexpected read ${functionName}`);
   });
   return {
@@ -151,15 +158,19 @@ const makeContract = (existingLockID = 0n, decimals = 18) => {
     wallet: null,
     account: BUYER,
     client: {
-      chain: { id: 1 },
+      chain: { id: chainId },
       readContract,
       getBlockNumber: vi.fn().mockResolvedValue(1_000n),
-      getChainId: vi.fn().mockResolvedValue(1),
+      getChainId: vi.fn().mockResolvedValue(chainId),
     },
   };
 };
 
-const makeAa = () => {
+const makeAa = (
+  fundingMode: 'paymaster' | 'self-funded' = 'paymaster',
+  chainId = 1,
+  sponsorshipMode: 'caps-only' | 'backend' = 'backend',
+) => {
   const sponsoredClient = {
     sendUserOperation: vi.fn().mockResolvedValue(USER_OP_HASH),
     waitForUserOperationReceipt: vi.fn().mockResolvedValue({
@@ -168,6 +179,7 @@ const makeAa = () => {
     }),
   };
   const erc20Client = {
+    sendUserOperation: vi.fn().mockResolvedValue(USER_OP_HASH),
     waitForUserOperationReceipt: vi.fn().mockResolvedValue({
       success: true,
       receipt: { logs: [lockLog()], transactionHash: TX_HASH },
@@ -175,9 +187,18 @@ const makeAa = () => {
   };
   return {
     account: { address: BUYER },
-    network: { id: 1 },
+    network: {
+      id: chainId,
+      aa: {
+        paymasterPolicies: {
+          firstLock: { sponsorshipPolicyId: 'sp_first_lock' },
+        },
+      },
+    },
     sponsoredClient,
     erc20Client,
+    fundingMode,
+    sponsorshipMode,
   };
 };
 
@@ -290,8 +311,46 @@ describe('P2Pix AA purchase flow', () => {
       orderId: ORDER,
       recovered: false,
     });
-    expect(aa.sponsoredClient.sendUserOperation).toHaveBeenCalledOnce();
+    expect(aa.sponsoredClient.sendUserOperation).toHaveBeenCalledWith({
+      calls: [prepared.call],
+      dataSuffix: buildFirstLockAuthorizationSuffix('grant-1'),
+      paymasterContext: {
+        sponsorshipPolicyId: 'sp_first_lock',
+        meta: {
+          flow: 'p2pix-first-lock-v1',
+          authorizationId: 'grant-1',
+          authorizationDigest:
+            '0x0a24bcdd2db7dd7991a9f86f34d5124641d82394448b1a3536c77e61b1cfc114',
+          orderId: ORDER,
+          chainId: '1',
+          sender: BUYER,
+          contractAddress: P2PIX,
+          seller: SELLER,
+          token: TOKEN,
+          amount: parseUnits('1', 18).toString(),
+        },
+      },
+    });
     expect(mocks.sendPreparedErc20UserOperation).not.toHaveBeenCalled();
+  });
+
+  it('rejects a sponsored call mutated after authorization', async () => {
+    const aa = makeAa();
+    mocks.getActiveAaContext.mockResolvedValue(aa);
+    mocks.requestFirstLockAuthorization.mockResolvedValue({
+      eligible: true,
+      orderId: ORDER,
+      authorizationId: 'grant-1',
+      expiresAtMs: Date.now() + 60_000,
+    });
+
+    const prepared = await prepareLock(SELLER, TOKEN, 1);
+    prepared.call.data = '0x1234';
+
+    await expect(submitLock(prepared)).rejects.toThrow(
+      /call changed after authorization/,
+    );
+    expect(aa.sponsoredClient.sendUserOperation).not.toHaveBeenCalled();
   });
 
   it('uses a prepared ERC-20 quote after an authoritative negative decision', async () => {
@@ -320,6 +379,67 @@ describe('P2Pix AA purchase flow', () => {
       quote,
     );
     expect(result.lockID).toBe(11n);
+  });
+
+  it('uses the self-funded Kernel rail locally without authorization or paymaster', async () => {
+    const aa = makeAa('self-funded', 31337);
+    mocks.getActiveAaContext.mockResolvedValue(aa);
+    mocks.getContract.mockImplementation(async () =>
+      makeContract(0n, 18, 31337),
+    );
+
+    const prepared = await prepareLock(SELLER, TOKEN, 1);
+    const result = await submitLock(prepared);
+
+    expect(prepared.policy).toBe('self-funded');
+    expect(aa.sponsoredClient.sendUserOperation).toHaveBeenCalledWith({
+      calls: [prepared.call],
+    });
+    expect(result.lockID).toBe(11n);
+    expect(mocks.requestFirstLockAuthorization).not.toHaveBeenCalled();
+    expect(mocks.assertErc20PaymasterTokenSupported).not.toHaveBeenCalled();
+    expect(mocks.prepareErc20PaymasterQuote).not.toHaveBeenCalled();
+  });
+
+  it('caps-only: sponsors the first lock of an empty account without a backend', async () => {
+    const aa = makeAa('paymaster', 1, 'caps-only');
+    mocks.getActiveAaContext.mockResolvedValue(aa);
+    mocks.getContract.mockImplementation(async () =>
+      makeContract(0n, 18, 1, 0n),
+    );
+
+    const prepared = await prepareLock(SELLER, TOKEN, 1);
+    const result = await submitLock(prepared);
+
+    expect(prepared.policy).toBe('sponsored');
+    expect(prepared.authorization).toBeUndefined();
+    expect(mocks.requestFirstLockAuthorization).not.toHaveBeenCalled();
+    expect(aa.sponsoredClient.sendUserOperation).toHaveBeenCalledWith({
+      calls: [prepared.call],
+    });
+    expect(mocks.prepareErc20PaymasterQuote).not.toHaveBeenCalled();
+    expect(result.lockID).toBe(11n);
+  });
+
+  it('caps-only: charges ERC-20 once the account already holds the fee token', async () => {
+    const aa = makeAa('paymaster', 1, 'caps-only');
+    const quote = { quoteId: USER_OP_HASH };
+    mocks.getActiveAaContext.mockResolvedValue(aa);
+    mocks.getContract.mockImplementation(async () =>
+      makeContract(0n, 18, 1, 5_000_000n),
+    );
+    mocks.prepareErc20PaymasterQuote.mockResolvedValue(quote);
+    mocks.sendPreparedErc20UserOperation.mockResolvedValue(USER_OP_HASH);
+
+    const prepared = await prepareLock(SELLER, TOKEN, 1);
+
+    expect(prepared.policy).toBe('erc20');
+    expect(mocks.requestFirstLockAuthorization).not.toHaveBeenCalled();
+    expect(mocks.prepareErc20PaymasterQuote).toHaveBeenCalledWith(
+      aa,
+      [prepared.call],
+      { type: 'existing' },
+    );
   });
 
   it('recovers an existing idempotent order without sending another UserOperation', async () => {
@@ -383,6 +503,30 @@ describe('P2Pix AA purchase flow', () => {
       quote,
     );
     expect(receipt.transactionHash).toBe(TX_HASH);
+  });
+
+  it('releases through the local self-funded client without an ERC-20 quote', async () => {
+    const aa = makeAa('self-funded', 31337);
+    const authorization = {
+      pixTimestamp: `0x${'a'.repeat(64)}` as Hex,
+      deadline: BigInt(Math.floor(Date.now() / 1000) + 600),
+      signature: '0x1234' as Hex,
+    };
+    mocks.getContract.mockImplementation(async () =>
+      makeContract(0n, 18, 31337),
+    );
+    mocks.getActiveAaContext.mockResolvedValue(aa);
+
+    const prepared = await prepareRelease(11n, authorization);
+    const receipt = await submitRelease(prepared);
+
+    expect(prepared.policy).toBe('self-funded');
+    expect(aa.erc20Client.sendUserOperation).toHaveBeenCalledWith({
+      calls: [prepared.call],
+    });
+    expect(receipt.transactionHash).toBe(TX_HASH);
+    expect(mocks.prepareErc20PaymasterQuote).not.toHaveBeenCalled();
+    expect(mocks.sendPreparedErc20UserOperation).not.toHaveBeenCalled();
   });
 
   it('derives the lock amount from the token real decimals, not a fixed 18', async () => {

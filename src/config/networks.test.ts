@@ -89,7 +89,7 @@ describe('buildNetworks', () => {
         firstLock: { sponsorshipPolicyId: 'mainnet-first-lock' },
         paidOperations: { token: ADDRESS_B },
       },
-      paymasterPolicy: { type: 'erc20', token: ADDRESS_B },
+      sponsorshipMode: 'caps-only',
     });
     expect(networks.arbitrum?.aa).toEqual({
       bundlerUrl: 'https://legacy.example',
@@ -97,21 +97,24 @@ describe('buildNetworks', () => {
         firstLock: { sponsorshipPolicyId: 'arb-first-lock' },
         paidOperations: { token: ADDRESS_B },
       },
-      paymasterPolicy: { type: 'erc20', token: ADDRESS_B },
+      sponsorshipMode: 'caps-only',
     });
     expect(
       Object.values(networks).find((network) => network.id === 11155111)?.aa,
     ).toBeUndefined();
   });
 
-  it('preserves local anvil as the default exactly-mode-compatible AA rail', () => {
+  it('uses local Anvil with Kernel, EntryPoint 0.7 and Alto', () => {
     const configured = makeEnv({
       local: { p2pix: ADDRESS_A, token: ADDRESS_B },
     });
     const { defaultNetwork, networks } = buildNetworks(configured);
 
     expect(defaultNetwork.id).toBe(31337);
-    expect(networks.localhost.aa?.paymasterPolicies).toEqual({});
-    expect(networks.localhost.aa?.paymasterPolicy).toBeUndefined();
+    expect(networks.localhost.aa).toEqual({
+      bundlerUrl: 'http://127.0.0.1:4337',
+      paymasterPolicies: {},
+      localSelfFunded: true,
+    });
   });
 });

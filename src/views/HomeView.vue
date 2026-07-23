@@ -17,6 +17,7 @@ import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import type { ReleaseAuthorization } from '@/utils/bbPay';
+import { getErrorMessage } from '@/utils/error';
 import { formatUnits, type Address, type Hex } from 'viem';
 
 enum Step {
@@ -82,9 +83,7 @@ const confirmBuyClick = async (
     } catch (error) {
       console.error(error);
       window.alert(
-        error instanceof Error
-          ? error.message
-          : 'Não foi possível criar o lock antes do PIX.',
+        getErrorMessage(error, 'Não foi possível criar o lock antes do PIX.'),
       );
       flowStep.value = Step.Search;
     } finally {
@@ -102,7 +101,7 @@ const releaseTransaction = async (authorization: ReleaseAuthorization) => {
     const prepared = await prepareRelease(BigInt(lockID.value), authorization);
     if (prepared.policy === 'erc20' && prepared.quote) {
       const netAmount = formatUnits(
-        prepared.lock.amount - prepared.quote.maxAcceptedTokenCost,
+        prepared.lock.amount - prepared.quote.costInToken,
         prepared.quote.tokenDecimals,
       );
       const confirmed = window.confirm(
@@ -118,11 +117,7 @@ const releaseTransaction = async (authorization: ReleaseAuthorization) => {
     await updateWalletStatus();
   } catch (error) {
     console.error(error);
-    window.alert(
-      error instanceof Error
-        ? error.message
-        : 'Não foi possível liberar os tokens.',
-    );
+    window.alert(getErrorMessage(error, 'Não foi possível liberar os tokens.'));
     flowStep.value = Step.Buy;
   } finally {
     loadingRelease.value = false;

@@ -52,7 +52,9 @@ export function useUser() {
     }
 
     // Find network by chain ID
-    const chain = Object.values(configuredNetworks).find((n) => n.id === chainId);
+    const chain = Object.values(configuredNetworks).find(
+      (n) => n.id === chainId,
+    );
     if (chain) {
       network.value = chain;
     }

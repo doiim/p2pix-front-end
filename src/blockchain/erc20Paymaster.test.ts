@@ -257,8 +257,7 @@ describe('ERC-20 paymaster quote binding', () => {
       }),
     ).resolves.toMatchObject({
       token: TOKEN,
-      maxAcceptedTokenCost: 1_000n,
-      realTokenBalance: 0n,
+      costInToken: 1_000n,
     });
   });
 

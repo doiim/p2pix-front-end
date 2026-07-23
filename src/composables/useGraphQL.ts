@@ -1,6 +1,6 @@
-import { NetworkConfig } from '@/model/NetworkEnum';
+import type { NetworkConfig } from '@/model/NetworkEnum';
+import { getErrorMessage } from '@/utils/error';
 import { ref, computed, type Ref } from 'vue';
-import { sepolia, rootstock, rootstockTestnet } from 'viem/chains';
 
 export interface Transaction {
   id: string;
@@ -129,8 +129,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
       const data = await executeQuery(query, { first: 50 });
       transactionsData.value = processActivityData(data);
     } catch (err) {
-      error.value =
-        err instanceof Error ? err.message : 'Failed to fetch transactions';
+      error.value = getErrorMessage(err, 'Failed to fetch transactions');
     } finally {
       loading.value = false;
     }
@@ -194,10 +193,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
       const data = await executeQuery(query, { userAddress, first: 50 });
       transactionsData.value = processActivityData(data);
     } catch (err) {
-      error.value =
-        err instanceof Error
-          ? err.message
-          : 'Failed to fetch user transactions';
+      error.value = getErrorMessage(err, 'Failed to fetch user transactions');
     } finally {
       loading.value = false;
     }

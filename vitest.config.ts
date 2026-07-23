@@ -6,6 +6,7 @@ export default mergeConfig(
   viteConfig,
   defineConfig({
     test: {
+      env: { VITE_REOWN_PROJECT_ID: 'vitest' },
       environment: 'happy-dom',
       globals: true,
       include: ['src/**/*.{test,spec}.ts'],
