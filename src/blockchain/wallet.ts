@@ -1,6 +1,6 @@
 import { formatEther, type Address } from 'viem';
 import { getAccount } from '@wagmi/core';
-import { getWagmiConfig } from '@/config/wagmi';
+import { getWagmiConfig } from '@/config/appkit';
 import { useUser } from '@/composables/useUser';
 
 import { getPublicClient, getContract } from './provider';
@@ -11,6 +11,28 @@ import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { WalletTransaction } from '@/model/WalletTransaction';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
 import { LockStatus } from '@/model/LockStatus';
+
+// Single subgraph fetch helper. Posts the GraphQL query, returns the
+// `data` payload (or null on network/parse failure with a console error).
+// Centralises the 4 near-identical fetch+parse blocks that used to live
+// inline in each list*Transaction function below.
+const fetchSubgraph = async <T>(
+  url: string,
+  query: string,
+): Promise<T | null> => {
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ query }),
+    });
+    const json = await response.json();
+    return (json.data ?? null) as T | null;
+  } catch (error) {
+    console.error('subgraph fetch failed', error);
+    return null;
+  }
+};
 
 export const updateWalletStatus = async (): Promise<void> => {
   const user = useUser();
@@ -57,282 +79,204 @@ const getLockStatus = async (id: bigint): Promise<LockStatus> => {
   return status[0];
 };
 
+// ---------------------------------------------------------------------------
+// Subgraph response shapes
+// ---------------------------------------------------------------------------
+
+type AllTxResponse = {
+  depositAddeds?: Array<{
+    token: string;
+    blockNumber: string;
+    blockTimestamp: string;
+    amount: string;
+    seller: string;
+    transactionHash: string;
+  }>;
+  lockAddeds?: Array<{
+    token?: string;
+    blockNumber: string;
+    blockTimestamp: string;
+    amount: string;
+    seller: string;
+    buyer: string;
+    lockID: string;
+    transactionHash: string;
+  }>;
+  lockReleaseds?: Array<{
+    blockNumber: string;
+    blockTimestamp: string;
+    buyer: string;
+    lockId: string;
+    transactionHash: string;
+  }>;
+  depositWithdrawns?: Array<{
+    token: string;
+    blockNumber: string;
+    blockTimestamp: string;
+    amount: string;
+    seller: string;
+    transactionHash: string;
+  }>;
+};
+
+type LockReleasedResponse = {
+  lockReleaseds?: Array<{
+    buyer: string;
+    lockId: string;
+    e2eId?: string;
+    blockTimestamp: string;
+    blockNumber: string;
+    transactionHash: string;
+  }>;
+};
+
+type LockAddedResponse = {
+  lockAddeds?: Array<{
+    buyer: string;
+    lockID: string;
+    seller: string;
+    amount: string;
+    blockTimestamp: string;
+    blockNumber: string;
+    transactionHash: string;
+  }>;
+};
+
 export const listAllTransactionByWalletAddress = async (
   walletAddress: Address,
 ): Promise<WalletTransaction[]> => {
   const user = useUser();
-
-  // Get the current network for the subgraph URL
   const network = user.network.value;
+  const w = walletAddress.toLowerCase();
 
-  // Query subgraph for all relevant transactions
-  const subgraphQuery = {
-    query: `
-      {
-        depositAddeds(where: {seller: "${walletAddress.toLowerCase()}"}) {
-          id
-          seller
-          token
-          amount
-          blockTimestamp
-          blockNumber
-          transactionHash
-        }
-        lockAddeds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
-          buyer
-          lockID
-          seller
-          amount
-          blockTimestamp
-          blockNumber
-          transactionHash
-        }
-        lockReleaseds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
-          buyer
-          lockId
-          blockTimestamp
-          blockNumber
-          transactionHash
-        }
-        depositWithdrawns(where: {seller: "${walletAddress.toLowerCase()}"}) {
-          seller
-          token
-          amount
-          blockTimestamp
-          blockNumber
-          transactionHash
-        }
+  const data = await fetchSubgraph<AllTxResponse>(
+    network.subgraphUrls[0],
+    `{
+      depositAddeds(where: {seller: "${w}"}) {
+        id seller token amount blockTimestamp blockNumber transactionHash
       }
-    `,
-  };
+      lockAddeds(where: {buyer: "${w}"}) {
+        buyer lockID seller amount blockTimestamp blockNumber transactionHash
+      }
+      lockReleaseds(where: {buyer: "${w}"}) {
+        buyer lockId blockTimestamp blockNumber transactionHash
+      }
+      depositWithdrawns(where: {seller: "${w}"}) {
+        seller token amount blockTimestamp blockNumber transactionHash
+      }
+    }`,
+  );
+  if (!data) return [];
 
-  const response = await fetch(network.subgraphUrls[0], {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(subgraphQuery),
-  });
-
-  const data = await response.json();
-  // Convert all transactions to common WalletTransaction format
   const transactions: WalletTransaction[] = [];
 
-  // Process deposit added events
-  if (data.data?.depositAddeds) {
-    for (const deposit of data.data.depositAddeds) {
-      transactions.push({
-        token: deposit.token,
-        blockNumber: parseInt(deposit.blockNumber),
-        blockTimestamp: parseInt(deposit.blockTimestamp),
-        amount: parseFloat(formatEther(BigInt(deposit.amount))),
-        seller: deposit.seller,
-        buyer: '',
-        event: 'DepositAdded',
-        lockStatus: undefined,
-        transactionHash: deposit.transactionHash,
-      });
-    }
+  for (const d of data.depositAddeds ?? []) {
+    transactions.push({
+      token: d.token as Address,
+      blockNumber: parseInt(d.blockNumber),
+      blockTimestamp: parseInt(d.blockTimestamp),
+      amount: parseFloat(formatEther(BigInt(d.amount))),
+      seller: d.seller,
+      buyer: '',
+      event: 'DepositAdded',
+      lockStatus: undefined,
+      transactionHash: d.transactionHash,
+    });
   }
 
-  // Process lock added events
-  if (data.data?.lockAddeds) {
-    for (const lock of data.data.lockAddeds) {
-      // Get lock status from the contract
-      const lockStatus = await getLockStatus(BigInt(lock.lockID));
-
-      transactions.push({
-        token: lock.token,
-        blockNumber: parseInt(lock.blockNumber),
-        blockTimestamp: parseInt(lock.blockTimestamp),
-        amount: parseFloat(formatEther(BigInt(lock.amount))),
-        seller: lock.seller,
-        buyer: lock.buyer,
-        event: 'LockAdded',
-        lockStatus: lockStatus,
-        transactionHash: lock.transactionHash,
-        transactionID: lock.lockID.toString(),
-      });
-    }
+  for (const l of data.lockAddeds ?? []) {
+    transactions.push({
+      token: l.token as Address | undefined,
+      blockNumber: parseInt(l.blockNumber),
+      blockTimestamp: parseInt(l.blockTimestamp),
+      amount: parseFloat(formatEther(BigInt(l.amount))),
+      seller: l.seller,
+      buyer: l.buyer,
+      event: 'LockAdded',
+      lockStatus: await getLockStatus(BigInt(l.lockID)),
+      transactionHash: l.transactionHash,
+      transactionID: l.lockID.toString(),
+    });
   }
 
-  // Process lock released events
-  if (data.data?.lockReleaseds) {
-    for (const release of data.data.lockReleaseds) {
-      transactions.push({
-        token: undefined, // Subgraph doesn't provide token in this event, we could enhance this later
-        blockNumber: parseInt(release.blockNumber),
-        blockTimestamp: parseInt(release.blockTimestamp),
-        amount: -1, // Amount not available in this event
-        seller: '',
-        buyer: release.buyer,
-        event: 'LockReleased',
-        lockStatus: undefined,
-        transactionHash: release.transactionHash,
-        transactionID: release.lockId.toString(),
-      });
-    }
+  for (const r of data.lockReleaseds ?? []) {
+    transactions.push({
+      token: undefined,
+      blockNumber: parseInt(r.blockNumber),
+      blockTimestamp: parseInt(r.blockTimestamp),
+      amount: -1,
+      seller: '',
+      buyer: r.buyer,
+      event: 'LockReleased',
+      lockStatus: undefined,
+      transactionHash: r.transactionHash,
+      transactionID: r.lockId.toString(),
+    });
   }
 
-  // Process deposit withdrawn events
-  if (data.data?.depositWithdrawns) {
-    for (const withdrawal of data.data.depositWithdrawns) {
-      transactions.push({
-        token: withdrawal.token,
-        blockNumber: parseInt(withdrawal.blockNumber),
-        blockTimestamp: parseInt(withdrawal.blockTimestamp),
-        amount: parseFloat(formatEther(BigInt(withdrawal.amount))),
-        seller: withdrawal.seller,
-        buyer: '',
-        event: 'DepositWithdrawn',
-        lockStatus: undefined,
-        transactionHash: withdrawal.transactionHash,
-      });
-    }
+  for (const wd of data.depositWithdrawns ?? []) {
+    transactions.push({
+      token: wd.token as Address,
+      blockNumber: parseInt(wd.blockNumber),
+      blockTimestamp: parseInt(wd.blockTimestamp),
+      amount: parseFloat(formatEther(BigInt(wd.amount))),
+      seller: wd.seller,
+      buyer: '',
+      event: 'DepositWithdrawn',
+      lockStatus: undefined,
+      transactionHash: wd.transactionHash,
+    });
   }
 
-  // Sort transactions by block number (newest first)
   return transactions.sort((a, b) => b.blockNumber - a.blockNumber);
 };
 
-const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
+const listLockTransactions = async (
+  filterField: 'buyer' | 'seller',
+  address: Address,
+) => {
   const user = useUser();
   const network = user.network.value;
 
-  // Query subgraph for lock added transactions
-  const subgraphQuery = {
-    query: `
-      {
-        lockAddeds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
-          buyer
-          lockID
-          seller
-          amount
-          blockTimestamp
-          blockNumber
-          transactionHash
-        }
+  const data = await fetchSubgraph<LockAddedResponse>(
+    network.subgraphUrls[0],
+    `{
+      lockAddeds(where: {${filterField}: "${address.toLowerCase()}"}) {
+        buyer lockID seller amount blockTimestamp blockNumber transactionHash
       }
-    `,
-  };
+    }`,
+  );
+  if (!data?.lockAddeds) return [];
 
-  try {
-    // Fetch data from subgraph
-    const response = await fetch(network.subgraphUrls[0], {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(subgraphQuery),
-    });
-
-    const data = await response.json();
-
-    if (!data.data?.lockAddeds) {
-      return [];
-    }
-
-    // Transform the subgraph data to match the event log decode format
-    return data.data.lockAddeds
-      .sort((a: any, b: any) => {
-        return parseInt(b.blockNumber) - parseInt(a.blockNumber);
-      })
-      .map((lock: any) => {
-        try {
-          // Create a structure similar to the decoded event log
-          return {
-            eventName: 'LockAdded',
-            args: {
-              buyer: lock.buyer,
-              lockID: BigInt(lock.lockID),
-              seller: lock.seller,
-              token: undefined, // Token not available in LockAdded subgraph event
-              amount: BigInt(lock.amount),
-            },
-            // Add other necessary fields to match the original format
-            blockNumber: BigInt(lock.blockNumber),
-            transactionHash: lock.transactionHash,
-          };
-        } catch (error) {
-          console.error('Error processing subgraph data', error);
-          return null;
-        }
-      })
-      .filter((decoded: any) => decoded !== null);
-  } catch (error) {
-    console.error('Error fetching from subgraph:', error);
-  }
+  return data.lockAddeds
+    .sort((a, b) => parseInt(b.blockNumber) - parseInt(a.blockNumber))
+    .map((lock) => {
+      try {
+        return {
+          eventName: 'LockAdded' as const,
+          args: {
+            buyer: lock.buyer,
+            lockID: BigInt(lock.lockID),
+            seller: lock.seller,
+            token: undefined,
+            amount: BigInt(lock.amount),
+          },
+          blockNumber: BigInt(lock.blockNumber),
+          transactionHash: lock.transactionHash,
+        };
+      } catch (error) {
+        console.error('Error processing subgraph data', error);
+        return null;
+      }
+    })
+    .filter((decoded) => decoded !== null);
 };
 
-const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
-  const user = useUser();
-  const network = user.network.value;
+const listLockTransactionByWalletAddress = (walletAddress: Address) =>
+  listLockTransactions('buyer', walletAddress);
 
-  // Query subgraph for lock added transactions where seller matches
-  const subgraphQuery = {
-    query: `
-      {
-        lockAddeds(where: {seller: "${sellerAddress.toLowerCase()}"}) {
-          buyer
-          lockID
-          seller
-          amount
-          blockTimestamp
-          blockNumber
-          transactionHash
-        }
-      }
-    `,
-  };
-
-  try {
-    // Fetch data from subgraph
-    const response = await fetch(network.subgraphUrls[0], {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(subgraphQuery),
-    });
-
-    const data = await response.json();
-
-    if (!data.data?.lockAddeds) {
-      return [];
-    }
-
-    // Transform the subgraph data to match the event log decode format
-    return data.data.lockAddeds
-      .sort((a: any, b: any) => {
-        return parseInt(b.blockNumber) - parseInt(a.blockNumber);
-      })
-      .map((lock: any) => {
-        try {
-          // Create a structure similar to the decoded event log
-          return {
-            eventName: 'LockAdded',
-            args: {
-              buyer: lock.buyer,
-              lockID: BigInt(lock.lockID),
-              seller: lock.seller,
-              token: undefined, // Token not available in LockAdded subgraph event
-              amount: BigInt(lock.amount),
-            },
-            // Add other necessary fields to match the original format
-            blockNumber: BigInt(lock.blockNumber),
-            transactionHash: lock.transactionHash,
-          };
-        } catch (error) {
-          console.error('Error processing subgraph data', error);
-          return null;
-        }
-      })
-      .filter((decoded: any) => decoded !== null);
-  } catch (error) {
-    console.error('Error fetching from subgraph:', error);
-    return [];
-  }
-};
+const listLockTransactionBySellerAddress = (sellerAddress: Address) =>
+  listLockTransactions('seller', sellerAddress);
 
 export const checkUnreleasedLock = async (
   walletAddress: Address,
@@ -342,7 +286,7 @@ export const checkUnreleasedLock = async (
 
   if (!addedLocks.length) return undefined;
 
-  const lockIds = addedLocks.map((lock: any) => lock.args.lockID);
+  const lockIds = addedLocks.map((lock) => lock.args.lockID);
 
   const [sortedIDs, status] = await client.readContract({
     address,
@@ -367,7 +311,7 @@ export const getActiveLockAmount = async (
 
   if (!lockSeller.length) return 0;
 
-  const lockIds = lockSeller.map((lock: any) => lock.args.lockID);
+  const lockIds = lockSeller.map((lock) => lock.args.lockID);
 
   const [_sortedIDs, status] = await client.readContract({
     address,

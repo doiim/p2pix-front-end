@@ -8,7 +8,7 @@ export default mergeConfig(
     test: {
       environment: 'happy-dom',
       globals: true,
-      include: ['tests/**/*.{test,spec}.ts'],
+      include: ['src/**/*.{test,spec}.ts'],
       exclude: [
         'p2pix-smart-contracts/**',
         'vendor/**',

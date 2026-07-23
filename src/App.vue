@@ -4,13 +4,8 @@ import TopBar from '@/components/TopBar/TopBar.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import ToasterComponent from '@/components/ui/ToasterComponent.vue';
 import VersionFooter from '@/components/ui/VersionFooter.vue';
-import { DEFAULT_NETWORK } from '@/config/networks';
-import { ref } from 'vue';
-
-import '@/config/wagmi';
 
 const route = useRoute();
-const targetNetwork = ref(DEFAULT_NETWORK);
 </script>
 
 <template>
@@ -34,7 +29,7 @@ const targetNetwork = ref(DEFAULT_NETWORK);
         </Transition>
       </template>
     </RouterView>
-    <ToasterComponent :targetNetwork="targetNetwork" />
+    <ToasterComponent />
     <VersionFooter />
   </main>
 </template>

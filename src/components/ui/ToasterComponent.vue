@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
 import { useAppKitAccount, useAppKitNetwork } from '@reown/appkit/vue';
+import type { AppKitNetwork } from '@reown/appkit/networks';
 import { useUser } from '@/composables/useUser';
 
 const user = useUser();
@@ -22,7 +23,7 @@ const checkNetwork = () => {
 
 const switchNetwork = async () => {
   try {
-    await appKitNetwork.value.switchNetwork(network.value as any);
+    await appKitNetwork.value.switchNetwork(network.value as AppKitNetwork);
   } catch (error) {
     console.error('Failed to switch network:', error);
   }

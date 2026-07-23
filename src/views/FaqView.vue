@@ -21,8 +21,9 @@ const openItem = (index: number) => {
     gfm: true,
   });
 
-  faq.value[selectedSection.value].items[index].content = marked(
+  faq.value[selectedSection.value].items[index].content = marked.parse(
     faq.value[selectedSection.value].items[index].content,
+    { async: false },
   ) as string;
 };
 </script>

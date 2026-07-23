@@ -1,5 +1,4 @@
 import type { TokenEnum } from '@/model/NetworkEnum';
-import { Networks } from '@/config/networks';
 
 export const getNetworkImage = (networkName: string): string => {
   const normalizedName = networkName.toLowerCase().replace(/[^a-z0-9]/g, '-');

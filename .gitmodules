@@ -5,3 +5,6 @@
 	path = vendor/reown-appkit
 	url = https://git.p2pix.co/doiim/reown-fork-appkit.git
 	branch = doiim/customizations
+[submodule "vendor/erc-4337"]
+	path = vendor/erc-4337
+	url = https://git.p2pix.co/doiim/ERC-4337.git

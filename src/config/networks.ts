@@ -1,54 +1,86 @@
 import { sepolia, rootstock, rootstockTestnet } from '@reown/appkit/networks';
 import type { AppKitNetwork } from '@reown/appkit/networks';
 import { NetworkConfig } from '@/model/NetworkEnum';
-// TODO: import addresses from p2pix-smart-contracts deployments
+import { env, type Env } from '@/config/env';
 
-export const isTestnetEnvironment = () => {
+export const isTestnetEnvironment = (env?: Env) => {
   return (
-    import.meta.env.VITE_ENVIRONMENT === 'testnet' ||
+    env?.environment === 'testnet' ||
     import.meta.env.NODE_ENV === 'development' ||
     import.meta.env.MODE === 'development'
   );
 };
 
-export const Networks: { [key: string]: NetworkConfig } = {
-  sepolia: {
-    ...sepolia,
-    rpcUrls: { default: { http: [import.meta.env.VITE_SEPOLIA_API_URL] } },
-    contracts: {
-      ...sepolia.contracts,
-      p2pix: {
-        address: import.meta.env.VITE_SEPOLIA_P2PIX_ADDRESS as `0x${string}`,
-      },
-    },
-    tokens: {
-      BRZ: {
-        address: import.meta.env.VITE_SEPOLIA_TOKEN_ADDRESS as `0x${string}`,
-      },
-    },
-    subgraphUrls: [import.meta.env.VITE_SEPOLIA_SUBGRAPH_URL],
-  },
-  rootstock: {
-    ...(isTestnetEnvironment() ? rootstockTestnet : rootstock),
-    rpcUrls: { default: { http: [import.meta.env.VITE_RSK_API_URL] } },
-    contracts: {
-      ...(isTestnetEnvironment()
-        ? rootstockTestnet.contracts
-        : rootstock.contracts),
-      p2pix: {
-        address: import.meta.env.VITE_RSK_P2PIX_ADDRESS as `0x${string}`,
-      },
-    },
-    tokens: {
-      BRZ: { address: import.meta.env.VITE_RSK_TOKEN_ADDRESS as `0x${string}` },
-    },
-    subgraphUrls: [import.meta.env.VITE_RSK_SUBGRAPH_URL],
-  },
+type NetworkOverlay = {
+  rpc?: string;
+  p2pix?: `0x${string}`;
+  token?: `0x${string}`;
+  subgraph?: string;
 };
 
-export const DEFAULT_NETWORK = Networks.sepolia;
+const overlay = (base: AppKitNetwork, cfg: NetworkOverlay): NetworkConfig =>
+  ({
+    ...base,
+    id: Number(base.id),
+    rpcUrls: { default: { http: [cfg.rpc ?? ''] } },
+    contracts: {
+      ...((base as { contracts?: object }).contracts ?? {}),
+      p2pix: { address: (cfg.p2pix ?? '0x') as `0x${string}` },
+    },
+    tokens: {
+      BRZ: { address: (cfg.token ?? '0x') as `0x${string}` },
+    },
+    subgraphUrls: [cfg.subgraph ?? ''],
+  }) as NetworkConfig;
 
-export const wagmiNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
-  Networks.sepolia as AppKitNetwork,
-  Networks.rootstock as AppKitNetwork,
-];
+export const buildNetworks = (env: Env) => {
+  // chainIdOverride: legacy back-compat knob (see env.ts).
+  const sepoliaBase = env.sepolia.chainIdOverride
+    ? { ...sepolia, id: env.sepolia.chainIdOverride }
+    : sepolia;
+  const sepoliaConfig = overlay(sepoliaBase, env.sepolia);
+
+  const rootstockBase = isTestnetEnvironment(env)
+    ? rootstockTestnet
+    : rootstock;
+  const rootstockConfig = overlay(rootstockBase, env.rsk);
+
+  const localAnvil: NetworkConfig | null = env.local.p2pix
+    ? {
+        id: 31337,
+        name: 'Localhost',
+        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 },
+        rpcUrls: { default: { http: ['http://127.0.0.1:8545'] } },
+        contracts: {
+          p2pix: { address: env.local.p2pix as `0x${string}` },
+        },
+        tokens: {
+          BRZ: { address: (env.local.token ?? '0x') as `0x${string}` },
+        },
+        subgraphUrls: [],
+      }
+    : null;
+
+  const networks: { [key: string]: NetworkConfig } = {
+    sepolia: sepoliaConfig,
+    rootstock: rootstockConfig,
+    ...(localAnvil ? { localhost: localAnvil } : {}),
+  };
+
+  const wagmiNetworks: [AppKitNetwork, ...AppKitNetwork[]] = [
+    sepoliaConfig as AppKitNetwork,
+    rootstockConfig as AppKitNetwork,
+    ...(localAnvil ? [localAnvil as AppKitNetwork] : []),
+  ];
+
+  const defaultNetwork = localAnvil ?? sepoliaConfig;
+
+  return { networks, wagmiNetworks, defaultNetwork };
+};
+
+// @deprecated Eager singleton kept for module-load consumers (useUser,
+// events, etc.). Migrate callers to `getWagmiConfig().chains` and remove
+// — duplicates work that `setupAppKit(env)` already does.
+const _singleton = buildNetworks(env);
+export const Networks = _singleton.networks;
+export const DEFAULT_NETWORK = _singleton.defaultNetwork;

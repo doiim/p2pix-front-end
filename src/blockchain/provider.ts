@@ -3,7 +3,7 @@ import {
   getPublicClient as wagmiGetPublicClient,
   getWalletClient as wagmiGetWalletClient,
 } from '@wagmi/core';
-import { getWagmiConfig } from '@/config/wagmi';
+import { getWagmiConfig } from '@/config/appkit';
 import { useUser } from '@/composables/useUser';
 import type { NetworkConfig } from '@/model/NetworkEnum';
 import type { PublicClient, WalletClient } from 'viem';

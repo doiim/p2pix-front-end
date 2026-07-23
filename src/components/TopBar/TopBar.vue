@@ -3,19 +3,19 @@ import { ref, watch } from 'vue';
 import { useUser } from '@/composables/useUser';
 import { onClickOutside } from '@vueuse/core';
 import { getNetworkImage } from '@/utils/imagesPath';
-import { Networks } from '@/config/networks';
+import { Networks, DEFAULT_NETWORK } from '@/config/networks';
 import {
   useAppKit,
   useAppKitAccount,
   useAppKitNetwork,
   useDisconnect,
 } from '@reown/appkit/vue';
+import type { AppKitNetwork } from '@reown/appkit/networks';
 
 import ChevronDown from '@/assets/chevronDown.svg';
 import TwitterIcon from '@/assets/twitterIcon.svg';
 import LinkedinIcon from '@/assets/linkedinIcon.svg';
 import GithubIcon from '@/assets/githubIcon.svg';
-import { DEFAULT_NETWORK } from '@/config/networks';
 import type { NetworkConfig } from '@/model/NetworkEnum';
 
 interface MenuOption {
@@ -62,7 +62,7 @@ watch(
       user.setNetwork(DEFAULT_NETWORK);
       return;
     }
-    user.setNetworkById(`0x${Number(newChainId).toString(16)}`);
+    user.setNetworkById(Number(newChainId));
   },
 );
 
@@ -92,7 +92,7 @@ const networkChange = async (targetNetwork: NetworkConfig): Promise<void> => {
 
   if (appKitAccount.value.isConnected) {
     try {
-      await appKitNetwork.value.switchNetwork(targetNetwork as any);
+      await appKitNetwork.value.switchNetwork(targetNetwork as AppKitNetwork);
       user.setNetwork(targetNetwork);
     } catch (error) {
       console.log('Error changing network', error);

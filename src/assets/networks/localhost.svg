@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <circle cx="12" cy="12" r="11" fill="#1f2937" stroke="#facc15" stroke-width="1.5"/>
+  <path d="M12 5l5 5h-3v6h-4v-6H7l5-5z" fill="#facc15"/>
+  <text x="12" y="21" text-anchor="middle" font-family="monospace" font-size="5" fill="#facc15">LOCAL</text>
+</svg>
