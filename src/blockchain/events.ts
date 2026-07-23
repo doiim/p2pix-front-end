@@ -3,6 +3,7 @@ import { formatEther, toHex, ChainContract } from 'viem';
 import type { PublicClient, Address } from 'viem';
 import { Networks } from '@/config/networks';
 import { getContract } from './provider';
+import { fetchSubgraph } from './wallet';
 import { p2PixAbi } from './abi';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { NetworkConfig } from '@/model/NetworkEnum';
@@ -73,40 +74,17 @@ const getValidDeposits = async (
   const subgraphUrl = network.subgraphUrls?.[0];
   if (!subgraphUrl) return [];
 
-  const body = {
-    query: `
-      {
-        depositAddeds(where: { token: "${token}" }) {
-          seller
-          amount
-          blockTimestamp
-          blockNumber
-        }
+  const depositData = await fetchSubgraph<{ depositAddeds: any[] }>(
+    subgraphUrl,
+    `{
+      depositAddeds(where: { token: "${token}" }) {
+        seller amount blockTimestamp blockNumber
       }
-  `,
-  };
+    }`,
+  );
+  if (!depositData) return [];
 
-  let depositData: { data?: { depositAddeds: any[] } };
-  try {
-    const depositLogs = await fetch(subgraphUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-    const text = await depositLogs.text();
-    if (!text) return [];
-    depositData = JSON.parse(text);
-  } catch (err) {
-    console.error('Error fetching deposit logs', err);
-    return [];
-  }
-  if (!depositData.data) {
-    console.error('Error fetching deposit logs');
-    return [];
-  }
-  const depositAddeds = depositData.data.depositAddeds;
+  const depositAddeds = depositData.depositAddeds;
   const uniqueSellers = depositAddeds.reduce(
     (acc: Record<Address, boolean>, deposit: any) => {
       acc[deposit.seller] = true;
@@ -114,11 +92,6 @@ const getValidDeposits = async (
     },
     {} as Record<Address, boolean>,
   );
-
-  if (!contractInfo) {
-    // Get metamask provider contract
-    ({ abi, client } = await getContract(true));
-  }
 
   const depositList: { [key: string]: ValidDeposit } = {};
 

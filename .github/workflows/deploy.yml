@@ -36,9 +36,44 @@ jobs:
           ALCHEMY_API_KEY: dummy
         run: bun run wagmi:gen
 
+      - name: Resolve passkey rpId (WebAuthn credential scope)
+        # A passkey is cryptographically bound to its rpId, and any origin whose
+        # host is a registrable suffix of that rpId can assert it. So the rpId
+        # decides which environments share a passkey (and therefore the same
+        # counterfactual Smart Account address).
+        #
+        #   - Production (p2pix.co): ISOLATED. Its mainnet passkey must never be
+        #     assertable from a preview/staging subdomain, so it uses its own
+        #     apex rpId.
+        #   - Demo / PR previews (*.demo.p2pix.co): share `demo.p2pix.co` so every
+        #     branch deploy (6.demo.p2pix.co, feature-x.demo.p2pix.co, ...) reads
+        #     the same TESTNET account — convenient, and blast-radius-limited to
+        #     the demo scope.
+        #
+        # Default is the SAFE demo scope; production is opted in explicitly via a
+        # release tag or the VITE_PASSKEY_RP_ID repo/environment variable.
+        run: |
+          if [ -n "${{ vars.VITE_PASSKEY_RP_ID }}" ]; then
+            RP_ID="${{ vars.VITE_PASSKEY_RP_ID }}"
+          elif [ "${{ github.ref_type }}" = "tag" ]; then
+            RP_ID="p2pix.co"
+          else
+            RP_ID="demo.p2pix.co"
+          fi
+          echo "VITE_PASSKEY_RP_ID=$RP_ID" >> "$GITHUB_ENV"
+          echo "Resolved VITE_PASSKEY_RP_ID=$RP_ID"
+
       - name: Build SPA
         env:
           VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
+          # Demo/staging uses kernel-mode passkey accounts (ZeroDev Kernel via
+          # Pimlico) instead of exactly-mode, since exactly-mode requires a
+          # live deployment of exactly/webauthn-owner-plugin that doesn't
+          # exist for this environment. Kernel mode only needs a bundler key.
+          VITE_ACCOUNT_KIND: kernel
+          VITE_PIMLICO_API_KEY: ${{ secrets.VITE_PIMLICO_API_KEY }}
+          # Scopes the WebAuthn passkey (see "Resolve passkey rpId" step above).
+          VITE_PASSKEY_RP_ID: ${{ env.VITE_PASSKEY_RP_ID }}
         run: bun run build-only
 
       - name: Upload dist artifact

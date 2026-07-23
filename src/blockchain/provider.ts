@@ -9,16 +9,19 @@ import type { NetworkConfig } from '@/model/NetworkEnum';
 import type { PublicClient, WalletClient } from 'viem';
 import type { ChainContract } from 'viem';
 
-const getPublicClient = (): PublicClient => {
+const getUserChainId = () => {
   const user = useUser();
-  const chainId = (user.network.value as NetworkConfig).id;
+  return (user.network.value as NetworkConfig).id;
+};
+
+const getPublicClient = (): PublicClient => {
+  const chainId = getUserChainId();
   return wagmiGetPublicClient(getWagmiConfig(), { chainId }) as PublicClient;
 };
 
 const getWalletClient = async (): Promise<WalletClient | null> => {
   try {
-    const user = useUser();
-    const chainId = (user.network.value as NetworkConfig).id;
+    const chainId = getUserChainId();
     return (await wagmiGetWalletClient(getWagmiConfig(), {
       chainId,
     })) as WalletClient;

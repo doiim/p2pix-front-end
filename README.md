@@ -159,6 +159,29 @@ What the script does, end-to-end:
 of running clean (needs `ALCHEMY_API_KEY` exported or set in
 `p2pix-smart-contracts/.env`).
 
+### Account modes (`VITE_ACCOUNT_KIND`)
+
+The passkey connector supports two smart-account backends, controlled by
+`VITE_ACCOUNT_KIND` (defaults to `exactly-mode` if unset):
+
+| Mode | `VITE_ACCOUNT_KIND` | Smart-account contract | Needs local deploy? | Env vars required |
+|---|---|---|---|---|
+| **exactly-mode** (default) | unset or `exactly-mode` | Exactly's `WebauthnModularAccountFactory` / `WebauthnOwnerPlugin` (ERC-6900) | Yes — no public deployment exists, `dev-local.sh` deploys it locally | `VITE_WEBAUTHN_PLUGIN_ADDRESS`, `VITE_WEBAUTHN_FACTORY_ADDRESS`, `VITE_ENTRYPOINT_ADDRESS`, plus a bundler (`VITE_PIMLICO_API_KEY` or `VITE_BUNDLER_URL`) |
+| **kernel** | `kernel` | ZeroDev's Kernel v0.3.1 (ERC-4337), deployed via CREATE2 on every chain already | No | Only a bundler (`VITE_PIMLICO_API_KEY` or `VITE_BUNDLER_URL`); `VITE_ENTRYPOINT_ADDRESS` is optional (defaults to the canonical EntryPoint v0.7) |
+
+Use `kernel` if you only have a Pimlico API key and don't want to run
+`dev-local.sh` to deploy the custom plugin/factory stack — it trades away the
+recovery-owner management feature (`owners.ts`, exactly-mode only) for
+zero-deployment setup. Sweep/recovery-by-signature works in both modes.
+
+> **CI/CD demo build:** `.github/workflows/deploy.yml` (runs on Gitea Actions)
+> builds with `VITE_ACCOUNT_KIND=kernel` and `VITE_PIMLICO_API_KEY` sourced
+> from the `VITE_PIMLICO_API_KEY` repo secret — the demo has no live
+> `exactly-mode` deployment, so it always runs kernel mode against Pimlico.
+> `VITE_PASSKEY_RP_ID` is intentionally left unset there: the connector falls
+> back to `window.location.hostname` at runtime, which is correct since the
+> same build gets served from multiple targets (rsync, IPFS, Pinata).
+
 ### Bundler routing
 
 The passkey connector picks the bundler at connect-time:
@@ -183,10 +206,11 @@ the `vendor/erc-4337/docker-compose.yml` has an
 | Var | Used for | Auto-set by `dev-local.sh`? |
 |---|---|---|
 | `VITE_REOWN_PROJECT_ID` | Wallet modal | No — get one at https://cloud.reown.com |
+| `VITE_ACCOUNT_KIND` | Selects `exactly-mode` (default) or `kernel` — see [Account modes](#account-modes-vite_account_kind) | No |
 | `VITE_PASSKEY_RP_ID` | WebAuthn relying party | Yes (`localhost`) — only if currently empty |
-| `VITE_WEBAUTHN_PLUGIN_ADDRESS` | Plugin source-of-truth | Yes |
-| `VITE_WEBAUTHN_FACTORY_ADDRESS` | Counterfactual address derivation via `factory.getAddress()` | Yes |
-| `VITE_ENTRYPOINT_ADDRESS` | UserOp hashing + handleOps target | Yes |
+| `VITE_WEBAUTHN_PLUGIN_ADDRESS` | Plugin source-of-truth (exactly-mode only) | Yes |
+| `VITE_WEBAUTHN_FACTORY_ADDRESS` | Counterfactual address derivation via `factory.getAddress()` (exactly-mode only) | Yes |
+| `VITE_ENTRYPOINT_ADDRESS` | UserOp hashing + handleOps target (required for exactly-mode; optional for kernel) | Yes |
 | `VITE_PIMLICO_API_KEY` | Pimlico bundler (sepolia/mainnet) | No — get one at https://dashboard.pimlico.io |
 | `VITE_BUNDLER_URL` | Override for any of the above | No |
 

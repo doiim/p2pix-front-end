@@ -20,6 +20,11 @@ export const setupAppKit = (env: Env): WagmiAdapter => {
     projectId: env.reownProjectId,
     passkey: {
       ...env.passkey,
+      // The connector's PasskeyConnectorConfig names the Pimlico key
+      // `bundlerApiKey`; env.passkey exposes it as `pimlicoApiKey`. Without
+      // this remap the key never reaches the connector, and kernel mode
+      // throws PasskeyConfigError ("bundlerApiKey (or bundlerUrl) is required").
+      bundlerApiKey: env.passkey.pimlicoApiKey,
       rpName: 'P2Pix',
       chainId: Number(defaultNetwork.id),
     },
@@ -28,7 +33,7 @@ export const setupAppKit = (env: Env): WagmiAdapter => {
   createAppKit({
     adapters: [adapter],
     networks: wagmiNetworks,
-    defaultNetwork,
+    defaultNetwork: defaultNetwork as any,
     projectId: env.reownProjectId,
     metadata: {
       name: 'P2Pix',

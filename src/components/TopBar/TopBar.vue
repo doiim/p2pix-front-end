@@ -5,12 +5,12 @@ import { onClickOutside } from '@vueuse/core';
 import { getNetworkImage } from '@/utils/imagesPath';
 import { Networks, DEFAULT_NETWORK } from '@/config/networks';
 import {
-  useAppKit,
   useAppKitAccount,
   useAppKitNetwork,
   useDisconnect,
 } from '@doiim/reown-appkit/vue';
 import type { AppKitNetwork } from '@doiim/reown-appkit/networks';
+import { useConnectWallet } from '@/composables/useConnectWallet';
 
 import ChevronDown from '@/assets/chevronDown.svg';
 import TwitterIcon from '@/assets/twitterIcon.svg';
@@ -40,10 +40,7 @@ const infoMenuRef = ref<any>(null);
 const walletAddressRef = ref<any>(null);
 const currencyRef = ref<any>(null);
 
-const { open } = useAppKit();
-const connectWallet = () => {
-  open();
-};
+const { connectWallet } = useConnectWallet();
 const { disconnect } = useDisconnect();
 const appKitAccount = useAppKitAccount();
 const appKitNetwork = useAppKitNetwork();
@@ -156,6 +153,12 @@ const walletMenuOptions: MenuOption[] = [
   {
     label: 'Gerenciar Ofertas',
     route: '/manage_bids',
+    showInDesktop: true,
+    showInMobile: true,
+  },
+  {
+    label: 'Sweep / Recovery',
+    route: '/sweep',
     showInDesktop: true,
     showInMobile: true,
   },
@@ -402,7 +405,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
         class="border-amber-500 border-2 sm:rounded !rounded-lg default-button hidden md:inline-block"
         @click="connectWallet()"
       >
-        Conectar carteira
+        Entrar
       </button>
       <button
         type="button"
@@ -410,7 +413,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
         class="border-amber-500 border-2 sm:rounded !rounded-lg default-button inline-block md:hidden h-10"
         @click="connectWallet()"
       >
-        Conectar
+        Entrar
       </button>
       <div v-if="walletAddress" class="account-info">
         <div class="flex flex-col relative">

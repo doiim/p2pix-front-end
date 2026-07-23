@@ -16,7 +16,7 @@ import { LockStatus } from '@/model/LockStatus';
 // `data` payload (or null on network/parse failure with a console error).
 // Centralises the 4 near-identical fetch+parse blocks that used to live
 // inline in each list*Transaction function below.
-const fetchSubgraph = async <T>(
+export const fetchSubgraph = async <T>(
   url: string,
   query: string,
 ): Promise<T | null> => {
@@ -115,17 +115,6 @@ type AllTxResponse = {
     blockTimestamp: string;
     amount: string;
     seller: string;
-    transactionHash: string;
-  }>;
-};
-
-type LockReleasedResponse = {
-  lockReleaseds?: Array<{
-    buyer: string;
-    lockId: string;
-    e2eId?: string;
-    blockTimestamp: string;
-    blockNumber: string;
     transactionHash: string;
   }>;
 };

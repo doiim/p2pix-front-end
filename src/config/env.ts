@@ -59,6 +59,19 @@ export const env = {
   passkey: {
     rpId: optional('VITE_PASSKEY_RP_ID'),
     pimlicoApiKey: optional('VITE_PIMLICO_API_KEY'),
+    // Pimlico sponsorship-policy id. When set (on a non-local chain), passkey
+    // UserOps (withdraw, sweep, …) are gas-sponsored by the policy. Left empty
+    // locally — anvil (31337) uses the self-bundler regardless.
+    sponsorshipPolicyId: optional('VITE_PIMLICO_SPONSORSHIP_POLICY_ID'),
+    // 'exactly-mode' (default): requires webauthnPluginAddress/factoryAddress
+    // from a live deployment of exactly/webauthn-owner-plugin. 'kernel':
+    // ZeroDev Kernel via permissionless — no custom deploy needed, only a
+    // bundler (pimlicoApiKey or bundlerUrl above).
+    accountKind:
+      (optional('VITE_ACCOUNT_KIND') as
+        | 'exactly-mode'
+        | 'kernel'
+        | undefined) ?? 'exactly-mode',
     webauthnPluginAddress: optionalAddress('VITE_WEBAUTHN_PLUGIN_ADDRESS'),
     factoryAddress: optionalAddress('VITE_WEBAUTHN_FACTORY_ADDRESS'),
     entryPointAddress: optionalAddress('VITE_ENTRYPOINT_ADDRESS'),
