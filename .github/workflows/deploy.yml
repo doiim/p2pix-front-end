@@ -37,6 +37,8 @@ jobs:
         run: bun run wagmi:gen
 
       - name: Build SPA
+        env:
+          VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID }}
         run: bun run build-only
 
       - name: Upload dist artifact

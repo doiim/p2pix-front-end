@@ -37,7 +37,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(getAppVersion()),
   },
   optimizeDeps: {
-    include: ['@reown/appkit/vue', '@reown/appkit-adapter-wagmi'],
+    include: ['@doiim/reown-appkit/vue', '@doiim/reown-appkit-adapter-wagmi'],
     entries: ['index.html', 'src/**/*.{vue,ts,tsx,js,jsx}'],
   },
   server: {

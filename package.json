@@ -19,7 +19,24 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@doiim/passkeys": "0.1.0-alpha.1",
+    "@doiim/reown-appkit": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-adapter-wagmi": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-common": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-controllers": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-utils": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-wallet": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-ui": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-scaffold-ui": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-siwe": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-siwx": "1.8.19-doiim.4",
+    "@reown/appkit-polyfills": "1.8.19",
     "@floating-ui/vue": "^1.1.11",
+    "@graphql-typed-document-node/core": "^3.2.0",
+    "@tanstack/query-core": "^5.100.8",
+    "@tanstack/vue-query": "^5.100.8",
+    "@urql/core": "^6.0.1",
+    "@urql/vue": "^2.1.0",
     "@vueuse/core": "^14.3.0",
     "@wagmi/core": "^3.4.8",
     "@wagmi/vue": "^0.5.11",
@@ -58,7 +75,22 @@
     "vitest": "^4.1.5",
     "vue-tsc": "^3.2.7"
   },
+  "overrides": {
+    "axios": "^1.15.2",
+    "@doiim/reown-appkit": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-adapter-wagmi": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-common": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-controllers": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-utils": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-wallet": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-ui": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-scaffold-ui": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-siwe": "1.8.19-doiim.4",
+    "@doiim/reown-appkit-siwx": "1.8.19-doiim.4",
+    "@reown/appkit-polyfills": "1.8.19"
+  },
   "trustedDependencies": [
+    "@doiim/reown-appkit",
     "esbuild",
     "vue-demi"
   ]

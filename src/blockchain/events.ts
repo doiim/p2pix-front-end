@@ -70,6 +70,9 @@ const getValidDeposits = async (
     ({ abi, client } = await getContract(true));
   }
 
+  const subgraphUrl = network.subgraphUrls?.[0];
+  if (!subgraphUrl) return [];
+
   const body = {
     query: `
       {
@@ -83,16 +86,22 @@ const getValidDeposits = async (
   `,
   };
 
-  const depositLogs = await fetch(network.subgraphUrls[0], {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
-
-  // remove doubles from sellers list
-  const depositData = await depositLogs.json();
+  let depositData: { data?: { depositAddeds: any[] } };
+  try {
+    const depositLogs = await fetch(subgraphUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(body),
+    });
+    const text = await depositLogs.text();
+    if (!text) return [];
+    depositData = JSON.parse(text);
+  } catch (err) {
+    console.error('Error fetching deposit logs', err);
+    return [];
+  }
   if (!depositData.data) {
     console.error('Error fetching deposit logs');
     return [];

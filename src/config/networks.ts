@@ -1,5 +1,9 @@
-import { sepolia, rootstock, rootstockTestnet } from '@reown/appkit/networks';
-import type { AppKitNetwork } from '@reown/appkit/networks';
+import {
+  sepolia,
+  rootstock,
+  rootstockTestnet,
+} from '@doiim/reown-appkit/networks';
+import type { AppKitNetwork } from '@doiim/reown-appkit/networks';
 import { NetworkConfig } from '@/model/NetworkEnum';
 import { env, type Env } from '@/config/env';
 

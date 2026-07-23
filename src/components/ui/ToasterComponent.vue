@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { useAppKitAccount, useAppKitNetwork } from '@reown/appkit/vue';
-import type { AppKitNetwork } from '@reown/appkit/networks';
+import { useAppKitAccount, useAppKitNetwork } from '@doiim/reown-appkit/vue';
+import type { AppKitNetwork } from '@doiim/reown-appkit/networks';
 import { useUser } from '@/composables/useUser';
 
 const user = useUser();

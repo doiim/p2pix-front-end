@@ -9,8 +9,8 @@ import {
   useAppKitAccount,
   useAppKitNetwork,
   useDisconnect,
-} from '@reown/appkit/vue';
-import type { AppKitNetwork } from '@reown/appkit/networks';
+} from '@doiim/reown-appkit/vue';
+import type { AppKitNetwork } from '@doiim/reown-appkit/networks';
 
 import ChevronDown from '@/assets/chevronDown.svg';
 import TwitterIcon from '@/assets/twitterIcon.svg';
@@ -40,7 +40,10 @@ const infoMenuRef = ref<any>(null);
 const walletAddressRef = ref<any>(null);
 const currencyRef = ref<any>(null);
 
-const { open: connectWallet } = useAppKit();
+const { open } = useAppKit();
+const connectWallet = () => {
+  open();
+};
 const { disconnect } = useDisconnect();
 const appKitAccount = useAppKitAccount();
 const appKitNetwork = useAppKitNetwork();
