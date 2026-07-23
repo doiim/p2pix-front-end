@@ -1,3 +1,7 @@
 [submodule "p2pix-smart-contracts"]
 	path = p2pix-smart-contracts
 	url = https://git.p2pix.co/doiim/p2pix-smart-contracts
+[submodule "vendor/reown-appkit"]
+	path = vendor/reown-appkit
+	url = https://git.p2pix.co/doiim/reown-fork-appkit.git
+	branch = doiim/customizations

@@ -20,8 +20,9 @@
   "dependencies": {
     "@floating-ui/vue": "^1.1.11",
     "@vueuse/core": "^14.3.0",
-    "@web3-onboard/injected-wallets": "^2.11.3",
-    "@web3-onboard/vue": "^2.10.0",
+    "@wagmi/core": "^3.4.8",
+    "@wagmi/vue": "^0.5.11",
+    "graphql": "^16.13.2",
     "marked": "^18.0.3",
     "qrcode": "^1.5.4",
     "viem": "^2.48.8",

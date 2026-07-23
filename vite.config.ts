@@ -37,14 +37,12 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(getAppVersion()),
   },
   optimizeDeps: {
-    esbuildOptions: {
-      target: 'esnext',
-      define: {
-        global: 'globalThis',
-      },
-      supported: {
-        bigint: true,
-      },
+    include: ['@reown/appkit/vue', '@reown/appkit-adapter-wagmi'],
+    entries: ['index.html', 'src/**/*.{vue,ts,tsx,js,jsx}'],
+  },
+  server: {
+    watch: {
+      ignored: ['**/vendor/**'],
     },
   },
   plugins: [vue(), vueJsx(), tailwindcss(), svgLoader()],

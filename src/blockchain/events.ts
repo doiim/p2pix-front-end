@@ -1,5 +1,5 @@
 import { useUser } from '@/composables/useUser';
-import { formatEther, toHex, stringToHex } from 'viem';
+import { formatEther, toHex } from 'viem';
 import type { PublicClient, Address } from 'viem';
 import { Networks } from '@/config/networks';
 import { getContract } from './provider';

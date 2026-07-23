@@ -1,11 +1,9 @@
-import {
-  formatEther,
-  type Address,
-  type ContractFunctionParameters,
-} from 'viem';
+import { formatEther, type Address } from 'viem';
+import { getAccount } from '@wagmi/core';
+import { getWagmiConfig } from '@/config/wagmi';
 import { useUser } from '@/composables/useUser';
 
-import { getPublicClient, getWalletClient, getContract } from './provider';
+import { getPublicClient, getContract } from './provider';
 
 import { getValidDeposits, getUnreleasedLockById } from './events';
 
@@ -16,20 +14,16 @@ import { LockStatus } from '@/model/LockStatus';
 
 export const updateWalletStatus = async (): Promise<void> => {
   const user = useUser();
+  const { address } = getAccount(getWagmiConfig());
 
-  const publicClient = getPublicClient();
-  const walletClient = getWalletClient();
-
-  if (!publicClient || !walletClient) {
-    console.error('Client not initialized');
+  if (!address) {
     return;
   }
 
-  // Get balance
-  const [account] = await walletClient.getAddresses();
-  const balance = await publicClient.getBalance({ address: account });
+  const publicClient = getPublicClient();
+  const balance = await publicClient.getBalance({ address });
 
-  user.setWalletAddress(account);
+  user.setWalletAddress(address);
   user.setBalance(formatEther(balance));
 };
 
@@ -54,7 +48,7 @@ export const listValidDepositTransactionsByWalletAddress = async (
 
 const getLockStatus = async (id: bigint): Promise<LockStatus> => {
   const { address, abi, client } = await getContract();
-  const [sortedIDs, status] = await client.readContract({
+  const [_sortedIDs, status] = await client.readContract({
     address,
     abi,
     functionName: 'getLocksStatus',
@@ -375,28 +369,29 @@ export const getActiveLockAmount = async (
 
   const lockIds = lockSeller.map((lock: any) => lock.args.lockID);
 
-  const [sortedIDs, status] = await client.readContract({
+  const [_sortedIDs, status] = await client.readContract({
     address,
     abi,
     functionName: 'getLocksStatus',
     args: [lockIds],
   });
 
-  const mapLocksRequests = sortedIDs.map((id: bigint) => ({
-    address,
-    abi,
-    functionName: 'mapLocks',
-    args: [id],
-  }));
+  const mapLocksRequests = status.map((id: LockStatus) =>
+    client.readContract({
+      address: address,
+      abi,
+      functionName: 'mapLocks',
+      args: [BigInt(id)],
+    }),
+  );
 
   const mapLocksResults = await client.multicall({
-    contracts: mapLocksRequests as ContractFunctionParameters[],
+    contracts: mapLocksRequests as any,
   });
 
   return mapLocksResults.reduce((total: number, lock: any, index: number) => {
     if (status[index] === 1) {
-      const [, , , amount] = lock.result;
-      return total + Number(formatEther(amount));
+      return total + Number(formatEther(lock.amount));
     }
     return total;
   }, 0);

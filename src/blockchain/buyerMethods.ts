@@ -1,5 +1,4 @@
 import { getContract } from './provider';
-import { ChainContract } from 'viem';
 import { parseEther, type Address, type TransactionReceipt } from 'viem';
 
 export const addLock = async (
