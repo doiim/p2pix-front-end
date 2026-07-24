@@ -1,6 +1,5 @@
 name: CI & Deploy
 
-# main branch and tags → production backend; develop/PRs → demo backend
 env:
   IS_PROD: ${{ github.ref_name == 'main' || github.ref_type == 'tag' }}
 
@@ -17,17 +16,15 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
     steps:
-      - name: Install required tools
-        run: apk add --no-cache git nodejs npm
-
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
+
+      - uses: oven-sh/setup-bun@v2
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -42,7 +39,7 @@ jobs:
         run: bunx vitest run --passWithNoTests
 
       - name: Install submodule deps
-        run: npm install -g corepack && corepack enable && yarn --cwd p2pix-smart-contracts install --immutable
+        run: corepack enable && yarn --cwd p2pix-smart-contracts install --immutable
 
       - name: Generate contract ABIs
         env:
@@ -55,26 +52,9 @@ jobs:
           VITE_APP_ENV: ${{ env.IS_PROD == 'true' && 'production' || 'development' }}
         run: bun run build-only
 
-      - name: Upload dist artifact
-        # v3 pinned: Gitea Actions does not implement the v4 cache API
-        uses: actions/upload-artifact@v3
-        with:
-          name: dist
-          path: dist/
-          retention-days: 1
-
-  deploy-rsync:
-    needs: build
-    runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
-    steps:
-      - uses: actions/download-artifact@v3
-        with:
-          name: dist
-          path: dist/
-
       - name: Deploy via RSYNC
         uses: up9cloud/action-rsync@v1
+        continue-on-error: true
         env:
           USER: ${{ secrets.SSH_USER }}
           HOST: ${{ secrets.SSH_HOST }}
@@ -82,48 +62,17 @@ jobs:
           SOURCE: dist/
           TARGET: ${{ github.ref_name }}
 
-  deploy-ipfs:
-    needs: build
-    runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
-    outputs:
-      cid: ${{ steps.ipfs.outputs.cid }}
-    steps:
-      - name: Install jq
-        run: apk add --no-cache jq
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: dist
-          path: dist/
-
       - name: Deploy to IPFS
         uses: ipshipyard/ipfs-deploy-action@v1
         id: ipfs
+        continue-on-error: true
         with:
           path-to-deploy: dist
           set-github-status: false
           set-pr-comment: false
+          upload-car-artifact: false
           kubo-api-url: ${{ secrets.KUBO_API_URL }}
           kubo-api-auth: ${{ secrets.KUBO_API_AUTH }}
-          upload-car-artifact: false
-
-  deploy-pinata:
-    needs: [deploy-ipfs, deploy-rsync]
-    runs-on: ubuntu-latest
-    container: oven/bun:1-alpine
-    steps:
-      - name: Install tools
-        run: apk add --no-cache jq curl
-
-      - uses: actions/checkout@v4
-        with:
-          sparse-checkout: package.json
-
-      - uses: actions/download-artifact@v3
-        with:
-          name: dist
-          path: dist/
 
       - name: Install Pinata CLI
         run: curl -fsSL https://cli.pinata.cloud/install | bash
@@ -136,7 +85,7 @@ jobs:
       - name: Upload to Pinata
         env:
           PINATA_GROUP: ${{ secrets.PINATA_GROUP }}
-          IPFS_CID: ${{ needs.deploy-ipfs.outputs.cid }}
+          IPFS_CID: ${{ steps.ipfs.outputs.cid }}
         run: |
           export PATH="$HOME/.local/share/pinata/:$PATH"
           VERSION=$(jq -r .version package.json)
