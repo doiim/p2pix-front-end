@@ -1,4 +1,8 @@
-name: Deploy to IPFS
+name: CI & Deploy
+
+# main branch and tags → production backend; develop/PRs → demo backend
+env:
+  IS_PROD: ${{ github.ref_name == 'main' || github.ref_type == 'tag' }}
 
 on:
   push:
@@ -15,33 +19,44 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
-    container: node:lts
+    container: oven/bun:1-alpine
     steps:
+      - name: Install required tools
+        run: apk add --no-cache git nodejs npm
+
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
 
-      - name: Install bun
-        run: npm install -g bun
-
-      - name: Install submodule deps (yarn 4 via corepack)
-        run: corepack enable && yarn --cwd p2pix-smart-contracts install --immutable
-
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Format check
+        run: bun run format:check
+
+      - name: Unit tests
+        run: bunx vitest run --passWithNoTests
+
+      - name: Install submodule deps
+        run: npm install -g corepack && corepack enable && yarn --cwd p2pix-smart-contracts install --immutable
 
       - name: Generate contract ABIs
         env:
           ALCHEMY_API_KEY: dummy
+          npm_config_user_agent: npm
         run: bun run wagmi:gen
 
       - name: Build SPA
+        env:
+          VITE_APP_ENV: ${{ env.IS_PROD == 'true' && 'production' || 'development' }}
         run: bun run build-only
 
       - name: Upload dist artifact
         # v3 pinned: Gitea Actions does not implement the v4 cache API
-        # (the runner returns ECONNREFUSED on getCacheEntry).
         uses: actions/upload-artifact@v3
         with:
           name: dist
@@ -51,7 +66,7 @@ jobs:
   deploy-rsync:
     needs: build
     runs-on: ubuntu-latest
-    container: node:lts
+    container: oven/bun:1-alpine
     steps:
       - uses: actions/download-artifact@v3
         with:
@@ -70,12 +85,12 @@ jobs:
   deploy-ipfs:
     needs: build
     runs-on: ubuntu-latest
-    container: node:lts
+    container: oven/bun:1-alpine
     outputs:
       cid: ${{ steps.ipfs.outputs.cid }}
     steps:
       - name: Install jq
-        run: apt-get update && apt-get install -y --no-install-recommends jq
+        run: apk add --no-cache jq
 
       - uses: actions/download-artifact@v3
         with:
@@ -96,10 +111,10 @@ jobs:
   deploy-pinata:
     needs: [deploy-ipfs, deploy-rsync]
     runs-on: ubuntu-latest
-    container: node:lts
+    container: oven/bun:1-alpine
     steps:
-      - name: Install jq
-        run: apt-get update && apt-get install -y --no-install-recommends jq
+      - name: Install tools
+        run: apk add --no-cache jq curl
 
       - uses: actions/checkout@v4
         with:
