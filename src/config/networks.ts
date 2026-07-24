@@ -26,38 +26,38 @@ const p2pix = (chain: Chain) => ({
 const prodNetworks: NetworkConfig[] = [
   {
     ...mainnet,
-    rpcUrls: { default: { http: [import.meta.env.VITE_MAINNET_API_URL] } },
+    rpcUrls: { default: { http: ['https://eth-mainnet.g.alchemy.com/v2/LgaUspQXUtbBxAF8qApKG8L5-FesOVLH'] } },
     contracts: { ...mainnet.contracts, ...p2pix(mainnet) },
-    tokens: { BRZ: { address: import.meta.env.VITE_MAINNET_TOKEN_ADDRESS } },
-    subgraphUrls: [import.meta.env.VITE_MAINNET_SUBGRAPH_URL],
+    tokens: { BRZ: { address: '0xC40356e14842e951A2A1F156d5be28cC6E4C2697' } },
+    subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/mainnet/p2pix'],
   },
   {
     ...arbitrum,
-    rpcUrls: { default: { http: [import.meta.env.VITE_ARBITRUM_API_URL] } },
+    rpcUrls: { default: { http: ['https://arb-mainnet.g.alchemy.com/v2/Ypckt5vbPFn6Knfwyfai0DevHqw8ukJl'] } },
     contracts: { ...arbitrum.contracts, ...p2pix(arbitrum) },
-    tokens: { BRZ: { address: import.meta.env.VITE_ARBITRUM_TOKEN_ADDRESS } },
-    subgraphUrls: [import.meta.env.VITE_ARBITRUM_SUBGRAPH_URL],
+    tokens: { BRZ: { address: '0xa8940698fda5a07abaef4a5ccdf2f1bb525b47a2' } },
+    subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/arbitrum/p2pix'],
   },
 ];
 
 const testNetworks: NetworkConfig[] = [
   {
     ...sepolia,
-    rpcUrls: { default: { http: [import.meta.env.VITE_SEPOLIA_API_URL] } },
+    rpcUrls: { default: { http: ['https://eth-sepolia.g.alchemy.com/v2/LgaUspQXUtbBxAF8qApKG8L5-FesOVLH'] } },
     contracts: { ...sepolia.contracts, ...p2pix(sepolia) },
     tokens: {
       BRZ: { address: deployments(sepolia.id)['MockToken#MockToken'] },
     },
-    subgraphUrls: [import.meta.env.VITE_SEPOLIA_SUBGRAPH_URL],
+    subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/p-2-pix/sepolia'],
   },
   {
     ...rootstockTestnet,
-    rpcUrls: { default: { http: [import.meta.env.VITE_RSK_API_URL] } },
+    rpcUrls: { default: { http: ['https://rootstock-testnet.g.alchemy.com/v2/dHLGA_JZ4cW83ZB23SBhCCqys3niIUDv'] } },
     contracts: { ...rootstockTestnet.contracts, ...p2pix(rootstockTestnet) },
     tokens: {
       BRZ: { address: deployments(rootstockTestnet.id)['MockToken#MockToken'] },
     },
-    subgraphUrls: [import.meta.env.VITE_RSK_SUBGRAPH_URL],
+    subgraphUrls: ['https://api.studio.thegraph.com/query/113713/p-2-pix/version/rootstock-testnet'],
   },
 ];
 
