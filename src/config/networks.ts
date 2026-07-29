@@ -23,6 +23,7 @@ const p2pix = (chain: Chain) => ({
   p2pix: { address: deployments(chain.id)['P2PIX#P2PIX'] },
 });
 
+// prettier-ignore
 const prodNetworks: NetworkConfig[] = [
   {
     ...mainnet,
@@ -40,23 +41,20 @@ const prodNetworks: NetworkConfig[] = [
   },
 ];
 
+// prettier-ignore
 const testNetworks: NetworkConfig[] = [
   {
     ...sepolia,
     rpcUrls: { default: { http: ['https://eth-sepolia.g.alchemy.com/v2/LgaUspQXUtbBxAF8qApKG8L5-FesOVLH'] } },
     contracts: { ...sepolia.contracts, ...p2pix(sepolia) },
-    tokens: {
-      BRZ: { address: deployments(sepolia.id)['MockToken#MockToken'] },
-    },
+    tokens: { BRZ: { address: deployments(sepolia.id)['MockToken#MockToken'] } },
     subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/p-2-pix/sepolia'],
   },
   {
     ...rootstockTestnet,
     rpcUrls: { default: { http: ['https://rootstock-testnet.g.alchemy.com/v2/dHLGA_JZ4cW83ZB23SBhCCqys3niIUDv'] } },
     contracts: { ...rootstockTestnet.contracts, ...p2pix(rootstockTestnet) },
-    tokens: {
-      BRZ: { address: deployments(rootstockTestnet.id)['MockToken#MockToken'] },
-    },
+    tokens: { BRZ: { address: deployments(rootstockTestnet.id)['MockToken#MockToken'] } },
     subgraphUrls: ['https://api.studio.thegraph.com/query/113713/p-2-pix/version/rootstock-testnet'],
   },
 ];

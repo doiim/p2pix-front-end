@@ -21,8 +21,13 @@ export interface Offer {
 // Specs for BB Pay Sandbox
 // https://apoio.developers.bb.com.br/sandbox/spec/665797498bb48200130fc32c
 
+const API_URL =
+  import.meta.env.VITE_APP_ENV === 'production'
+    ? 'https://api.p2pix.co'
+    : 'https://demo.api.p2pix.co';
+
 export const createParticipant = async (participant: Participant) => {
-  const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/register`, {
+  const response = await fetch(`${API_URL}/register`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -48,7 +53,7 @@ export const createParticipant = async (participant: Participant) => {
 };
 
 export const createSolicitation = async (offer: Offer) => {
-  const response = await fetch(`${import.meta.env.VITE_APP_API_URL}/request`, {
+  const response = await fetch(`${API_URL}/request`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -64,9 +69,7 @@ export const createSolicitation = async (offer: Offer) => {
 export const getSolicitation = async (
   id: bigint,
 ): Promise<{ pixTimestamp: `0x${string}`; signature: `0x${string}` }> => {
-  const response = await fetch(
-    `${import.meta.env.VITE_APP_API_URL}/release/${id}`,
-  );
+  const response = await fetch(`${API_URL}/release/${id}`);
 
   const obj = await response.json();
 
