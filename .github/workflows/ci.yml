@@ -63,7 +63,7 @@ jobs:
           TARGET: ${{ github.ref_name }}
 
       - name: Deploy to IPFS
-        uses: ipshipyard/ipfs-deploy-action@v1
+        uses: ipshipyard/ipfs-deploy-action@v2
         id: ipfs
         continue-on-error: true
         with:
@@ -71,33 +71,28 @@ jobs:
           set-github-status: false
           set-pr-comment: false
           upload-car-artifact: false
-          kubo-api-url: ${{ secrets.KUBO_API_URL }}
+          kubo-api-url: /dns/${{ secrets.KUBO_HOST }}/tcp/443/https
           kubo-api-auth: ${{ secrets.KUBO_API_AUTH }}
 
-      - name: Install Pinata CLI
-        run: curl -fsSL https://cli.pinata.cloud/install | bash
-
-      - name: Authenticate Pinata CLI
+      - name: Pin at Pinata
+        if: steps.ipfs.outcome == 'success'
         env:
           PINATA_JWT: ${{ secrets.PINATA_JWT }}
-        run: echo -n "$PINATA_JWT" > ~/.pinata-files-cli
-
-      - name: Upload to Pinata
-        env:
-          PINATA_GROUP: ${{ secrets.PINATA_GROUP }}
           IPFS_CID: ${{ steps.ipfs.outputs.cid }}
         run: |
-          export PATH="$HOME/.local/share/pinata/:$PATH"
           VERSION=$(jq -r .version package.json)
-          UPLOAD_JSON=$(pinata upload --group "$PINATA_GROUP" --name "p2pix_${VERSION}" ./dist)
-          CID=$(echo "$UPLOAD_JSON" | jq -r .cid)
-          if [ -z "$CID" ] || [ "$CID" = "null" ]; then
-            echo "Error: Could not parse CID. Output: $UPLOAD_JSON"
-            exit 1
-          fi
-          {
-            echo "## Deploy Summary"
-            echo "- IPFS CID (kubo): \`$IPFS_CID\`"
-            echo "- Pinata CID: \`$CID\`"
-            echo "- Version: \`$VERSION\`"
-          } >> "$GITHUB_STEP_SUMMARY"
+          curl -sS -X POST https://api.pinata.cloud/pinning/pinByHash \
+            -H "Authorization: Bearer $PINATA_JWT" \
+            -H "Content-Type: application/json" \
+            -d "{\"hash\":\"$IPFS_CID\",\"pinataMetadata\":{\"name\":\"p2pix_${VERSION}\"}}"
+
+      - name: Update IPNS pointer
+        if: steps.ipfs.outcome == 'success' && github.ref == 'refs/heads/main'
+        env:
+          KUBO_HOST: ${{ secrets.KUBO_HOST }}
+          KUBO_API_AUTH: ${{ secrets.KUBO_API_AUTH }}
+          IPNS_KEY: ${{ secrets.IPNS_KEY }}
+          IPFS_CID: ${{ steps.ipfs.outputs.cid }}
+        run: |
+          curl -fsS -X POST -H "Authorization: Bearer ${KUBO_API_AUTH#bearer:}" \
+            "https://$KUBO_HOST/api/v0/name/publish?arg=$IPFS_CID${IPNS_KEY:+&key=$IPNS_KEY}"
