@@ -60,7 +60,7 @@ const confirmBuyClick = async (
 };
 
 const releaseTransaction = async (params: {
-  pixTimestamp: `0x${string}` & { lenght: 34 };
+  pixTimestamp: `0x${string}` & { length: 34 };
   signature: `0x${string}`;
 }) => {
   flowStep.value = Step.List;

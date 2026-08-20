@@ -45,9 +45,11 @@ const connnectWallet = async (): Promise<void> => {
 };
 
 watch(connectedWallet, async (newVal: any) => {
-  connectProvider(newVal.provider);
-  const addresses = await newVal.provider.request({ method: 'eth_accounts' });
-  user.setWalletAddress(addresses.shift());
+  if (newVal?.provider) {
+    await connectProvider(newVal.provider);
+    const addresses = await newVal.provider.request({ method: 'eth_accounts' });
+    user.setWalletAddress(addresses.shift());
+  }
 });
 
 watch(connectedChain, (newVal: any) => {

@@ -56,7 +56,7 @@ export const withdrawDeposit = async (
 
 export const releaseLock = async (
   lockID: bigint,
-  pixTimestamp: `0x${string}` & { lenght: 34 },
+  pixTimestamp: `0x${string}` & { length: 34 },
   signature: `0x${string}`,
 ): Promise<TransactionReceipt> => {
   const { address, abi, wallet, client, account } = await getContract();

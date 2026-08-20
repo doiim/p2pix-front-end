@@ -11,7 +11,7 @@ const isWrongNetwork = ref(false);
 const targetNetworkName = computed(() => network.value.name);
 
 const checkNetwork = () => {
-  if (connectedWallet.value) {
+  if (connectedWallet.value?.chains?.[0]?.id) {
     const chainId = connectedWallet.value.chains[0].id;
     isWrongNetwork.value = Number(chainId) !== network.value.id;
   } else {

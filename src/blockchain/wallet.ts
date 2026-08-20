@@ -71,11 +71,14 @@ export const listAllTransactionByWalletAddress = async (
   // Get the current network for the subgraph URL
   const network = user.network.value;
 
+  // Escape address for safe GraphQL query
+  const escapedAddress = walletAddress.toLowerCase().replace(/"/g, '\\"');
+
   // Query subgraph for all relevant transactions
   const subgraphQuery = {
     query: `
       {
-        depositAddeds(where: {seller: "${walletAddress.toLowerCase()}"}) {
+        depositAddeds(where: {seller: "${escapedAddress}"}) {
           id
           seller
           token
@@ -84,7 +87,7 @@ export const listAllTransactionByWalletAddress = async (
           blockNumber
           transactionHash
         }
-        lockAddeds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
+        lockAddeds(where: {buyer: "${escapedAddress}"}) {
           buyer
           lockID
           seller
@@ -93,14 +96,14 @@ export const listAllTransactionByWalletAddress = async (
           blockNumber
           transactionHash
         }
-        lockReleaseds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
+        lockReleaseds(where: {buyer: "${escapedAddress}"}) {
           buyer
           lockId
           blockTimestamp
           blockNumber
           transactionHash
         }
-        depositWithdrawns(where: {seller: "${walletAddress.toLowerCase()}"}) {
+        depositWithdrawns(where: {seller: "${escapedAddress}"}) {
           seller
           token
           amount
@@ -205,11 +208,14 @@ const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
   const user = useUser();
   const network = user.network.value;
 
+  // Escape address for safe GraphQL query
+  const escapedAddress = walletAddress.toLowerCase().replace(/"/g, '\\"');
+
   // Query subgraph for lock added transactions
   const subgraphQuery = {
     query: `
       {
-        lockAddeds(where: {buyer: "${walletAddress.toLowerCase()}"}) {
+        lockAddeds(where: {buyer: "${escapedAddress}"}) {
           buyer
           lockID
           seller
@@ -274,11 +280,14 @@ const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
   const user = useUser();
   const network = user.network.value;
 
+  // Escape address for safe GraphQL query
+  const escapedAddress = sellerAddress.toLowerCase().replace(/"/g, '\\"');
+
   // Query subgraph for lock added transactions where seller matches
   const subgraphQuery = {
     query: `
       {
-        lockAddeds(where: {seller: "${sellerAddress.toLowerCase()}"}) {
+        lockAddeds(where: {seller: "${escapedAddress}"}) {
           buyer
           lockID
           seller
@@ -394,7 +403,7 @@ export const getActiveLockAmount = async (
   });
 
   return mapLocksResults.reduce((total: number, lock: any, index: number) => {
-    if (status[index] === 1) {
+    if (status[index] === LockStatus.Active) {
       const [, , , amount] = lock.result;
       return total + Number(formatEther(amount));
     }

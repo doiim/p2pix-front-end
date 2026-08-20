@@ -7,7 +7,7 @@ import VersionFooter from '@/components/ui/VersionFooter.vue';
 import { init, useOnboard } from '@web3-onboard/vue';
 import injectedModule from '@web3-onboard/injected-wallets';
 import { Networks, DEFAULT_NETWORK } from '@/config/networks';
-import { ref } from 'vue';
+import { ref, onMounted } from 'vue';
 
 const route = useRoute();
 const injected = injectedModule();
@@ -27,9 +27,16 @@ const web3Onboard = init({
 });
 
 const { connectedWallet } = useOnboard();
-if (!connectedWallet) {
-  web3Onboard.connectWallet();
-}
+
+// Handle wallet connection after initialization
+const attemptAutoConnect = async () => {
+  if (!connectedWallet.value) {
+    await web3Onboard.connectWallet();
+  }
+};
+
+// Call after component mounts to avoid race condition
+onMounted(attemptAutoConnect);
 </script>
 
 <template>
