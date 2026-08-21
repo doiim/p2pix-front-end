@@ -1,6 +1,5 @@
 <script setup lang="ts">
-const version =
-  typeof __APP_VERSION__ !== 'undefined' ? __APP_VERSION__ : 'dev';
+const version = import.meta.env.APP_VERSION as string;
 </script>
 
 <template>

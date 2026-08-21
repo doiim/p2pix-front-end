@@ -1,24 +1,19 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
-import { appVersions, getIpfsUrl, getLatestVersion } from '@/utils/versions';
-import type { AppVersion } from '@/model/AppVersion';
+import { marked } from 'marked';
 
-const versions = ref<AppVersion[]>([]);
-const latestVersion = ref<AppVersion | null>(null);
-const currentVersion = __APP_VERSION__;
+const currentVersion = import.meta.env.APP_VERSION as string;
+const versions = (import.meta.env.APP_RELEASES ?? []) as {
+  tag: string;
+  title?: string;
+  releaseDate: string;
+  cid?: string;
+  notes?: string;
+}[];
 
-onMounted(() => {
-  versions.value = [...appVersions].sort(
-    (a, b) =>
-      new Date(b.releaseDate).getTime() - new Date(a.releaseDate).getTime(),
-  );
-  latestVersion.value = getLatestVersion();
-});
+const isCurrent = (tag: string): boolean =>
+  currentVersion === tag || currentVersion.startsWith(`${tag}+`);
 
-const openIpfsVersion = (ipfsHash: string) => {
-  const url = getIpfsUrl(ipfsHash);
-  window.open(url, '_blank', 'noopener,noreferrer');
-};
+const ipfsUrl = (cid: string): string => `ipfs://${cid}`;
 
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
@@ -28,6 +23,9 @@ const formatDate = (dateString: string): string => {
     day: 'numeric',
   });
 };
+
+const releaseNotes = (md?: string): string =>
+  md ? (marked.parse(md, { breaks: true, gfm: true }) as string) : '';
 </script>
 
 <template>
@@ -51,27 +49,45 @@ const formatDate = (dateString: string): string => {
     <div class="versions-container">
       <div v-for="version in versions" :key="version.tag" class="version-card">
         <div class="version-header">
-          <h3 class="version-tag">{{ version.tag }}</h3>
-          <span v-if="version.tag === currentVersion" class="current-badge">
+          <h3 class="version-tag">
+            <a
+              v-if="version.cid"
+              :href="ipfsUrl(version.cid)"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="ipfs-link"
+            >
+              {{ version.tag }}
+            </a>
+            <span v-else>{{ version.tag }}</span>
+          </h3>
+          <span v-if="isCurrent(version.tag)" class="current-badge">
             Atual
           </span>
         </div>
+        <p v-if="version.title" class="version-title">
+          {{ version.title }}
+        </p>
         <div class="version-info">
           <p class="version-date">
             <span class="label">Data de lançamento:</span>
             {{ formatDate(version.releaseDate) }}
           </p>
-          <p v-if="version.description" class="version-description">
-            {{ version.description }}
-          </p>
+          <div
+            v-if="version.notes"
+            class="version-notes"
+            v-html="releaseNotes(version.notes)"
+          ></div>
           <div class="version-actions">
-            <button
-              v-if="currentVersion !== version.tag"
-              @click="openIpfsVersion(version.ipfsHash)"
+            <a
+              v-if="version.cid"
+              :href="ipfsUrl(version.cid)"
+              target="_blank"
+              rel="noopener noreferrer"
               class="ipfs-button"
             >
               Abrir no IPFS
-            </button>
+            </a>
           </div>
         </div>
       </div>
@@ -113,6 +129,14 @@ const formatDate = (dateString: string): string => {
   @apply text-2xl font-bold text-white;
 }
 
+.version-title {
+  @apply text-gray-400 text-sm mt-1;
+}
+
+.ipfs-link {
+  @apply hover:text-amber-500 transition-colors;
+}
+
 .current-badge {
   @apply px-3 py-1 bg-amber-500 text-gray-900 text-xs font-semibold rounded-full;
 }
@@ -125,12 +149,36 @@ const formatDate = (dateString: string): string => {
   @apply text-gray-300 text-sm;
 }
 
-.label {
-  @apply text-gray-400 font-medium;
+.version-notes {
+  @apply text-gray-300 text-sm leading-relaxed;
+
+  :deep(ul) {
+    @apply list-disc pl-5 space-y-1;
+  }
+
+  :deep(ol) {
+    @apply list-decimal pl-5 space-y-1;
+  }
+
+  :deep(a) {
+    @apply text-amber-500 hover:underline;
+  }
+
+  :deep(strong) {
+    @apply text-white font-semibold;
+  }
+
+  :deep(code) {
+    @apply bg-gray-900 px-1 py-0.5 rounded text-amber-400 text-xs;
+  }
+
+  :deep(p) {
+    @apply mb-2 last:mb-0;
+  }
 }
 
-.version-description {
-  @apply text-gray-300 text-sm;
+.label {
+  @apply text-gray-400 font-medium;
 }
 
 .version-actions {
@@ -139,10 +187,6 @@ const formatDate = (dateString: string): string => {
 
 .ipfs-button {
   @apply px-4 py-2 bg-amber-500 text-gray-900 font-semibold rounded hover:bg-amber-600 transition-colors text-sm;
-}
-
-.ipfs-hash {
-  @apply text-gray-400 text-xs font-mono break-all;
 }
 
 .empty-state {

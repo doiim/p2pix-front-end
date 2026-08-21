@@ -1,7 +1,6 @@
 {
   "extends": "@vue/tsconfig/tsconfig.dom.json",
   "include": [
-    "env.d.ts",
     "src/**/*",
     "src/**/*.vue",
     "scripts"
@@ -14,7 +13,8 @@
       ]
     },
     "types": [
-      "node"
+      "node",
+      "vite/client"
     ],
     "resolveJsonModule": true,
     "skipLibCheck": true,

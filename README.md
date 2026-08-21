@@ -103,6 +103,20 @@ git submodule update --init
 docker-compose up
 ```
 
+### Versioning
+
+Release flow:
+
+```sh
+git tag -a 0.x.y -m "Release version x.y.z"      # tag the release commit
+bun run build                                      # build dist/
+ipfs add -r dist                                   # pin build, get CID
+git notes --ref=ipfs add -m "<cid>" x.y.z         # record CID as deploy metadata (no tag rewrite)
+git push origin 0.x.y refs/notes/ipfs:refs/notes/ipfs
+```
+
+The CID is deterministic: anyone can check out a tag, rebuild, and verify it matches the note. CIDs live in `git notes --ref=ipfs` — never in the repo or the tag message — so history stays clean and a wrong CID is fixed with `git notes --ref=ipfs add -f` (no force-push of tags). The Versions page derives its list from `git tag` and links each release to IPFS.
+
 ### Backend Communication
 
 Backend Repo: `https://gitea.kosmos.org/hueso/helpix`
@@ -114,7 +128,5 @@ curl -X POST \
   -H "Authorization: Bearer {api-key}" \
   -d '{"query": "{ depositAddeds { id seller token amount } }"}' \
 https://api.studio.thegraph.com/query/113713/p-2-pix/sepolia
-
-https://api.studio.thegraph.com/query/113713/p-2-pix/1
 
 curl --request POST --url 'https://api.hm.bb.com.br/testes-portal-desenvolvedor/v1/boletos-pix/pagar?gw-app-key=95cad3f03fd9013a9d15005056825665' --header 'content-type: application/json' --data '{"pix":"00020101021226070503***63041654" }'
