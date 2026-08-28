@@ -24,13 +24,16 @@ export type AaConfig = {
   minFeeBalance?: bigint;
 };
 
+const DEMO_RP_ID = 'demo.p2pix.co';
+const PROD_RP_ID = 'p2pix.co';
+
 /**
  * WebAuthn RP id shared across AA-enabled chains: `p2pix.co` in production,
  * `demo.p2pix.co` otherwise (demo builds are served from `<n>.demo.p2pix.co`,
  * so the passkey must be registered for the shared suffix).
  */
 export const rpId =
-  import.meta.env.VITE_APP_ENV === 'production' ? 'p2pix.co' : 'demo.p2pix.co';
+  import.meta.env.VITE_APP_ENV === 'production' ? PROD_RP_ID : DEMO_RP_ID;
 
 /**
  * Default minimum fee token balance (in wei) to attempt paymaster fees, used
