@@ -16,8 +16,6 @@ export type AaConfig = {
    * the chain while unset.
    */
   bundlerUrl?: string;
-  /** Per-chain WebAuthn RP id override; falls back to `rpIdDefault`. */
-  rpId?: string;
   /**
    * Minimum fee token balance (in wei) to attempt paymaster fees. Below this,
    * use sponsored UserOps. Assumes an 18-decimal fee token. Falls back to
@@ -26,35 +24,18 @@ export type AaConfig = {
   minFeeBalance?: bigint;
 };
 
-const DEMO_RP_ID = 'demo.p2pix.co';
-const PROD_RP_ID = 'p2pix.co';
-
 /**
- * Demo builds are served from `<n>.demo.p2pix.co`, so the passkey must be
- * registered for the shared suffix `demo.p2pix.co`; production uses `p2pix.co`.
- * Any other host (localhost, previews) returns undefined and the browser falls
- * back to the current hostname.
+ * WebAuthn RP id shared across AA-enabled chains: `p2pix.co` in production,
+ * `demo.p2pix.co` otherwise (demo builds are served from `<n>.demo.p2pix.co`,
+ * so the passkey must be registered for the shared suffix). Undefined on
+ * localhost, where the browser falls back to the current hostname.
  */
-const deriveRpId = (hostname: string): string | undefined => {
-  if (hostname === DEMO_RP_ID || hostname.endsWith(`.${DEMO_RP_ID}`)) {
-    return DEMO_RP_ID;
-  }
-  if (hostname === PROD_RP_ID || hostname.endsWith(`.${PROD_RP_ID}`)) {
-    return PROD_RP_ID;
-  }
-  return undefined;
-};
-
-/**
- * WebAuthn RP id shared across AA-enabled chains. `VITE_PASSKEY_RP_ID`
- * overrides when set; otherwise derived from the hostname. Override per chain
- * with `AaConfig.rpId`.
- */
-export const rpIdDefault =
-  (import.meta.env.VITE_PASSKEY_RP_ID as string | undefined)?.trim() ||
-  (typeof window !== 'undefined'
-    ? deriveRpId(window.location.hostname)
-    : undefined);
+export const rpId =
+  typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? undefined
+    : import.meta.env.VITE_APP_ENV === 'production'
+      ? 'p2pix.co'
+      : 'demo.p2pix.co';
 
 /**
  * Default minimum fee token balance (in wei) to attempt paymaster fees, used

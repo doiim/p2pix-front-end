@@ -11,7 +11,7 @@ import {
 
 import { DEFAULT_NETWORK, wagmiNetworks } from '@/config/networks';
 import {
-  rpIdDefault,
+  rpId,
   sponsorshipPolicyId as configuredSponsorshipPolicyId,
 } from '@/config/aa';
 
@@ -96,7 +96,6 @@ export const setupAppKit = (): WagmiAdapter => {
   const defaultNetwork = DEFAULT_NETWORK;
   const defaultPasskeyRpcUrl = defaultNetwork.rpcUrls?.default?.http?.[0];
   // The default network's per-chain AA config drives the passkey connector.
-  // RP id falls back to rpIdDefault when the chain doesn't override it.
   const defaultAa = defaultNetwork.aa;
 
   // Sponsorship policy comes from env; the bundler URL comes from the chain.
@@ -115,7 +114,7 @@ export const setupAppKit = (): WagmiAdapter => {
   const passkeyConfig =
     finalBundlerUrl && sponsorshipPolicyId
       ? {
-          rpId: defaultAa?.rpId ?? rpIdDefault,
+          rpId,
           rpName: 'P2Pix',
           accountKind: 'kernel' as const,
           chainId: Number(defaultNetwork.id),
