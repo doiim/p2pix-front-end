@@ -63,7 +63,8 @@ const testNetworks: [NetworkConfig, ...NetworkConfig[]] = [
   },
 ];
 
-export const Networks = import.meta.env.PROD ? prodNetworks : testNetworks;
+export const Networks =
+  import.meta.env.VITE_APP_ENV === 'production' ? prodNetworks : testNetworks;
 
 export const DEFAULT_NETWORK = Networks[0];
 
