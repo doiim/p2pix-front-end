@@ -4,39 +4,8 @@ import TopBar from '@/components/TopBar/TopBar.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import ToasterComponent from '@/components/ui/ToasterComponent.vue';
 import VersionFooter from '@/components/ui/VersionFooter.vue';
-import { init, useOnboard } from '@web3-onboard/vue';
-import injectedModule from '@web3-onboard/injected-wallets';
-import { Networks, DEFAULT_NETWORK } from '@/config/networks';
-import { ref, onMounted } from 'vue';
 
 const route = useRoute();
-const injected = injectedModule();
-const targetNetwork = ref(DEFAULT_NETWORK);
-
-const web3Onboard = init({
-  wallets: [injected],
-  chains: Networks.map((network) => ({
-    id: `0x${network.id.toString(16)}`,
-    token: network.nativeCurrency.symbol,
-    label: network.name,
-    rpcUrl: network.rpcUrls.default.http[0],
-  })),
-  connect: {
-    autoConnectLastWallet: true,
-  },
-});
-
-const { connectedWallet } = useOnboard();
-
-// Handle wallet connection after initialization
-const attemptAutoConnect = async () => {
-  if (!connectedWallet.value) {
-    await web3Onboard.connectWallet();
-  }
-};
-
-// Call after component mounts to avoid race condition
-onMounted(attemptAutoConnect);
 </script>
 
 <template>
@@ -60,7 +29,7 @@ onMounted(attemptAutoConnect);
         </Transition>
       </template>
     </RouterView>
-    <ToasterComponent :targetNetwork="targetNetwork" />
+    <ToasterComponent />
     <VersionFooter />
   </main>
 </template>

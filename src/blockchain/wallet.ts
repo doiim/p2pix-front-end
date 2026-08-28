@@ -1,35 +1,49 @@
-import {
-  formatEther,
-  type Address,
-  type ContractFunctionParameters,
-} from 'viem';
+import { formatEther, type Address } from 'viem';
 import { useUser } from '@/composables/useUser';
+import { getEffectiveWalletAddress } from './aa/operations';
 
-import { getPublicClient, getWalletClient, getContract } from './provider';
+import { getCurrentAccount, getPublicClient, getContract } from './provider';
 
 import { getValidDeposits, getUnreleasedLockById } from './events';
+import { toLock } from './buyerMethods';
 
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { WalletTransaction } from '@/model/WalletTransaction';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
 import { LockStatus } from '@/model/LockStatus';
 
+// Addresses today come from viem/wagmi and are well-formed hex, but the
+// GraphQL builders below interpolate them straight into a quoted literal, so
+// any future caller passing an unvalidated string could break out of the
+// literal and rewrite the query. Escape the only character that ends the
+// literal; behavior for well-formed addresses is unchanged.
+const escapeForGraphQL = (address: Address): string =>
+  address.toLowerCase().replace(/"/g, '\\"');
+
 export const updateWalletStatus = async (): Promise<void> => {
   const user = useUser();
+  const { address: connectorAddress } = getCurrentAccount();
 
-  const publicClient = getPublicClient();
-  const walletClient = getWalletClient();
-
-  if (!publicClient || !walletClient) {
-    console.error('Client not initialized');
+  if (!connectorAddress) {
     return;
   }
 
-  // Get balance
-  const [account] = await walletClient.getAddresses();
-  const balance = await publicClient.getBalance({ address: account });
+  // The smart account is what signs locks and releases. Falling back to the
+  // connector EOA here would show an address the app never transacts from, so
+  // clear the state and surface the failure instead of downgrading silently.
+  let address: Address;
+  try {
+    address = await getEffectiveWalletAddress(connectorAddress);
+  } catch (cause) {
+    user.setWalletAddress(null);
+    user.setBalance('0');
+    throw new Error('Could not resolve the smart account address', { cause });
+  }
 
-  user.setWalletAddress(account);
+  const publicClient = getPublicClient();
+  const balance = await publicClient.getBalance({ address });
+
+  user.setWalletAddress(address);
   user.setBalance(formatEther(balance));
 };
 
@@ -54,7 +68,8 @@ export const listValidDepositTransactionsByWalletAddress = async (
 
 const getLockStatus = async (id: bigint): Promise<LockStatus> => {
   const { address, abi, client } = await getContract();
-  const [sortedIDs, status] = await client.readContract({
+  // getLocksStatus returns [locks, status]; we only need status
+  const [, status] = await client.readContract({
     address,
     abi,
     functionName: 'getLocksStatus',
@@ -71,8 +86,7 @@ export const listAllTransactionByWalletAddress = async (
   // Get the current network for the subgraph URL
   const network = user.network.value;
 
-  // Escape address for safe GraphQL query
-  const escapedAddress = walletAddress.toLowerCase().replace(/"/g, '\\"');
+  const escapedAddress = escapeForGraphQL(walletAddress);
 
   // Query subgraph for all relevant transactions
   const subgraphQuery = {
@@ -204,147 +218,40 @@ export const listAllTransactionByWalletAddress = async (
   return transactions.sort((a, b) => b.blockNumber - a.blockNumber);
 };
 
-const listLockTransactionByWalletAddress = async (walletAddress: Address) => {
-  const user = useUser();
-  const network = user.network.value;
-
-  // Escape address for safe GraphQL query
-  const escapedAddress = walletAddress.toLowerCase().replace(/"/g, '\\"');
-
-  // Query subgraph for lock added transactions
-  const subgraphQuery = {
-    query: `
-      {
-        lockAddeds(where: {buyer: "${escapedAddress}"}) {
-          buyer
-          lockID
-          seller
-          amount
-          blockTimestamp
-          blockNumber
-          transactionHash
-        }
-      }
-    `,
-  };
-
-  try {
-    // Fetch data from subgraph
-    const response = await fetch(network.subgraphUrls[0], {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(subgraphQuery),
-    });
-
-    const data = await response.json();
-
-    if (!data.data?.lockAddeds) {
-      return [];
-    }
-
-    // Transform the subgraph data to match the event log decode format
-    return data.data.lockAddeds
-      .sort((a: any, b: any) => {
-        return parseInt(b.blockNumber) - parseInt(a.blockNumber);
-      })
-      .map((lock: any) => {
-        try {
-          // Create a structure similar to the decoded event log
-          return {
-            eventName: 'LockAdded',
-            args: {
-              buyer: lock.buyer,
-              lockID: BigInt(lock.lockID),
-              seller: lock.seller,
-              token: undefined, // Token not available in LockAdded subgraph event
-              amount: BigInt(lock.amount),
-            },
-            // Add other necessary fields to match the original format
-            blockNumber: BigInt(lock.blockNumber),
-            transactionHash: lock.transactionHash,
-          };
-        } catch (error) {
-          console.error('Error processing subgraph data', error);
-          return null;
-        }
-      })
-      .filter((decoded: any) => decoded !== null);
-  } catch (error) {
-    console.error('Error fetching from subgraph:', error);
-  }
+type LockAddedFromSubgraph = {
+  lockID: string;
 };
 
-const listLockTransactionBySellerAddress = async (sellerAddress: Address) => {
-  const user = useUser();
-  const network = user.network.value;
-
-  // Escape address for safe GraphQL query
-  const escapedAddress = sellerAddress.toLowerCase().replace(/"/g, '\\"');
-
-  // Query subgraph for lock added transactions where seller matches
-  const subgraphQuery = {
-    query: `
-      {
-        lockAddeds(where: {seller: "${escapedAddress}"}) {
-          buyer
-          lockID
-          seller
-          amount
-          blockTimestamp
-          blockNumber
-          transactionHash
-        }
-      }
-    `,
+type LockAddedResponse = {
+  data?: {
+    lockAddeds?: LockAddedFromSubgraph[];
   };
+};
+
+const fetchLockIds = async (
+  field: 'buyer' | 'seller',
+  walletAddress: Address,
+): Promise<bigint[]> => {
+  const subgraphUrl = useUser().network.value.subgraphUrls[0];
 
   try {
-    // Fetch data from subgraph
-    const response = await fetch(network.subgraphUrls[0], {
+    const response = await fetch(subgraphUrl, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(subgraphQuery),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `{
+          lockAddeds(where: {${field}: "${escapeForGraphQL(walletAddress)}"}, orderBy: blockNumber, orderDirection: desc) {
+            lockID
+          }
+        }`,
+      }),
     });
-
-    const data = await response.json();
-
-    if (!data.data?.lockAddeds) {
-      return [];
+    if (!response.ok) {
+      throw new Error(`Subgraph returned ${response.status}`);
     }
-
-    // Transform the subgraph data to match the event log decode format
-    return data.data.lockAddeds
-      .sort((a: any, b: any) => {
-        return parseInt(b.blockNumber) - parseInt(a.blockNumber);
-      })
-      .map((lock: any) => {
-        try {
-          // Create a structure similar to the decoded event log
-          return {
-            eventName: 'LockAdded',
-            args: {
-              buyer: lock.buyer,
-              lockID: BigInt(lock.lockID),
-              seller: lock.seller,
-              token: undefined, // Token not available in LockAdded subgraph event
-              amount: BigInt(lock.amount),
-            },
-            // Add other necessary fields to match the original format
-            blockNumber: BigInt(lock.blockNumber),
-            transactionHash: lock.transactionHash,
-          };
-        } catch (error) {
-          console.error('Error processing subgraph data', error);
-          return null;
-        }
-      })
-      .filter((decoded: any) => decoded !== null);
-  } catch (error) {
-    console.error('Error fetching from subgraph:', error);
+    const data = (await response.json()) as LockAddedResponse;
+    return (data.data?.lockAddeds ?? []).map((lock) => BigInt(lock.lockID));
+  } catch {
     return [];
   }
 };
@@ -353,11 +260,8 @@ export const checkUnreleasedLock = async (
   walletAddress: Address,
 ): Promise<UnreleasedLock | undefined> => {
   const { address, abi, client } = await getContract();
-  const addedLocks = await listLockTransactionByWalletAddress(walletAddress);
-
-  if (!addedLocks.length) return undefined;
-
-  const lockIds = addedLocks.map((lock: any) => lock.args.lockID);
+  const lockIds = await fetchLockIds('buyer', walletAddress);
+  if (!lockIds.length) return undefined;
 
   const [sortedIDs, status] = await client.readContract({
     address,
@@ -367,22 +271,19 @@ export const checkUnreleasedLock = async (
   });
 
   const unreleasedLockId = status.findIndex(
-    (status: LockStatus) => status == LockStatus.Active,
+    (s: LockStatus) => s === LockStatus.Active,
   );
-
-  if (unreleasedLockId !== -1)
+  if (unreleasedLockId !== -1) {
     return getUnreleasedLockById(sortedIDs[unreleasedLockId]);
+  }
 };
 
 export const getActiveLockAmount = async (
   walletAddress: Address,
 ): Promise<number> => {
   const { address, abi, client } = await getContract(true);
-  const lockSeller = await listLockTransactionBySellerAddress(walletAddress);
-
-  if (!lockSeller.length) return 0;
-
-  const lockIds = lockSeller.map((lock: any) => lock.args.lockID);
+  const lockIds = await fetchLockIds('seller', walletAddress);
+  if (!lockIds.length) return 0;
 
   const [sortedIDs, status] = await client.readContract({
     address,
@@ -391,20 +292,18 @@ export const getActiveLockAmount = async (
     args: [lockIds],
   });
 
-  const mapLocksRequests = sortedIDs.map((id: bigint) => ({
-    address,
-    abi,
-    functionName: 'mapLocks',
-    args: [id],
-  }));
-
   const mapLocksResults = await client.multicall({
-    contracts: mapLocksRequests as ContractFunctionParameters[],
+    contracts: sortedIDs.map((id) => ({
+      address,
+      abi,
+      functionName: 'mapLocks' as const,
+      args: [id],
+    })),
   });
 
-  return mapLocksResults.reduce((total: number, lock: any, index: number) => {
-    if (status[index] === LockStatus.Active) {
-      const [, , , amount] = lock.result;
+  return mapLocksResults.reduce((total, lock, index) => {
+    if (status[index] === LockStatus.Active && lock.status === 'success') {
+      const { amount } = toLock(lock.result);
       return total + Number(formatEther(amount));
     }
     return total;

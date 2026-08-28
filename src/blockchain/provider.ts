@@ -1,32 +1,39 @@
 import { p2PixAbi } from './abi';
-import { updateWalletStatus } from './wallet';
 import {
-  createPublicClient,
-  createWalletClient,
-  custom,
-  http,
-  PublicClient,
-  WalletClient,
-} from 'viem';
+  getAccount as wagmiGetAccount,
+  getPublicClient as wagmiGetPublicClient,
+  getWalletClient as wagmiGetWalletClient,
+} from '@wagmi/core';
+import { getWagmiConfig } from '@/config/appkit';
 import { useUser } from '@/composables/useUser';
 import type { NetworkConfig } from '@/model/NetworkEnum';
+import type { PublicClient, WalletClient } from 'viem';
 import type { ChainContract } from 'viem';
 
-let walletClient: WalletClient | null = null;
-
-const getPublicClient = (): PublicClient => {
+const getUserChainId = () => {
   const user = useUser();
-  const rpcUrl = (user.network.value as NetworkConfig).rpcUrls.default.http[0];
-  const chain = user.network.value;
-
-  return createPublicClient({
-    chain,
-    transport: http(rpcUrl),
-  });
+  return (user.network.value as NetworkConfig).id;
 };
 
-const getWalletClient = (): WalletClient | null => {
-  return walletClient;
+const getCurrentAccount = () => {
+  return wagmiGetAccount(getWagmiConfig());
+};
+
+const getPublicClient = (): PublicClient => {
+  const chainId = getUserChainId();
+  return wagmiGetPublicClient(getWagmiConfig(), { chainId }) as PublicClient;
+};
+
+const getWalletClient = async (): Promise<WalletClient | null> => {
+  try {
+    const chainId = getUserChainId();
+    return (await wagmiGetWalletClient(getWagmiConfig(), {
+      chainId,
+    })) as WalletClient;
+  } catch (error) {
+    console.error('[provider] wallet client unavailable', error);
+    return null;
+  }
 };
 
 const getContract = async (onlyRpcProvider = false) => {
@@ -35,30 +42,16 @@ const getContract = async (onlyRpcProvider = false) => {
   const address = (user.network.value.contracts?.p2pix as ChainContract)
     .address;
   const abi = p2PixAbi;
-  const wallet = onlyRpcProvider ? null : getWalletClient();
+  const wallet = onlyRpcProvider ? null : await getWalletClient();
 
   if (!client) {
     throw new Error('Public client not initialized');
   }
 
-  const [account] = wallet ? await wallet.getAddresses() : [null];
+  const addresses = wallet ? await wallet.getAddresses() : [];
+  const [account] = addresses.length > 0 ? [addresses[0]] : [null];
 
   return { address, abi, client, wallet, account };
 };
 
-const connectProvider = async (p: any): Promise<void> => {
-  const user = useUser();
-  const chain = user.network.value;
-
-  const [account] = await p!.request({ method: 'eth_requestAccounts' });
-
-  walletClient = createWalletClient({
-    account,
-    chain,
-    transport: custom(p),
-  });
-
-  await updateWalletStatus();
-};
-
-export { getPublicClient, getWalletClient, getContract, connectProvider };
+export { getCurrentAccount, getPublicClient, getWalletClient, getContract };

@@ -15,6 +15,8 @@ if (props.type === 'sell') {
   alertPaddingLeft.value = '40%';
 } else if (props.type === 'redirect') {
   alertPaddingLeft.value = '35%';
+} else if (props.type === 'lockPending') {
+  alertPaddingLeft.value = '30%';
 }
 
 switch (props.type) {
@@ -28,6 +30,10 @@ switch (props.type) {
     break;
   case 'redirect':
     alertText.value = 'Existe uma compra em aberto. Continuar?';
+    break;
+  case 'lockPending':
+    alertText.value =
+      'Sua reserva foi criada, mas ainda não conseguimos localizá-la. Aguarde alguns instantes e recarregue a página.';
     break;
   case 'withdraw':
     alertText.value = 'Tudo certo! Saque realizado com sucesso!';

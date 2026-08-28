@@ -1,5 +1,3 @@
-import type { Address } from 'viem';
-
 export enum LockStatus {
   // from DataTypes.sol
   Inexistent = 0, // Uninitialized Lock

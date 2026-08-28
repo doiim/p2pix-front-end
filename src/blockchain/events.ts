@@ -3,6 +3,7 @@ import { formatEther, toHex, stringToHex } from 'viem';
 import type { PublicClient, Address } from 'viem';
 import { Networks } from '@/config/networks';
 import { getContract } from './provider';
+import { toLock } from './buyerMethods';
 import { p2PixAbi } from './abi';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { NetworkConfig } from '@/model/NetworkEnum';
@@ -151,12 +152,14 @@ const getUnreleasedLockById = async (
 ): Promise<UnreleasedLock> => {
   const { address, abi, client } = await getContract();
 
-  const [, , , amount, token, , seller] = await client.readContract({
-    address,
-    abi,
-    functionName: 'mapLocks',
-    args: [lockID],
-  });
+  const { amount, token, seller } = toLock(
+    await client.readContract({
+      address,
+      abi,
+      functionName: 'mapLocks',
+      args: [lockID],
+    }),
+  );
 
   return {
     lockID,

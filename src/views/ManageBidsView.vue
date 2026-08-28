@@ -10,6 +10,7 @@ import {
   getActiveLockAmount,
 } from '@/blockchain/wallet';
 import { withdrawDeposit } from '@/blockchain/buyerMethods';
+import { getCurrentAccount } from '@/blockchain/provider';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { WalletTransaction } from '@/model/WalletTransaction';
 
@@ -72,8 +73,11 @@ const getWalletTransactions = async () => {
 };
 
 onMounted(async () => {
-  if (!walletAddress.value) {
+  // walletAddress resolves one await after mount, so the connector's own
+  // address is what tells a reload apart from a genuinely absent wallet.
+  if (!getCurrentAccount().address) {
     router.push({ name: 'home' });
+    return;
   }
   await getWalletTransactions();
 });

@@ -9,6 +9,7 @@ import ManageBidsView from '@/views/ManageBidsView.vue';
 import SellerView from '@/views/SellerView.vue';
 import ExploreView from '@/views/ExploreView.vue';
 import VersionsView from '@/views/VersionsView.vue';
+import SweepView from '@/views/SweepView.vue';
 
 const router = createRouter({
   history:
@@ -51,6 +52,11 @@ const router = createRouter({
       path: '/versions',
       name: 'versions',
       component: VersionsView,
+    },
+    {
+      path: '/sweep',
+      name: 'sweep',
+      component: SweepView,
     },
   ],
 });

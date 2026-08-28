@@ -18,12 +18,19 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
+    "@doiim/passkeys": "0.3.0-alpha.9",
+    "@doiim/reown-appkit": "1.8.19-doiim.13",
+    "@doiim/reown-appkit-adapter-wagmi": "1.8.19-doiim.13",
+    "@doiim/reown-appkit-common": "1.8.19-doiim.13",
+    "@doiim/reown-appkit-controllers": "1.8.19-doiim.13",
+    "@tanstack/vue-query": "^5.100.8",
     "@vueuse/core": "^14.3.0",
-    "@web3-onboard/injected-wallets": "^2.11.3",
-    "@web3-onboard/vue": "^2.10.0",
+    "@wagmi/core": "^3.4.8",
+    "@wagmi/vue": "^0.5.11",
     "marked": "^18.0.3",
+    "permissionless": "^0.3.6",
     "qrcode": "^1.5.4",
-    "viem": "^2.48.8",
+    "viem": "^2.49.3",
     "vite-svg-loader": "^5.1.1",
     "vue": "^3.5.33",
     "vue-router": "^5.0.6"
@@ -48,11 +55,12 @@
     "prettier": "^3.5.3",
     "tailwindcss": "^4.2.4",
     "typescript": "^6.0.3",
-    "vite": "^8.0.10",
+    "vite": "8.0.16",
     "vitest": "^4.1.5",
     "vue-tsc": "^3.2.7"
   },
   "trustedDependencies": [
+    "@doiim/reown-appkit",
     "esbuild",
     "vue-demi"
   ]

@@ -1,44 +1,43 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { useOnboard } from '@web3-onboard/vue';
+import { useWalletAccount, useWalletNetwork } from '@/config/appkit';
+import type { WalletNetwork } from '@/config/networks';
 import { useUser } from '@/composables/useUser';
+import { getCurrentAccount } from '@/blockchain/provider';
+import { PASSKEY_CONNECTOR_ID } from '@/blockchain/aa/session';
 
-const { connectedWallet } = useOnboard();
 const user = useUser();
 const { network } = user;
+const appKitAccount = useWalletAccount();
+const appKitNetwork = useWalletNetwork();
 
 const isWrongNetwork = ref(false);
 const targetNetworkName = computed(() => network.value.name);
 
 const checkNetwork = () => {
-  if (connectedWallet.value?.chains?.[0]?.id) {
-    const chainId = connectedWallet.value.chains[0].id;
-    isWrongNetwork.value = Number(chainId) !== network.value.id;
+  if (appKitAccount.value.isConnected && appKitNetwork.value.chainId) {
+    const connectorId = getCurrentAccount().connector?.id;
+    const usesAppAaChain =
+      connectorId === PASSKEY_CONNECTOR_ID && Boolean(network.value.aa);
+    isWrongNetwork.value =
+      Number(appKitNetwork.value.chainId) !== network.value.id &&
+      !usesAppAaChain;
   } else {
-    isWrongNetwork.value = false; // No wallet connected yet
+    isWrongNetwork.value = false;
   }
 };
 
 const switchNetwork = async () => {
   try {
-    if (connectedWallet.value && connectedWallet.value.provider) {
-      const chainId = network.value.id.toString(16);
-      await connectedWallet.value.provider.request({
-        method: 'wallet_switchEthereumChain',
-        params: [
-          {
-            chainId: `0x${chainId}`,
-          },
-        ],
-      });
-    }
+    await appKitNetwork.value.switchNetwork(network.value as WalletNetwork);
   } catch (error) {
     console.error('Failed to switch network:', error);
   }
 };
 
 onMounted(checkNetwork);
-watch(connectedWallet, checkNetwork);
+watch(() => appKitNetwork.value.chainId, checkNetwork);
+watch(() => appKitAccount.value.isConnected, checkNetwork);
 watch(network, checkNetwork, { immediate: true });
 </script>
 
@@ -63,6 +62,7 @@ watch(network, checkNetwork, { immediate: true });
 </template>
 
 <style scoped>
+@reference "tailwindcss";
 .slide-up-enter-active,
 .slide-up-leave-active {
   transition:

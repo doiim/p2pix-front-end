@@ -74,6 +74,7 @@ export default defineConfig({
         bigint: true,
       },
     },
+    entries: ['index.html', 'src/**/*.{vue,ts,tsx,js,jsx}'],
   },
   plugins: [vue(), vueJsx(), tailwindcss(), svgLoader()],
   resolve: {

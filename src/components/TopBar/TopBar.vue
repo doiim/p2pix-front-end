@@ -1,17 +1,28 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, onMounted } from 'vue';
 import { useUser } from '@/composables/useUser';
 import { onClickOutside } from '@vueuse/core';
 import { getNetworkImage } from '@/utils/imagesPath';
 import { Networks, DEFAULT_NETWORK } from '@/config/networks';
-import { useOnboard } from '@web3-onboard/vue';
+import { ConnectionController } from '@doiim/reown-appkit-controllers';
+import {
+  useWalletAccount,
+  useWalletDisconnect,
+  useWalletModal,
+  useWalletNetwork,
+} from '@/config/appkit';
 
 import ChevronDown from '@/assets/chevronDown.svg';
 import TwitterIcon from '@/assets/twitterIcon.svg';
 import LinkedinIcon from '@/assets/linkedinIcon.svg';
 import GithubIcon from '@/assets/githubIcon.svg';
-import { connectProvider } from '@/blockchain/provider';
 import type { NetworkConfig } from '@/model/NetworkEnum';
+import { getCurrentAccount } from '@/blockchain/provider';
+import {
+  getEffectiveWalletAddress,
+  resetAaAccountCache,
+} from '@/blockchain/aa/operations';
+import { PASSKEY_CONNECTOR_ID } from '@/blockchain/aa/session';
 
 interface MenuOption {
   label: string;
@@ -25,49 +36,91 @@ interface MenuOption {
   showVersion?: boolean;
 }
 
-// Use the new composable
 const user = useUser();
 const { walletAddress, sellerView, network } = user;
 
 const menuOpenToggle = ref<boolean>(false);
 const infoMenuOpenToggle = ref<boolean>(false);
 const currencyMenuOpenToggle = ref<boolean>(false);
-const infoMenuRef = ref<any>(null);
-const walletAddressRef = ref<any>(null);
-const currencyRef = ref<any>(null);
+const infoMenuRef = ref(null);
+const walletAddressRef = ref(null);
+const currencyRef = ref(null);
 
-const { connectedWallet, connectedChain, setChain, disconnectWallet } =
-  useOnboard();
+const { open } = useWalletModal();
+const connectWallet = async (): Promise<void> => {
+  await open({ view: 'Connect' });
+};
+const { disconnect } = useWalletDisconnect();
+const appKitAccount = useWalletAccount();
+const appKitNetwork = useWalletNetwork();
+let addressResolution = 0;
 
-const connnectWallet = async (): Promise<void> => {
-  const { connectWallet } = useOnboard();
-  await connectWallet();
+// Read the address from wagmi, which already types it as `Address`; AppKit's
+// composable only drives reactivity. Fall back to AppKit address if Wagmi
+// connector is temporarily desynchronized.
+const syncEffectiveAddress = async () => {
+  const resolution = ++addressResolution;
+  let connectorAddress = getCurrentAccount().address;
+
+  // Fallback: if Wagmi address is undefined but AppKit has address, use AppKit
+  if (!connectorAddress && appKitAccount.value.address) {
+    connectorAddress = appKitAccount.value.address as any;
+  }
+
+  if (!connectorAddress) {
+    user.setWalletAddress(null);
+    return;
+  }
+  try {
+    const effective = await getEffectiveWalletAddress(connectorAddress);
+    if (resolution === addressResolution) {
+      user.setWalletAddress(effective);
+    }
+  } catch (error) {
+    if (resolution === addressResolution) user.setWalletAddress(null);
+    console.error('[aa] failed to derive the effective wallet address', error);
+  }
 };
 
-watch(connectedWallet, async (newVal: any) => {
-  if (newVal?.provider) {
-    await connectProvider(newVal.provider);
-    const addresses = await newVal.provider.request({ method: 'eth_accounts' });
-    user.setWalletAddress(addresses.shift());
-  }
+onMounted(() => {
+  // On mount, immediately sync from AppKit (handles session restore after page reload)
+  void syncEffectiveAddress();
 });
 
-watch(connectedChain, (newVal: any) => {
-  if (newVal && Networks.some((n) => n.id === Number(newVal.id))) {
-    user.setNetworkById(Number(newVal.id));
-  } else {
-    console.log(
-      'Invalid or unsupported network detected, defaulting to Sepolia',
-    );
-    user.setNetwork(DEFAULT_NETWORK);
-  }
-});
+watch(
+  () => appKitAccount.value.address,
+  () => {
+    void syncEffectiveAddress();
+  },
+);
+
+watch(
+  () => appKitNetwork.value.chainId,
+  (newChainId) => {
+    if (
+      newChainId === undefined ||
+      !Networks.some((n) => n.id === Number(newChainId))
+    ) {
+      user.setNetwork(DEFAULT_NETWORK);
+      // The AA cache and the displayed address are bound to the previous chain's
+      // runtime; mirror the supported branch so a switch to an unsupported chain
+      // doesn't leave stale Kernel context or a misleading address on screen.
+      resetAaAccountCache();
+      void syncEffectiveAddress();
+      return;
+    }
+    user.setNetworkById(Number(newChainId));
+    resetAaAccountCache();
+    void syncEffectiveAddress();
+  },
+);
 
 const formatWalletAddress = (): string => {
-  if (!walletAddress.value) throw new Error('Wallet not connected');
-  const walletAddressLength = walletAddress.value.length;
-  const initialText = walletAddress.value.substring(0, 5);
-  const finalText = walletAddress.value.substring(
+  const value = walletAddress.value;
+  if (!value) throw new Error('Wallet not connected');
+  const walletAddressLength = value.length;
+  const initialText = value.substring(0, 5);
+  const finalText = value.substring(
     walletAddressLength - 4,
     walletAddressLength,
   );
@@ -75,8 +128,12 @@ const formatWalletAddress = (): string => {
 };
 
 const disconnectUser = async (): Promise<void> => {
+  resetAaAccountCache();
   user.setWalletAddress(null);
-  await disconnectWallet({ label: connectedWallet.value?.label || '' });
+  if (appKitAccount.value.isConnected) {
+    await disconnect();
+    ConnectionController.resetWcConnection();
+  }
   closeMenu();
 };
 
@@ -84,24 +141,29 @@ const closeMenu = (): void => {
   menuOpenToggle.value = false;
 };
 
-const networkChange = async (network: NetworkConfig): Promise<void> => {
+const networkChange = async (targetNetwork: NetworkConfig): Promise<void> => {
   currencyMenuOpenToggle.value = false;
 
-  // If wallet is connected, try to change chain in wallet
-  if (connectedWallet.value) {
-    const chainId = network.id.toString(16);
+  if (appKitAccount.value.isConnected) {
     try {
-      await setChain({
-        chainId: `0x${chainId}`,
-        wallet: connectedWallet.value.label,
-      });
-      user.setNetwork(network);
+      await appKitNetwork.value.switchNetwork(targetNetwork);
+      user.setNetwork(targetNetwork);
     } catch (error) {
+      // The passkey connector is intentionally single-chain at the EIP-1193
+      // layer. Our owner-agnostic Kernel client can still derive/send on the
+      // selected AA trading chain, so keep AppKit as the login rail and switch
+      // the application execution context here.
+      const connectorId = getCurrentAccount().connector?.id;
+      if (connectorId === PASSKEY_CONNECTOR_ID && targetNetwork.aa) {
+        user.setNetwork(targetNetwork);
+        resetAaAccountCache();
+        await syncEffectiveAddress();
+        return;
+      }
       console.log('Error changing network', error);
     }
   } else {
-    // If no wallet connected, just update the network state
-    user.setNetwork(network);
+    user.setNetwork(targetNetwork);
   }
 };
 
@@ -156,6 +218,12 @@ const walletMenuOptions: MenuOption[] = [
   {
     label: 'Gerenciar Ofertas',
     route: '/manage_bids',
+    showInDesktop: true,
+    showInMobile: true,
+  },
+  {
+    label: 'Sweep / Recovery',
+    route: '/sweep',
     showInDesktop: true,
     showInMobile: true,
   },
@@ -400,17 +468,17 @@ const handleMenuOptionClick = (option: MenuOption): void => {
         type="button"
         v-if="!walletAddress"
         class="border-amber-500 border-2 sm:rounded !rounded-lg default-button hidden md:inline-block"
-        @click="connnectWallet()"
+        @click="connectWallet()"
       >
-        Conectar carteira
+        Entrar
       </button>
       <button
         type="button"
         v-if="!walletAddress"
         class="border-amber-500 border-2 sm:rounded !rounded-lg default-button inline-block md:hidden h-10"
-        @click="connnectWallet()"
+        @click="connectWallet()"
       >
-        Conectar
+        Entrar
       </button>
       <div v-if="walletAddress" class="account-info">
         <div class="flex flex-col relative">

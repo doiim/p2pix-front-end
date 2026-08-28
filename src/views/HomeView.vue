@@ -5,14 +5,17 @@ import BuyConfirmedComponent from '@/components/BuyerSteps/BuyConfirmedComponent
 import { ref, onMounted, watch } from 'vue';
 import { useUser } from '@/composables/useUser';
 import QrCodeComponent from '@/components/BuyerSteps/QrCodeComponent.vue';
-import { addLock, releaseLock } from '@/blockchain/buyerMethods';
+import {
+  addLock,
+  releaseLock,
+  LockIdUnrecoverableError,
+} from '@/blockchain/buyerMethods';
 import { updateWalletStatus, checkUnreleasedLock } from '@/blockchain/wallet';
 import { getNetworksLiquidity } from '@/blockchain/events';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
-import { getSolicitation } from '@/utils/bbPay';
-import type { Address } from 'viem';
+import type { Address, Hex } from 'viem';
 
 enum Step {
   Search,
@@ -33,6 +36,7 @@ const lockID = ref<string>('');
 const loadingRelease = ref<boolean>(false);
 const showModal = ref<boolean>(false);
 const showBuyAlert = ref<boolean>(false);
+const showLockRecoveryAlert = ref<boolean>(false);
 const paramLockID = window.history.state?.lockID;
 
 const confirmBuyClick = async (
@@ -46,12 +50,31 @@ const confirmBuyClick = async (
     flowStep.value = Step.Buy;
     user.setLoadingLock(true);
 
+    // Reset any lockID left over from a previous purchase so that, if addLock
+    // throws LockIdUnrecoverableError and checkForUnreleasedLocks does not
+    // recover an id, the `if (lockID.value)` check below does not mistake a
+    // stale id from purchase #1 for a successful recovery of purchase #2.
+    lockID.value = '';
+
     await addLock(selectedDeposit.seller, selectedDeposit.token, tokenValue)
       .then((_lockID) => {
         lockID.value = String(_lockID);
       })
-      .catch((err) => {
+      .catch(async (err) => {
         console.log(err);
+        if (err instanceof LockIdUnrecoverableError) {
+          // The lock is funded on-chain: look it up instead of abandoning it.
+          await checkForUnreleasedLocks().catch(console.error);
+          if (lockID.value) {
+            showModal.value = false;
+          } else {
+            // Without an id there is nothing for the QR step to render, so go
+            // back to the search screen and say the lock is out there.
+            flowStep.value = Step.Search;
+            showLockRecoveryAlert.value = true;
+          }
+          return;
+        }
         flowStep.value = Step.Search;
       });
 
@@ -60,21 +83,33 @@ const confirmBuyClick = async (
 };
 
 const releaseTransaction = async (params: {
-  pixTimestamp: `0x${string}` & { length: 34 };
-  signature: `0x${string}`;
+  pixTimestamp: Hex;
+  signature: Hex;
 }) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
-  const release = await releaseLock(
-    BigInt(lockID.value),
-    params.pixTimestamp,
-    params.signature,
-  );
+  try {
+    await releaseLock(
+      BigInt(lockID.value),
+      params.pixTimestamp,
+      params.signature,
+    );
 
-  await updateWalletStatus();
-  loadingRelease.value = false;
+    try {
+      await updateWalletStatus();
+    } catch (err) {
+      // Address/balance were cleared; the release itself already succeeded.
+      console.error(err);
+    }
+  } catch (err) {
+    console.log(err);
+    showBuyAlert.value = false;
+    flowStep.value = Step.Buy;
+  } finally {
+    loadingRelease.value = false;
+  }
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
@@ -103,11 +138,17 @@ if (paramLockID) {
   }
 } else {
   watch(walletAddress, async () => {
-    await checkForUnreleasedLocks();
+    // A cleared address means updateWalletStatus either disconnected or failed
+    // to resolve the smart-account address; either way there is no lock to
+    // look up, so return early instead of running the query and surfacing a
+    // spurious 'Wallet not connected' error from the watcher.
+    if (!walletAddress.value) return;
+    await checkForUnreleasedLocks().catch(console.error);
   });
 
   watch(network, async () => {
-    if (walletAddress.value) await checkForUnreleasedLocks();
+    if (walletAddress.value)
+      await checkForUnreleasedLocks().catch(console.error);
   });
 }
 
@@ -123,6 +164,11 @@ onMounted(async () => {
     <SearchComponent
       v-if="flowStep == Step.Search"
       @token-buy="confirmBuyClick"
+    />
+    <CustomAlert
+      v-if="showLockRecoveryAlert"
+      :type="'lockPending'"
+      @close-alert="showLockRecoveryAlert = false"
     />
     <CustomAlert
       v-if="flowStep == Step.Search && showModal"
