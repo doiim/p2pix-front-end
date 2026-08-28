@@ -27,15 +27,10 @@ export type AaConfig = {
 /**
  * WebAuthn RP id shared across AA-enabled chains: `p2pix.co` in production,
  * `demo.p2pix.co` otherwise (demo builds are served from `<n>.demo.p2pix.co`,
- * so the passkey must be registered for the shared suffix). Undefined on
- * localhost, where the browser falls back to the current hostname.
+ * so the passkey must be registered for the shared suffix).
  */
 export const rpId =
-  typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? undefined
-    : import.meta.env.VITE_APP_ENV === 'production'
-      ? 'p2pix.co'
-      : 'demo.p2pix.co';
+  import.meta.env.VITE_APP_ENV === 'production' ? 'p2pix.co' : 'demo.p2pix.co';
 
 /**
  * Default minimum fee token balance (in wei) to attempt paymaster fees, used
