@@ -7,7 +7,7 @@ import type { Account, Chain, Transport, WalletClient } from 'viem';
 import type { SmartAccount } from 'viem/account-abstraction';
 
 import {
-  rpIdDefault,
+  rpId,
   sponsorshipPolicyId as configuredSponsorshipPolicyId,
 } from '@/config/aa';
 import { TokenEnum, type NetworkConfig } from '@/model/NetworkEnum';
@@ -56,7 +56,7 @@ const createKernelAccount = async (
   runtime: AaRuntime,
   ownerKind: AaOwnerKind,
 ): Promise<SmartAccount> => {
-  const { publicClient, network } = runtime;
+  const { publicClient } = runtime;
   if (ownerKind === 'passkey') {
     const session = readPasskeySession();
     if (!session) throw new Error('Passkey session not available');
@@ -65,7 +65,7 @@ const createKernelAccount = async (
       credentialId: session.credentialId,
       publicKeyX: session.publicKeyX,
       publicKeyY: session.publicKeyY,
-      rpId: network.aa?.rpId ?? rpIdDefault,
+      rpId,
     });
   }
 

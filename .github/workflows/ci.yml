@@ -54,7 +54,6 @@ jobs:
         env:
           VITE_APP_ENV: ${{ env.IS_PROD == 'true' && 'production' || 'development' }}
           VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID || vars.VITE_REOWN_PROJECT_ID }}
-          VITE_PASSKEY_RP_ID: ${{ env.IS_PROD == 'true' && (secrets.VITE_PASSKEY_RP_ID_PROD || vars.VITE_PASSKEY_RP_ID_PROD) || (secrets.VITE_PASSKEY_RP_ID_DEMO || vars.VITE_PASSKEY_RP_ID_DEMO) }}
           VITE_PIMLICO_SPONSORSHIP_POLICY_ID: ${{ secrets.VITE_PIMLICO_SPONSORSHIP_POLICY_ID || vars.VITE_PIMLICO_SPONSORSHIP_POLICY_ID }}
         run: bun run build-only
 
