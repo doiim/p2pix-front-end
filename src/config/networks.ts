@@ -63,10 +63,7 @@ const testNetworks: [NetworkConfig, ...NetworkConfig[]] = [
   },
 ];
 
-export const Networks: [NetworkConfig, ...NetworkConfig[]] = import.meta.env
-  .PROD
-  ? prodNetworks
-  : testNetworks;
+export const Networks = import.meta.env.PROD ? prodNetworks : testNetworks;
 
 export const DEFAULT_NETWORK = Networks[0];
 
