@@ -19,12 +19,11 @@ Install the Metamask extension at https://metamask.io/download/
 
 Go to Settings -> Advanced -> Show Testnets
 
-Now you can select the Goerli testnet.
+Now you can select the Sepolia testnet.
 
-### Add Polygon Mumbai to your Metamask
+### Add the Sepolia testnet to your Metamask
 
-To add the Mumbai network, follow the instructions at:
-https://www.youtube.com/watch?v=Jegmru0Q0j4
+With testnets enabled (Settings -> Advanced -> Show Testnets), Sepolia appears in the network list. The trial token used by the app is deployed there.
 
 ### Import the MBRL token
 
@@ -65,7 +64,7 @@ Copy `.env.example` to `.env` and set the per-network variables:
 
 ## Build Setup
 
-The application can be tested by its trial version [https://p2pix-staging.vercel.app/](https://p2pix-staging.vercel.app/), the only requirement is to be running the smart contract of local way. To run the application locally, there are two different ways:
+The application is built and distributed by our CI/CD pipeline; a staging build is served from our self-hosted server and also pinned to IPFS with an IPNS pointer. To run the application locally, there are two different ways:
 
 ### Run with bun
 
