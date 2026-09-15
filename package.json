@@ -18,11 +18,11 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@doiim/passkeys": "0.3.0-alpha.9",
-    "@doiim/reown-appkit": "1.8.19-doiim.13",
-    "@doiim/reown-appkit-adapter-wagmi": "1.8.19-doiim.13",
-    "@doiim/reown-appkit-common": "1.8.19-doiim.13",
-    "@doiim/reown-appkit-controllers": "1.8.19-doiim.13",
+    "@doiim/passkeys": "0.3.0-alpha.10",
+    "@doiim/reown-appkit": "1.8.19-doiim.15",
+    "@doiim/reown-appkit-adapter-wagmi": "1.8.19-doiim.15",
+    "@doiim/reown-appkit-common": "1.8.19-doiim.15",
+    "@doiim/reown-appkit-controllers": "1.8.19-doiim.15",
     "@tanstack/vue-query": "^5.100.8",
     "@vueuse/core": "^14.3.0",
     "@wagmi/core": "^3.4.8",
