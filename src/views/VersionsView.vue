@@ -24,8 +24,42 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-const releaseNotes = (md?: string): string =>
-  md ? (marked.parse(md, { breaks: true, gfm: true }) as string) : '';
+// Release notes come from `git notes` and are bound to v-html, so the rendered
+// HTML is filtered down to an allow-list before it reaches the DOM. Kept inline
+// (no dependency) on purpose.
+const ALLOWED_TAGS =
+  'a blockquote br code del em h1 h2 h3 h4 h5 h6 hr i img li ol p pre s strong table tbody td th thead tr ul'.split(
+    ' ',
+  );
+const ALLOWED_ATTRS = 'href src alt title align colspan rowspan start'.split(
+  ' ',
+);
+const UNSAFE_URL = /^\s*(?:javascript|data|vbscript):/i;
+
+const releaseNotes = (md?: string): string => {
+  if (!md) return '';
+
+  const doc = new DOMParser().parseFromString(
+    marked.parse(md, { breaks: true, gfm: true }) as string,
+    'text/html',
+  );
+
+  for (const el of doc.body.querySelectorAll('*')) {
+    if (!ALLOWED_TAGS.includes(el.tagName.toLowerCase())) {
+      el.remove();
+      continue;
+    }
+    for (const { name, value } of [...el.attributes]) {
+      const key = name.toLowerCase();
+      const isUrl = key === 'href' || key === 'src';
+      if (!ALLOWED_ATTRS.includes(key) || (isUrl && UNSAFE_URL.test(value))) {
+        el.removeAttribute(name);
+      }
+    }
+  }
+
+  return doc.body.innerHTML;
+};
 </script>
 
 <template>
