@@ -10,13 +10,17 @@ import TransactionCard from './TransactionCard.vue';
 const user = useUser();
 
 // props
-const props = defineProps<{
-  validDeposits: ValidDeposit[];
-  walletTransactions: WalletTransaction[];
-  activeLockAmount: number;
-}>();
+const props = withDefaults(
+  defineProps<{
+    validDeposits: ValidDeposit[];
+    walletTransactions: WalletTransaction[];
+    activeLockAmount: number;
+    expiredLocksCount?: number;
+  }>(),
+  { expiredLocksCount: 0 },
+);
 
-const emit = defineEmits(['depositWithdrawn']);
+const emit = defineEmits(['depositWithdrawn', 'sweepExpired']);
 
 const { loadingWalletTransactions } = user;
 
@@ -24,6 +28,10 @@ const itemsToShow = ref<WalletTransaction[]>([]);
 
 const callWithdraw = (amount: string) => {
   emit('depositWithdrawn', amount);
+};
+
+const callSweepExpired = () => {
+  emit('sweepExpired');
 };
 
 const showInitialItems = (): void => {
@@ -72,7 +80,9 @@ showInitialItems();
       :valid-deposits="props.validDeposits"
       :active-lock-amount="activeLockAmount"
       :selected-token="user.selectedToken.value"
+      :expired-locks-count="props.expiredLocksCount"
       @withdraw="callWithdraw"
+      @sweep-expired="callSweepExpired"
     />
 
     <TransactionCard

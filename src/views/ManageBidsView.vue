@@ -8,6 +8,8 @@ import {
   listValidDepositTransactionsByWalletAddress,
   listAllTransactionByWalletAddress,
   getActiveLockAmount,
+  getExpiredLockIds,
+  sweepExpiredLocks,
 } from '@/blockchain/wallet';
 import { withdrawDeposit } from '@/blockchain/buyerMethods';
 import { getCurrentAccount } from '@/blockchain/provider';
@@ -20,19 +22,30 @@ const user = useUser();
 const { walletAddress, network, selectedToken } = user;
 const loadingWithdraw = ref<boolean>(false);
 const showAlert = ref<boolean>(false);
+const showSweepAlert = ref<boolean>(false);
+const loadingSweep = ref<boolean>(false);
 
 const depositList = ref<ValidDeposit[]>([]);
 const transactionsList = ref<WalletTransaction[]>([]);
 const activeLockAmount = ref<number>(0);
+const expiredLockIds = ref<bigint[]>([]);
 
 const callWithdraw = async (amount: string) => {
   if (amount) {
     loadingWithdraw.value = true;
     let withdraw;
     try {
+      // `withdraw` runs `unlockExpired` on-chain, which reverts on any id
+      // that is no longer expired (released, or already swept by a third
+      // party). Re-read at send time so a stale page-load snapshot cannot
+      // brick the seller's own withdrawal.
+      const expiredLocks = walletAddress.value
+        ? await getExpiredLockIds(walletAddress.value)
+        : [];
       withdraw = await withdrawDeposit(
         amount,
         network.value.tokens[selectedToken.value].address,
+        expiredLocks,
       );
     } catch {
       loadingWithdraw.value = false;
@@ -49,6 +62,28 @@ const callWithdraw = async (amount: string) => {
   }
 };
 
+const callSweepExpired = async () => {
+  if (loadingSweep.value || !walletAddress.value) {
+    return;
+  }
+
+  loadingSweep.value = true;
+  try {
+    const swept = await sweepExpiredLocks(
+      walletAddress.value,
+      network.value.tokens[selectedToken.value].address,
+    );
+    await getWalletTransactions();
+    if (swept > 0) {
+      showSweepAlert.value = true;
+    }
+  } catch (error) {
+    console.log('Não foi possível recuperar as reservas expiradas!', error);
+  } finally {
+    loadingSweep.value = false;
+  }
+};
+
 const getWalletTransactions = async () => {
   user.setLoadingWalletTransactions(true);
   if (walletAddress.value) {
@@ -61,6 +96,7 @@ const getWalletTransactions = async () => {
     );
 
     activeLockAmount.value = await getActiveLockAmount(walletAddress.value);
+    expiredLockIds.value = await getExpiredLockIds(walletAddress.value);
 
     if (walletDeposits) {
       depositList.value = walletDeposits;
@@ -98,6 +134,11 @@ watch(network, async () => {
       :type="'withdraw'"
       @close-alert="showAlert = false"
     />
+    <CustomAlert
+      v-if="showSweepAlert"
+      :type="'sweep'"
+      @close-alert="showSweepAlert = false"
+    />
     <div class="page">
       <div class="header" v-if="!loadingWithdraw && !walletAddress">
         Por favor, conecte sua carteira
@@ -111,7 +152,9 @@ watch(network, async () => {
           :valid-deposits="depositList"
           :wallet-transactions="transactionsList"
           :active-lock-amount="activeLockAmount"
+          :expired-locks-count="expiredLockIds.length"
           @deposit-withdrawn="callWithdraw"
+          @sweep-expired="callSweepExpired"
         ></ListingComponent>
         <LoadingComponent
           v-if="loadingWithdraw"

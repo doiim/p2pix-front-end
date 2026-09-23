@@ -6,14 +6,19 @@ import { decimalCount } from '@/utils/decimalCount';
 import IconButton from '../ui/IconButton.vue';
 import withdrawIcon from '@/assets/withdraw.svg?url';
 
-const props = defineProps<{
-  validDeposits: ValidDeposit[];
-  activeLockAmount: number;
-  selectedToken: string;
-}>();
+const props = withDefaults(
+  defineProps<{
+    validDeposits: ValidDeposit[];
+    activeLockAmount: number;
+    selectedToken: string;
+    expiredLocksCount?: number;
+  }>(),
+  { expiredLocksCount: 0 },
+);
 
 const emit = defineEmits<{
   withdraw: [amount: string];
+  sweepExpired: [];
 }>();
 
 const withdrawAmount = ref<string>('');
@@ -102,6 +107,21 @@ const cancelWithdraw = () => {
               reserva expire.
             </div>
           </div>
+        </div>
+        <div v-if="expiredLocksCount > 0" class="flex items-center gap-2 mt-2">
+          <span class="text-xs font-normal text-amber-600">
+            {{
+              `${expiredLocksCount} reserva(s) expirada(s) — recupere para o saldo`
+            }}
+          </span>
+          <IconButton
+            text="Recuperar"
+            :icon="withdrawIcon"
+            variant="outline"
+            size="md"
+            :full-width="false"
+            @click="emit('sweepExpired')"
+          />
         </div>
       </div>
       <div v-show="!isCollapsibleOpen" class="flex justify-end items-center">

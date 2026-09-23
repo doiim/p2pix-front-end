@@ -159,6 +159,7 @@ export const addLock = async (
 export const withdrawDeposit = async (
   amount: string,
   token: Address,
+  expiredLocks: bigint[] = [],
 ): Promise<boolean> => {
   const { address, abi, wallet, client, account } = await getContract();
   const parsedAmount = parseEther(amount);
@@ -170,7 +171,7 @@ export const withdrawDeposit = async (
       data: encodeFunctionData({
         abi: abi as Abi,
         functionName: 'withdraw',
-        args: [token, parsedAmount, []],
+        args: [token, parsedAmount, expiredLocks],
       }),
       value: 0n,
     };
@@ -185,7 +186,7 @@ export const withdrawDeposit = async (
     address,
     abi,
     functionName: 'withdraw',
-    args: [token, parsedAmount, []],
+    args: [token, parsedAmount, expiredLocks],
     account,
   });
   const hash = await wallet.writeContract(request);

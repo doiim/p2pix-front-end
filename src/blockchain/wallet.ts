@@ -1,6 +1,17 @@
-import { formatEther, isAddressEqual, type Address } from 'viem';
+import {
+  encodeFunctionData,
+  formatEther,
+  isAddressEqual,
+  type Abi,
+  type Address,
+} from 'viem';
 import { useUser } from '@/composables/useUser';
-import { getEffectiveWalletAddress } from './aa/operations';
+import {
+  getActiveAaContext,
+  getEffectiveWalletAddress,
+  sendAaOperation,
+} from './aa/operations';
+import type { AaCall } from './aa/types';
 
 import { getCurrentAccount, getPublicClient, getContract } from './provider';
 
@@ -306,4 +317,66 @@ export const getActiveLockAmount = async (
     }
     return total;
   }, 0);
+};
+
+export const getExpiredLockIds = async (seller: Address): Promise<bigint[]> => {
+  const { address, abi, client } = await getContract(true);
+  const lockIds = await fetchLockIds('seller', seller);
+  if (!lockIds.length) return [];
+
+  const [sortedIDs, status] = await client.readContract({
+    address,
+    abi,
+    functionName: 'getLocksStatus',
+    args: [lockIds],
+  });
+
+  return sortedIDs.filter((_, i) => status[i] === LockStatus.Expired);
+};
+
+export const sweepExpiredLocks = async (
+  seller: Address,
+  token: Address,
+): Promise<number> => {
+  const lockIds = await getExpiredLockIds(seller);
+  if (!lockIds.length) return 0;
+
+  const { address, abi, client, wallet, account } = await getContract();
+  const aa = await getActiveAaContext();
+
+  if (aa) {
+    const call: AaCall = {
+      to: address,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: abi as Abi,
+        functionName: 'unlockExpired',
+        args: [lockIds],
+      }),
+    };
+    const aaReceipt = await sendAaOperation(aa, [call], token);
+    if (!aaReceipt.success) {
+      throw new Error(
+        `AA unlockExpired failed: ${aaReceipt.receipt.transactionHash}`,
+      );
+    }
+    return lockIds.length;
+  }
+
+  if (!wallet) throw new Error('Wallet not connected');
+  if (!account) throw new Error('Account not available');
+
+  const { request } = await client.simulateContract({
+    address,
+    abi,
+    functionName: 'unlockExpired',
+    args: [lockIds],
+    account,
+  });
+  const hash = await wallet.writeContract(request);
+  const receipt = await client.waitForTransactionReceipt({ hash });
+  if (receipt.status !== 'success') {
+    throw new Error(`Transaction failed: ${receipt.transactionHash}`);
+  }
+  return lockIds.length;
 };

@@ -17,6 +17,8 @@ if (props.type === 'sell') {
   alertPaddingLeft.value = '35%';
 } else if (props.type === 'lockPending') {
   alertPaddingLeft.value = '30%';
+} else if (props.type === 'sweep') {
+  alertPaddingLeft.value = '35%';
 }
 
 switch (props.type) {
@@ -37,6 +39,10 @@ switch (props.type) {
     break;
   case 'withdraw':
     alertText.value = 'Tudo certo! Saque realizado com sucesso!';
+    break;
+  case 'sweep':
+    alertText.value =
+      'Tudo certo! As reservas expiradas voltaram para o seu saldo disponível.';
     break;
 }
 </script>
