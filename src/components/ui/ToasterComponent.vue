@@ -4,7 +4,7 @@ import { useWalletAccount, useWalletNetwork } from '@/config/appkit';
 import type { WalletNetwork } from '@/config/networks';
 import { useUser } from '@/composables/useUser';
 import { getCurrentAccount } from '@/blockchain/provider';
-import { PASSKEY_CONNECTOR_ID } from '@/blockchain/aa/session';
+import { PASSKEY_CONNECTOR_ID } from '@/config/aa';
 
 const user = useUser();
 const { network } = user;

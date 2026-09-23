@@ -2,7 +2,7 @@ import { erc20Abi, type Address, type PublicClient } from 'viem';
 import type { UserOperationReceipt } from 'viem/account-abstraction';
 
 import { useUser } from '@/composables/useUser';
-import { MIN_FEE_BALANCE_WEI_DEFAULT } from '@/config/aa';
+import { MIN_FEE_BALANCE_WEI_DEFAULT, PASSKEY_CONNECTOR_ID } from '@/config/aa';
 import { TokenEnum } from '@/model/NetworkEnum';
 import {
   assertErc20PaymasterTokenSupported,
@@ -16,11 +16,7 @@ import {
   getPublicClient,
   getWalletClient,
 } from '../provider';
-import {
-  getAaOwnerKind,
-  PASSKEY_CONNECTOR_ID,
-  REOWN_AUTH_CONNECTOR_ID,
-} from './session';
+import { getAaOwnerKind, REOWN_AUTH_CONNECTOR_ID } from './session';
 import {
   getAaAccountForRuntime,
   getAaContextForRuntime,

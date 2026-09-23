@@ -1,5 +1,6 @@
 import { ConstantsUtil as ReownConstantsUtil } from '@doiim/reown-appkit-common';
 
+import { PASSKEY_CONNECTOR_ID } from '@/config/aa';
 import type { AaOwnerKind } from './types';
 
 /**
@@ -9,7 +10,6 @@ import type { AaOwnerKind } from './types';
  */
 export { readStoredSession as readPasskeySession } from '@doiim/passkeys/storage';
 
-export const PASSKEY_CONNECTOR_ID = 'doiim-passkey';
 // Canonical id for the Reown "AUTH" connector, sourced from the fork itself
 // (@doiim/reown-appkit-common) instead of a hardcoded literal, so a rename
 // upstream surfaces as a type/build error here rather than a silent no-op.

@@ -7,13 +7,18 @@ import { WagmiAdapter } from '@doiim/reown-appkit-adapter-wagmi';
 import {
   ChainController,
   ConnectionController,
+  OptionsController,
 } from '@doiim/reown-appkit-controllers';
+import type { ConnectMethod } from '@doiim/reown-appkit-controllers';
 
 import { DEFAULT_NETWORK, wagmiNetworks } from '@/config/networks';
 import {
+  isAaAvailable,
+  PASSKEY_CONNECTOR_ID,
   rpId,
   sponsorshipPolicyId as configuredSponsorshipPolicyId,
 } from '@/config/aa';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 
 let _adapter: WagmiAdapter | undefined;
 let _reownEoaMigration: Promise<'eoa'> | undefined;
@@ -26,6 +31,89 @@ if (!reownProjectId) {
 }
 
 export type ReownEip155AccountType = 'eoa' | 'smartAccount';
+
+/**
+ * Mutable view of a wagmi connector for instance patching: wagmi declares
+ * `connect` readonly, and the signature is generic over capabilities, neither
+ * of which matters once we only forward the call.
+ */
+type MutableConnector = {
+  connect: (...args: unknown[]) => Promise<unknown>;
+};
+
+// The passkey CTA is a login rail for Kernel accounts: it must only be offered
+// on chains that actually have an AA rail. We toggle it through the fork's
+// `connectMethodsOrder` (WalletUtil honours it) instead of unregistering the
+// connector, so switching back to an AA chain restores it with no adapter
+// rebuild and one shared session.
+const CONNECT_METHODS_WITH_PASSKEY: ConnectMethod[] = [
+  'email',
+  'passkey',
+  'social',
+  'wallet',
+];
+const CONNECT_METHODS_WITHOUT_PASSKEY: ConnectMethod[] = [
+  'email',
+  'social',
+  'wallet',
+];
+
+// The chain the app has selected, mirrored by `syncPasskeyAvailability` — the
+// same call that decides whether the CTA is offered — so the UI gate and the
+// connector gate below can never disagree. Starts on the chain `useUser` does.
+let _selectedNetwork: NetworkConfig | undefined = DEFAULT_NETWORK;
+
+/** Offer "Continue with Passkey" only while the selected chain has an AA rail. */
+export const syncPasskeyAvailability = (
+  network: NetworkConfig | undefined,
+): void => {
+  _selectedNetwork = network;
+  OptionsController.setFeatures({
+    connectMethodsOrder: isAaAvailable(network)
+      ? CONNECT_METHODS_WITH_PASSKEY
+      : CONNECT_METHODS_WITHOUT_PASSKEY,
+  });
+};
+
+/**
+ * Hard gate: refuse a passkey connection while the selected chain has no AA
+ * rail. Hiding the CTA is not enough — the connector stays registered in wagmi
+ * and is built once, for `DEFAULT_NETWORK`, so it never sees the chain the app
+ * has selected. A programmatic `connect()`, or wagmi's own `reconnect()` (which
+ * calls `connect()` whenever `isAuthorized()` is true), would otherwise bring
+ * up a Kernel account on a chain where `isAaAvailable()` is false: an account
+ * the app can display but never transact with.
+ *
+ * `connectors` is `wagmiConfig.connectors` — the instances every caller reaches
+ * through the adapter's `getWagmiConnector()`, so one patch covers the modal
+ * CTA, reconnect, and app code alike. Call it only when the passkey rail is
+ * configured; a missing connector then means the library renamed it, and the
+ * gate must not disappear silently.
+ */
+export const guardPasskeyConnector = (
+  connectors: WagmiAdapter['wagmiConfig']['connectors'],
+): void => {
+  const connector = connectors.find((c) => c.id === PASSKEY_CONNECTOR_ID);
+  if (!connector) {
+    throw new Error(
+      `[passkey] no connector "${PASSKEY_CONNECTOR_ID}" registered; the passkey rail would be unguarded`,
+    );
+  }
+
+  // wagmi declares `connect` readonly and generic over capabilities; the
+  // runtime object is a plain literal, so this hand-checked view is the only
+  // way to wrap it. `original` keeps the untyped-but-real function to forward.
+  const patchable = connector as unknown as MutableConnector;
+  const original = patchable.connect;
+  patchable.connect = async (...args: unknown[]): Promise<unknown> => {
+    if (!isAaAvailable(_selectedNetwork)) {
+      throw new Error(
+        `[passkey] chain ${_selectedNetwork?.id ?? 'unknown'} has no AA rail; refusing to connect`,
+      );
+    }
+    return original.apply(connector, args);
+  };
+};
 
 /** Address Reown currently exposes for eip155, whatever its account type. */
 export const getReownEip155Address = (): string | undefined =>
@@ -135,6 +223,10 @@ export const setupAppKit = (): WagmiAdapter => {
     passkey: passkeyConfig,
   });
 
+  // Before createAppKit(): its `syncConnections()` reconnects persisted
+  // connectors, i.e. calls the passkey connector's connect() during startup.
+  if (passkeyConfig) guardPasskeyConnector(adapter.wagmiConfig.connectors);
+
   createAppKit({
     adapters: [adapter],
     networks: wagmiNetworks,
@@ -161,6 +253,8 @@ export const setupAppKit = (): WagmiAdapter => {
   });
 
   _adapter = adapter;
+  // Apply the initial gate: the modal can be opened before TopBar mounts.
+  syncPasskeyAvailability(defaultNetwork);
   return adapter;
 };
 
