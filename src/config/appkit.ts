@@ -7,13 +7,17 @@ import { WagmiAdapter } from '@doiim/reown-appkit-adapter-wagmi';
 import {
   ChainController,
   ConnectionController,
+  OptionsController,
 } from '@doiim/reown-appkit-controllers';
+import type { ConnectMethod } from '@doiim/reown-appkit-controllers';
 
 import { DEFAULT_NETWORK, wagmiNetworks } from '@/config/networks';
 import {
+  isAaAvailable,
   rpId,
   sponsorshipPolicyId as configuredSponsorshipPolicyId,
 } from '@/config/aa';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 
 let _adapter: WagmiAdapter | undefined;
 let _reownEoaMigration: Promise<'eoa'> | undefined;
@@ -26,6 +30,34 @@ if (!reownProjectId) {
 }
 
 export type ReownEip155AccountType = 'eoa' | 'smartAccount';
+
+// The passkey CTA is a login rail for Kernel accounts: it must only be offered
+// on chains that actually have an AA rail. We toggle it through the fork's
+// `connectMethodsOrder` (WalletUtil honours it) instead of unregistering the
+// connector, so switching back to an AA chain restores it with no adapter
+// rebuild and one shared session.
+const CONNECT_METHODS_WITH_PASSKEY: ConnectMethod[] = [
+  'email',
+  'passkey',
+  'social',
+  'wallet',
+];
+const CONNECT_METHODS_WITHOUT_PASSKEY: ConnectMethod[] = [
+  'email',
+  'social',
+  'wallet',
+];
+
+/** Offer "Continue with Passkey" only while the selected chain has an AA rail. */
+export const syncPasskeyAvailability = (
+  network: NetworkConfig | undefined,
+): void => {
+  OptionsController.setFeatures({
+    connectMethodsOrder: isAaAvailable(network)
+      ? CONNECT_METHODS_WITH_PASSKEY
+      : CONNECT_METHODS_WITHOUT_PASSKEY,
+  });
+};
 
 /** Address Reown currently exposes for eip155, whatever its account type. */
 export const getReownEip155Address = (): string | undefined =>
@@ -161,6 +193,8 @@ export const setupAppKit = (): WagmiAdapter => {
   });
 
   _adapter = adapter;
+  // Apply the initial gate: the modal can be opened before TopBar mounts.
+  syncPasskeyAvailability(defaultNetwork);
   return adapter;
 };
 

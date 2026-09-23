@@ -7,18 +7,15 @@ import type { Account, Chain, Transport, WalletClient } from 'viem';
 import type { SmartAccount } from 'viem/account-abstraction';
 
 import {
+  isAaAvailable,
   rpId,
   sponsorshipPolicyId as configuredSponsorshipPolicyId,
 } from '@/config/aa';
-import { TokenEnum, type NetworkConfig } from '@/model/NetworkEnum';
+import { TokenEnum } from '@/model/NetworkEnum';
 import { getAaOwnerKind, readPasskeySession } from './session';
 import type { AaContext, AaOwnerKind, AaRuntime } from './types';
 
-/** AA is usable only with a bundler and, on Pimlico, a sponsorship policy. */
-export const isAaAvailable = (network: NetworkConfig): boolean => {
-  if (!network.aa?.bundlerUrl) return false;
-  return Boolean(configuredSponsorshipPolicyId());
-};
+export { isAaAvailable };
 
 const aaAccountCache = new Map<string, Promise<SmartAccount>>();
 const aaContextCache = new Map<string, Promise<AaContext>>();

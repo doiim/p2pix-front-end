@@ -6,6 +6,7 @@ import { getNetworkImage } from '@/utils/imagesPath';
 import { Networks, DEFAULT_NETWORK } from '@/config/networks';
 import { ConnectionController } from '@doiim/reown-appkit-controllers';
 import {
+  syncPasskeyAvailability,
   useWalletAccount,
   useWalletDisconnect,
   useWalletModal,
@@ -102,6 +103,7 @@ watch(
       !Networks.some((n) => n.id === Number(newChainId))
     ) {
       user.setNetwork(DEFAULT_NETWORK);
+      syncPasskeyAvailability(DEFAULT_NETWORK);
       // The AA cache and the displayed address are bound to the previous chain's
       // runtime; mirror the supported branch so a switch to an unsupported chain
       // doesn't leave stale Kernel context or a misleading address on screen.
@@ -110,6 +112,7 @@ watch(
       return;
     }
     user.setNetworkById(Number(newChainId));
+    syncPasskeyAvailability(user.network.value);
     resetAaAccountCache();
     void syncEffectiveAddress();
   },
@@ -148,6 +151,7 @@ const networkChange = async (targetNetwork: NetworkConfig): Promise<void> => {
     try {
       await appKitNetwork.value.switchNetwork(targetNetwork);
       user.setNetwork(targetNetwork);
+      syncPasskeyAvailability(targetNetwork);
     } catch (error) {
       // The passkey connector is intentionally single-chain at the EIP-1193
       // layer. Our owner-agnostic Kernel client can still derive/send on the
@@ -156,6 +160,7 @@ const networkChange = async (targetNetwork: NetworkConfig): Promise<void> => {
       const connectorId = getCurrentAccount().connector?.id;
       if (connectorId === PASSKEY_CONNECTOR_ID && targetNetwork.aa) {
         user.setNetwork(targetNetwork);
+        syncPasskeyAvailability(targetNetwork);
         resetAaAccountCache();
         await syncEffectiveAddress();
         return;
@@ -164,6 +169,7 @@ const networkChange = async (targetNetwork: NetworkConfig): Promise<void> => {
     }
   } else {
     user.setNetwork(targetNetwork);
+    syncPasskeyAvailability(targetNetwork);
   }
 };
 
