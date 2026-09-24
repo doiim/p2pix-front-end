@@ -1,6 +1,11 @@
 import { getContract, getPublicClient, getWalletClient } from './provider';
-import { encodeFunctionData, parseEther, toHex, ChainContract } from 'viem';
-import { mockTokenAbi } from './abi';
+import {
+  encodeFunctionData,
+  parseEther,
+  toHex,
+  ChainContract,
+  erc20Abi,
+} from 'viem';
 import { useUser } from '@/composables/useUser';
 import { createParticipant } from '@/utils/bbPay';
 import type { Participant } from '@/utils/bbPay';
@@ -22,7 +27,7 @@ const getSellerToken = (): Address => {
 const readAllowance = async (owner: Address): Promise<bigint> => {
   return getPublicClient().readContract({
     address: getSellerToken(),
-    abi: mockTokenAbi,
+    abi: erc20Abi,
     functionName: 'allowance',
     args: [owner, getP2PixAddress()],
   });
@@ -32,7 +37,7 @@ const approveCall = (amount: bigint): AaCall => ({
   to: getSellerToken(),
   value: 0n,
   data: encodeFunctionData({
-    abi: mockTokenAbi as Abi,
+    abi: erc20Abi,
     functionName: 'approve',
     args: [getP2PixAddress(), amount],
   }),
@@ -63,7 +68,7 @@ const approveTokens = async (participant: Participant): Promise<boolean> => {
   if ((await readAllowance(account)) < offer) {
     const hash = await walletClient.writeContract({
       address: getSellerToken(),
-      abi: mockTokenAbi,
+      abi: erc20Abi,
       functionName: 'approve',
       args: [getP2PixAddress(), offer],
       account,
