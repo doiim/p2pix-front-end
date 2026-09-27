@@ -5,29 +5,18 @@
 
 This application aims to create a democratic and secure solution for the purchase and sale of ERC20 tokens, through the PIX, integrating the functionalities of smart contracts (smart contracts) of the blockchain with a receipt by digital signature. Allowing the integration of national financial system transactions to public blockchains, dispensing with custody through intermediaries.
 
+# Design, security & trust
+
+P2Pix is a **self-custody** dApp: for injected-EOA and WebAuthn passkey wallets, keys and signing stay on your device. Email/social login (Reown AUTH) is the exception — it uses a Reown-managed signer, not self-custody (see Trusted parties below). Because releasing an escrow still relies on several **trusted third parties**, each one is listed plainly in [Trusted parties & attestation](#trusted-parties--attestation) and in [`SECURITY.md`](./SECURITY.md); a trust-minimized version is in active development — see [Roadmap: trust minimization](#roadmap-trust-minimization).
+
 # Table of Contents
-* [Metamask Tutorial](#metamask-tutorial)
-* [Recommended IDE Setup](#recommended-ide-setup)
-* [Dependencies](#dependencies)
-* [Build Setup](#build-setup)
-## Metamask Tutorial
-### Installation
 
-Install the Metamask extension at https://metamask.io/download/
-
-### Enable Testnets on Metamask
-
-Go to Settings -> Advanced -> Show Testnets
-
-Now you can select the Sepolia testnet.
-
-### Add the Sepolia testnet to your Metamask
-
-With testnets enabled (Settings -> Advanced -> Show Testnets), Sepolia appears in the network list. The trial token used by the app is deployed there.
-
-### Import the MBRL token
-
-Go to Import Tokens and paste the following address: `0x294003F602c321627152c6b7DED3EAb5bEa853Ee`
+- [Design, security & trust](#design-security--trust)
+- [Recommended IDE Setup](#recommended-ide-setup)
+- [Dependencies](#dependencies)
+- [Build Setup](#build-setup)
+- [Trusted parties & attestation](#trusted-parties--attestation)
+- [Roadmap: trust minimization](#roadmap-trust-minimization)
 
 ## Recommended IDE Setup
 
@@ -40,31 +29,31 @@ TypeScript cannot handle type information for `.vue` imports by default, so we r
 If the standalone TypeScript plugin doesn't feel fast enough to you, Volar has also implemented a [Take Over Mode](https://github.com/johnsoncodehk/volar/discussions/471#discussioncomment-1361669) that is more performant. You can enable it by the following steps:
 
 1. Disable the built-in TypeScript Extension
-    1) Run `Extensions: Show Built-in Extensions` from VSCode's command palette
-    2) Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
+   1. Run `Extensions: Show Built-in Extensions` from VSCode's command palette
+   2. Find `TypeScript and JavaScript Language Features`, right click and select `Disable (Workspace)`
 2. Reload the VSCode window by running `Developer: Reload Window` from the command palette.
 
 ### Customize configuration
 
 See [Vite Configuration Reference](https://vitejs.dev/config/).
 
-
 ## Dependencies
 
-### API + RPC
+### Environment variables
 
-Copy `.env.example` to `.env` and set the per-network variables:
+Create a `.env` file with the three variables the build reads:
 
 | Var | Purpose |
-|---|---|
-| `VITE_APP_API_URL` | zkPix middleware base URL (default `http://localhost:3001`) |
-| `VITE_SEPOLIA_API_URL`, `VITE_MAINNET_API_URL`, `VITE_RSK_API_URL` | RPC endpoints per network (Alchemy, Infura, public RPC) |
-| `VITE_SEPOLIA_TOKEN_ADDRESS`, `VITE_MAINNET_TOKEN_ADDRESS`, `VITE_RSK_TOKEN_ADDRESS` | BRZ token address per network |
-| `VITE_SEPOLIA_SUBGRAPH_URL`, `VITE_MAINNET_SUBGRAPH_URL`, `VITE_RSK_SUBGRAPH_URL` | The Graph subgraph endpoints |
+| --- | --- |
+| `VITE_APP_ENV` | `production` selects Ethereum mainnet + Arbitrum One and the production oracle (`api.p2pix.co`); any other value selects Sepolia + Rootstock Testnet and the demo hosts |
+| `VITE_REOWN_PROJECT_ID` | Reown AppKit project id (required; the app throws at startup without it) |
+| `VITE_PIMLICO_SPONSORSHIP_POLICY_ID` | Pimlico sponsorship policy; enables the smart-account rail and therefore passkey login |
+
+RPC, bundler and subgraph URLs and token addresses are set in `src/config/networks.ts` (see [`ARCHITECTURE.md`](./ARCHITECTURE.md)); contract addresses are read from the smart-contracts submodule's deployments.
 
 ## Build Setup
 
-The application is built and distributed by our CI/CD pipeline; a staging build is served from our self-hosted server and also pinned to IPFS with an IPNS pointer. To run the application locally, there are two different ways:
+The application is built and distributed by our CI/CD pipeline; a staging build is served from our self-hosted server and also pinned to IPFS with an IPNS pointer. To run the application locally:
 
 ### Run with bun
 
@@ -90,17 +79,6 @@ bun start
 # Lint with [ESLint](https://eslint.org/)
 bun run lint
 ```
-### Run with docker-compose
-
-```sh
-# Pull the smart-contracts submodule (skip if you cloned with --recurse-submodules)
-git submodule update --init
-
-#1. Install [Docker](https://docs.docker.com/install/linux/docker-ce/ubuntu/);
-#2. Install [Docker Compose](https://docs.docker.com/compose/install/).
-
-docker-compose up
-```
 
 ### Versioning
 
@@ -114,18 +92,19 @@ git notes --ref=ipfs add -m "<cid>" x.y.z         # record CID as deploy metadat
 git push origin 0.x.y refs/notes/ipfs:refs/notes/ipfs
 ```
 
-The CID is deterministic: anyone can check out a tag, rebuild, and verify it matches the note. CIDs live in `git notes --ref=ipfs` — never in the repo or the tag message — so history stays clean and a wrong CID is fixed with `git notes --ref=ipfs add -f` (no force-push of tags). The Versions page derives its list from `git tag` and links each release to IPFS.
+The CID is recorded per tag: anyone can check that the build they loaded matches the note. CIDs live in `git notes --ref=ipfs` — never in the repo or the tag message — so history stays clean and a wrong CID is fixed with `git notes --ref=ipfs add -f` (no force-push of tags). The Versions page derives its list from `git tag` and links each release to IPFS.
 
-### Backend Communication
+## Trusted parties & attestation
 
-Backend Repo: `https://gitea.kosmos.org/hueso/helpix`
+P2Pix is self-custodial for signing on injected-EOA and WebAuthn passkey wallets, but releasing an escrow still depends on infrastructure run by third parties (Reown AUTH email/social login is a Reown-managed signer, not you). We disclose every one of these plainly, with no silent trust:
 
-Backend Endpoint: `https://api.p2pix.co/release/1279331`
+- **What we rely on, and your escape paths** — [`SECURITY.md`](./SECURITY.md).
+- **The design principles behind these tradeoffs** — [`DESIGN.md`](./DESIGN.md).
+- **How the oracle, zkPix, and the rest of the stack actually work** — [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
-curl -X POST \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer {api-key}" \
-  -d '{"query": "{ depositAddeds { id seller token amount } }"}' \
-https://api.studio.thegraph.com/query/113713/p-2-pix/sepolia
+## Roadmap: trust minimization
 
-curl --request POST --url 'https://api.hm.bb.com.br/testes-portal-desenvolvedor/v1/boletos-pix/pagar?gw-app-key=95cad3f03fd9013a9d15005056825665' --header 'content-type: application/json' --data '{"pix":"00020101021226070503***63041654" }'
+PIX is **fiat** settlement, so _some_ trust is structurally unavoidable. Two routes end release's dependence on the P2Pix oracle:
+
+- **Bacen-issued attestation** — the primary plan: Banco Central signs the Pix confirmation itself. This is an open upstream request, [bacen/pix-api#61](https://github.com/bacen/pix-api/issues/61), and the deployed contracts already accept it once Bacen's signer is added on-chain.
+- **zkPix (zkTLS)** — the fallback: a cryptographic proof of the bank's own confirmation, rather than blind trust in a P2Pix key.
