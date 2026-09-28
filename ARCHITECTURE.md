@@ -1,6 +1,6 @@
 # P2Pix Architecture
 
-Blueprint of what we actually ship: the stack, the signing rails, the oracle protocol, the read/write layers, distribution, and the build pipeline. The trust roots are the **chain, content hashes, and signatures** — everything else is a deviation, and every deviation is named. [`DESIGN.md`](./DESIGN.md) holds the principles (the technical CROPS pillar and the social pillar, measured by the walkaway test); [`SECURITY.md`](./SECURITY.md) catalogues each trusted party with its escape path, its zero option, and the design-baseline scorecard. This file is _how the pieces are wired and why you can walk away from them_: it does not restate the principles, and it never marks a deviation closed while `SECURITY.md` still lists it open — a fix counts only once it is visible here. Don't just trust the architecture; audit it.
+Blueprint of what we actually ship: the stack, the signing rails, the prover protocol, the read/write layers, distribution, and the build pipeline. The trust roots are the **chain, content hashes, and signatures** — everything else is a deviation, and every deviation is named. [`DESIGN.md`](./DESIGN.md) holds the principles (the technical CROPS pillar and the social pillar, measured by the walkaway test); [`SECURITY.md`](./SECURITY.md) catalogues each trusted party with its escape path, the outbound requests the app makes, the open gaps, and the design-baseline scorecard. This file is _how the pieces are wired and why you can walk away from them_: it does not restate the principles, and it never marks a deviation closed while `SECURITY.md` still lists it open — a fix counts only once it is visible here. Don't just trust the architecture; audit it.
 
 ## Concrete blueprint for this dApp
 
@@ -21,7 +21,8 @@ Blueprint of what we actually ship: the stack, the signing rails, the oracle pro
 
 Build-time configuration, injected by CI (the build also bakes in git-derived release metadata and the submodule's deployment addresses, see Build & verification):
 
-- `VITE_APP_ENV` — `production` selects the mainnet network set and the production oracle host; any other value is the development environment: the testnet set and the `demo.*` hosts.
+- `VITE_APP_ENV` — `production` selects the mainnet network set and the production prover host; any other value is the development environment: the testnet set and the `demo.*` hosts.
+- `VITE_PIX_API_URL` — optional; points the client at another prover, for a local run against `../zkPix`.
 - `VITE_REOWN_PROJECT_ID` — required; the app throws at startup without it.
 - `VITE_PIMLICO_SPONSORSHIP_POLICY_ID` — gates the smart-account rail (`isAaAvailable`) and with it the passkey connector (`src/config/appkit.ts`).
 
@@ -31,7 +32,7 @@ Networks: production = Ethereum mainnet and Arbitrum One; development = Sepolia.
 
 ### 2. Architecture
 
-The QR the buyer scans is the **Brazilian Pix (Bacen EMV) QR** returned by the P2Pix oracle; the escrow releases only once the **P2Pix oracle** signs an attestation of the Pix payment (see Oracle protocol).
+The QR the buyer scans is the **Brazilian Pix (Bacen EMV) QR** returned by the P2Pix prover; the escrow is released once the contract verifies a **proof of Pix payment** (see Prover protocol).
 
 Signing is client-side on two rails, chosen by the connector the user logged in with (`getAaOwnerKind`, `src/blockchain/aa/session.ts`) and by whether the smart-account rail is available on the selected network (`isAaAvailable`, `src/blockchain/aa/aaContext.ts`). The user always holds the pen: no backend key custody, ever. Every contract write — `approve` and `deposit` in `src/blockchain/sellerMethods.ts`, `lock`, `release` and `withdraw` in `src/blockchain/buyerMethods.ts` — branches on `getActiveAaContext()`: a context means the smart-account rail, null means the EOA rail.
 
@@ -48,30 +49,26 @@ Both rails act on the network selected in the UI: wallet clients are requested f
 
 The address shown and used for reads is the smart-account address on the smart-account rail and the connector address on the EOA rail (`getEffectiveWalletAddress`).
 
-### 3. Oracle protocol (Pix attestation)
+### 3. Prover protocol (proof of Pix payment)
 
-This is the trust bottleneck: Pix is fiat, so it settles off-chain and release must be gated on an attestation. Today that attestation is a signature from the **P2Pix oracle** — a deviation (`SECURITY.md`).
-
-The client talks to the P2Pix oracle at `https://api.p2pix.co` in production and `https://demo.api.p2pix.co` in development (`src/utils/bbPay.ts`). The oracle creates and confirms solicitations through Banco do Brasil's **BB Pay** API; the development oracle runs against BB Pay's sandbox, where confirmations are simulated. Endpoints:
+The client talks to the P2Pix prover at `https://api.p2pix.co` in production and `https://demo.api.p2pix.co` in development (`src/utils/bbPay.ts`). The prover creates and reads solicitations through Banco do Brasil's **BB Pay** API; the development prover runs against BB Pay's sandbox, where confirmations are simulated. Endpoints:
 
 | Call | When | Request → response |
 | --- | --- | --- |
 | `POST /register` | Seller creates an offer, before `deposit` | bank account details → `numeroParticipante`; the on-chain `pixTarget` is `<chainId>-<numeroParticipante>` |
-| `POST /request` | After the buyer's `lock` is mined | `{ amount, pixTarget }`, with the bare `numeroParticipante` read back from the chain (`getPixTarget`) → `numeroSolicitacao` plus the EMV "copia e cola" string rendered as the QR |
-| `GET /release/<numeroSolicitacao>` | Polled while the QR is shown | → `{ pixTimestamp, signature }`: the signed payment receipt, once the bank confirms the buyer's Pix |
+| `POST /request` | After the buyer's `lock` is mined | `{ amount, pixTarget, lockId, chainId }`, with the bare `numeroParticipante` read back from the chain (`getPixTarget`); the prover writes `<chainId>-<lockId>` into the charge's reconciliation code → `numeroSolicitacao` plus the EMV "copia e cola" string rendered as the QR |
+| `GET /release/<numeroSolicitacao>` | Polled while the QR is shown | `402` until the bank confirms the buyer's Pix, `202` while the proof is produced, then `{ numeroSolicitacao, proof }`: the proof of Pix payment |
 
-The buyer pays the Pix into P2Pix's BB Pay account and BB settles it to the seller's registered account in the same flow. Fiat therefore transits P2Pix's account for the settlement window — a custody deviation, disclosed in `SECURITY.md`. The buyer view (`QrCodeComponent.vue`) polls `/release` until a reply carries a `signature`, then submits the receipt on-chain.
+The buyer pays the Pix into P2Pix's BB Pay account and BB settles it to the seller's registered account in the same flow. Fiat therefore transits P2Pix's account for the settlement window — a custody deviation, disclosed in `SECURITY.md`. The buyer view (`QrCodeComponent.vue`) polls `/release` until a reply carries the proof, then submits it on-chain.
 
-Release is `release(lockID, pixTimestamp, signature)` (`releaseLock`, `src/blockchain/buyerMethods.ts`), verified on-chain:
+Release is `release(lockID, proof)` (`releaseLock`, `src/blockchain/buyerMethods.ts`), verified on-chain (`p2pix.sol` `release` → `core/BaseUtils.sol` `_proofCheck`). The proof is the Primus attestation of the bank's own answer (see zkPix):
 
-- the contract recomputes `keccak256(pixTarget ‖ amount ‖ pixTimestamp)` from the lock and the caller-supplied `pixTimestamp`, recovers the EIP-191 signer and requires it to be in `validBacenSigners` (`p2pix.sol` `release` → `core/BaseUtils.sol` `_signerCheck`); each message is accepted once.
-- `setValidSigners` is owner-only and add-only, so the signer set only grows and is the trust anchor — **readable on-chain** (`validBacenSigners`), so anyone can audit exactly who is trusted.
-- The name records the contract's design target: Bacen, Brazil's central bank, issuing the attestation itself. Issuing it is an open request on Bacen's Pix API ([bacen/pix-api#61](https://github.com/bacen/pix-api/issues/61)), so the P2Pix oracle holds the signer slot today and is a _trusted_ party — the chokepoint we intend to remove.
+- the contract rebuilds the attested request from its bank settings (`bank`: URL prefix and suffix, the suffix carrying the convênio query) and the proof's solicitation number, recomputes the digest the attestor signed, recovers the signer and requires it to be in `validAttestors`, and the proof's recipient to be the configured `prover`;
+- it then reads the revealed fields and requires the charge to be settled in full, its amount to equal the lock's, its recipient to be the lock's `pixTarget` rebuilt as `<chainId>-<payee>`, its reconciliation code to be `<chainId>-<lockID>`, and the attestation to be younger than `proofMaxAgeMs`; each Pix `txId` is accepted once;
+- `setValidAttestors`, `setBankConfig`, `setProver` and `setProofMaxAgeMs` are owner-only, and the attestor set is the trust anchor — **readable on-chain** (`validAttestors`), so anyone can audit exactly who is trusted;
 - `release` is public and always pays the lock's buyer, whoever calls it.
 
-- The signed message binds `pixTarget` — the seller's participant number, registered per deposit and copied into every lock opened against it — and amount (the receipt-to-lock binding gap in `SECURITY.md`).
-- Once a lock expires, `release` reverts and the escrow returns to the seller's deposit when someone calls `unlockExpired` (the oracle-walkaway gap in `SECURITY.md` — a fund path that must not need us).
-- Two routes end the oracle's role: a **Bacen-issued attestation** — the primary plan; the deployed contracts accept it once the owner adds Bacen's signer — and **zkPix** (§7), the fallback.
+The proof binds the lock itself, through the reconciliation code the prover wrote when it created the charge, as well as the seller's participant number and the amount. Once a lock expires, `release` reverts and the escrow returns to the seller's deposit when someone calls `unlockExpired` (the prover-walkaway open gap in `SECURITY.md` — a fund path that must not need us).
 
 ### 4. Read-only layer
 
@@ -97,6 +94,11 @@ One workflow, `.gitea/workflows/ci.yml` (`CI & Deploy`), builds every branch and
 - **Versions view.** `src/views/VersionsView.vue` lists the tags compiled into the bundle and links the ones carrying an IPFS note to `ipfs://<CID>`; the list is self-reported.
 - **What a user can verify:** for a tagged release loaded by CID, that the CID equals `git notes --ref=ipfs show <tag>`. Source inputs are pinned (`bun.lock`, an exact Vite pin in `package.json`, the submodule gitlink); rebuilding a tag to its CID is the reproducible-build open gap in `SECURITY.md` — until it is closed, verification reaches the source, not the bytes.
 
-### 7. zkPix (in development)
+### 7. zkPix
 
-`zkPix` is the **zero-knowledge** track that deletes the trusted P2Pix oracle signature from the release path (see Oracle protocol): new P2Pix contracts verify a **proof of Pix payment** — produced with **zkTLS** from the bank's own confirmation of the payment — in place of the oracle's ECDSA signature, and release against it. The prover lives in a separate repository. The new contracts and the frontend integration are in development; the shipped frontend talks only to the P2Pix oracle.
+`zkPix` is the release path described above: the contract verifies a **proof of Pix payment**, produced with **zkTLS** from the bank's own confirmation, in place of a signature from a party we operate. The prover lives in a separate repository (`zkPix`); its proof-verifying contracts sit on the contracts repository's `zkpix` branch, one commit ahead of the submodule pin this repo carries — until the pin moves, a clean checkout generates the pre-zkPix ABI and this frontend does not type-check against it.
+
+- **Prover flow.** On `GET /release/<n>` the prover reads the charge from BB Pay and, once the bank reports it paid, opens a Primus network task (Base Sepolia in development) and has the selected **Primus attestor** replay one request to the bank over zkTLS in proxy mode with the prover's mTLS client certificate and a read-only OAuth token: `GET /solicitacoes/<n>`.
+- **Attestor signature.** The attestor signs — a raw keccak over the packed attestation — the request URL, the JSON paths it was asked to reveal and the revealed values: amount, settled sum, payee, Pix `txId` and reconciliation code.
+- **Proof handoff.** The prover checks the signature itself, caches the proof per charge and answers it verbatim; the client passes it to `release`.
+- **Soundness.** The contract's bank settings and the fixed JSON paths in `Constants.sol` are what the attestor is asked to attest, so a proof of any other request or field cannot verify. What stays trusted is in `SECURITY.md`.

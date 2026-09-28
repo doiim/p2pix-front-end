@@ -2,6 +2,7 @@ import { getContract } from './provider';
 import { p2PixAbi } from './abi';
 import { getActiveAaContext, sendAaOperation } from './aa/operations';
 import type { AaCall } from './aa/types';
+import type { PixProof } from '@/utils/pixProof';
 import {
   type Abi,
   type ContractFunctionReturnType,
@@ -9,7 +10,6 @@ import {
   encodeFunctionData,
   parseEther,
   type Address,
-  type Hex,
   type Log,
   type TransactionReceipt,
 } from 'viem';
@@ -193,10 +193,10 @@ export const withdrawDeposit = async (
   return receipt.status === 'success';
 };
 
+/** Releases the lock with the prover's proof of Pix payment. */
 export const releaseLock = async (
   lockID: bigint,
-  pixTimestamp: Hex,
-  signature: Hex,
+  proof: PixProof,
 ): Promise<TransactionReceipt> => {
   const { address, abi, wallet, client, account } = await getContract();
   const aa = await getActiveAaContext();
@@ -218,7 +218,7 @@ export const releaseLock = async (
       data: encodeFunctionData({
         abi: abi as Abi,
         functionName: 'release',
-        args: [lockID, pixTimestamp, signature],
+        args: [lockID, proof],
       }),
       value: 0n,
     };
@@ -234,8 +234,8 @@ export const releaseLock = async (
   if (!wallet) throw new Error('Wallet not connected');
   if (!account) throw new Error('Account not available');
 
-  // The released signature covers only pixTarget/amount/timestamp, so it also
-  // validates against someone else's lock and would pay out to their buyer.
+  // `release` always pays the lock's buyer, whoever submits it; only the
+  // buyer's own account should spend gas on it.
   const lock = await client.readContract({
     address,
     abi,
@@ -250,7 +250,7 @@ export const releaseLock = async (
     address,
     abi,
     functionName: 'release',
-    args: [lockID, pixTimestamp, signature],
+    args: [lockID, proof],
     account,
   });
   const hash = await wallet.writeContract(request);
