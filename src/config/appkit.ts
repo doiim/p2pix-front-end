@@ -143,7 +143,7 @@ export const setupAppKit = (): WagmiAdapter => {
     metadata: {
       name: 'P2Pix',
       description: 'P2P token exchange via Pix',
-      icons: ['/p2pix.svg'],
+      icons: [new URL('p2pix.svg', document.baseURI).href],
       // url defaults to window.location.origin (fork-side; see
       // applyDoiimDefaults in @doiim/reown-appkit).
       url: '',
