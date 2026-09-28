@@ -3,9 +3,16 @@ import { ref, onMounted, onUnmounted } from 'vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import CustomModal from '@/components/ui/CustomModal.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
-import { createSolicitation, getSolicitation, type Offer } from '@/utils/bbPay';
+import {
+  createSolicitation,
+  getSolicitation,
+  type Offer,
+  type Solicitation,
+} from '@/utils/bbPay';
+import type { PixProof } from '@/utils/pixProof';
 import { getParticipantID } from '@/blockchain/events';
 import { getUnreleasedLockById } from '@/blockchain/events';
+import { useUser } from '@/composables/useUser';
 import QRCode from 'qrcode';
 
 // Props
@@ -18,10 +25,9 @@ const props = defineProps<Props>();
 const qrCode = ref<string>('');
 const qrCodeSvg = ref<string>('');
 const showWarnModal = ref<boolean>(true);
-const pixTimestamp = ref<string>('');
-const releaseSignature = ref<string>('');
-const solicitationData = ref<any>(null);
-const pollingInterval = ref<NodeJS.Timeout | null>(null);
+const proof = ref<PixProof | null>(null);
+const solicitationData = ref<Solicitation | null>(null);
+let pollingStopped = false;
 const copyFeedback = ref<boolean>(false);
 const copyFeedbackTimeout = ref<NodeJS.Timeout | null>(null);
 
@@ -44,42 +50,22 @@ const generateQrCodeSvg = async (text: string) => {
 };
 
 // Emits
-const emit = defineEmits(['pixValidated']);
+const emit = defineEmits<{ pixValidated: [proof: PixProof] }>();
 
-// Function to check solicitation status
-const checkSolicitationStatus = async () => {
-  if (!solicitationData.value?.numeroSolicitacao) {
-    return;
-  }
+const POLL_INTERVAL_MS = 10_000;
+const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
-  try {
-    const response = await getSolicitation(
-      solicitationData.value.numeroSolicitacao,
-    );
-
-    if (response.signature) {
-      pixTimestamp.value = response.pixTimestamp;
-      releaseSignature.value = response.signature;
-      // Stop polling when payment is confirmed
-      if (pollingInterval.value) {
-        clearInterval(pollingInterval.value);
-        pollingInterval.value = null;
-      }
+// Polls the prover until it answers with the proof of Pix payment. One
+// request at a time: a slow answer never overlaps the next poll.
+const pollForProof = async (numeroSolicitacao: string) => {
+  while (!pollingStopped && !proof.value) {
+    try {
+      proof.value = await getSolicitation(numeroSolicitacao);
+    } catch (error) {
+      console.error('Error checking solicitation status:', error);
     }
-  } catch (error) {
-    console.error('Error checking solicitation status:', error);
+    if (!proof.value) await sleep(POLL_INTERVAL_MS);
   }
-};
-
-// Function to start polling
-const startPolling = () => {
-  // Clear any existing interval
-  if (pollingInterval.value) {
-    clearInterval(pollingInterval.value);
-  }
-
-  // Start new polling interval (10 seconds)
-  pollingInterval.value = setInterval(checkSolicitationStatus, 10000);
 };
 
 const copyToClipboard = async () => {
@@ -115,31 +101,27 @@ onMounted(async () => {
     const offer: Offer = {
       amount,
       sellerId: participantId,
+      lockID: BigInt(props.lockID),
+      chainId: useUser().network.value.id,
     };
 
     const response = await createSolicitation(offer);
     solicitationData.value = response;
 
-    // Update qrCode if the response contains QR code data
-    if (response?.informacoesPIX?.textoQrCode) {
-      qrCode.value = response.informacoesPIX?.textoQrCode;
-      // Generate SVG QR code
+    if (response.textoQrCode) {
+      qrCode.value = response.textoQrCode;
       await generateQrCodeSvg(qrCode.value);
     }
 
-    // Start polling for solicitation status
-    startPolling();
+    void pollForProof(response.numeroSolicitacao);
   } catch (error) {
     console.error('Error creating solicitation:', error);
   }
 });
 
-// Clean up interval on component unmount
+// Stop polling on component unmount
 onUnmounted(() => {
-  if (pollingInterval.value) {
-    clearInterval(pollingInterval.value);
-    pollingInterval.value = null;
-  }
+  pollingStopped = true;
   if (copyFeedbackTimeout.value) {
     clearTimeout(copyFeedbackTimeout.value);
     copyFeedbackTimeout.value = null;
@@ -201,13 +183,9 @@ onUnmounted(() => {
         </div>
       </div>
       <CustomButton
-        :is-disabled="releaseSignature === ''"
-        :text="
-          releaseSignature ? 'Enviar para a rede' : 'Validando pagamento...'
-        "
-        @button-clicked="
-          emit('pixValidated', { pixTimestamp, signature: releaseSignature })
-        "
+        :is-disabled="!proof"
+        :text="proof ? 'Enviar para a rede' : 'Validando pagamento...'"
+        @button-clicked="proof && emit('pixValidated', proof)"
       />
     </div>
     <CustomModal

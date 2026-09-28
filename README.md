@@ -41,11 +41,12 @@ See [Vite Configuration Reference](https://vitejs.dev/config/).
 
 ### Environment variables
 
-Create a `.env` file with the three variables the build reads:
+Create a `.env` file with these variables the build reads:
 
 | Var | Purpose |
 | --- | --- |
-| `VITE_APP_ENV` | `production` selects Ethereum mainnet + Arbitrum One and the production oracle (`api.p2pix.co`); any other value selects Sepolia and the demo hosts |
+| `VITE_APP_ENV` | `production` selects Ethereum mainnet + Arbitrum One and the production prover (`api.p2pix.co`); any other value selects Sepolia and the demo hosts |
+| `VITE_PIX_API_URL` | Optional; another prover URL, for a local run against `../zkPix` |
 | `VITE_REOWN_PROJECT_ID` | Reown AppKit project id (required; the app throws at startup without it) |
 | `VITE_PIMLICO_SPONSORSHIP_POLICY_ID` | Pimlico sponsorship policy; enables the smart-account rail and therefore passkey login |
 
@@ -100,11 +101,8 @@ P2Pix is self-custodial for signing on injected-EOA and WebAuthn passkey wallets
 
 - **What we rely on, and your escape paths** — [`SECURITY.md`](./SECURITY.md).
 - **The design principles behind these tradeoffs** — [`DESIGN.md`](./DESIGN.md).
-- **How the oracle, zkPix, and the rest of the stack actually work** — [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+- **How the prover, zkPix, and the rest of the stack actually work** — [`ARCHITECTURE.md`](./ARCHITECTURE.md).
 
 ## Roadmap: trust minimization
 
-PIX is **fiat** settlement, so _some_ trust is structurally unavoidable. Two routes end release's dependence on the P2Pix oracle:
-
-- **Bacen-issued attestation** — the primary plan: Banco Central signs the Pix confirmation itself. This is an open upstream request, [bacen/pix-api#61](https://github.com/bacen/pix-api/issues/61), and the deployed contracts already accept it once Bacen's signer is added on-chain.
-- **zkPix (zkTLS)** — the fallback: a cryptographic proof of the bank's own confirmation, rather than blind trust in a P2Pix key.
+PIX is **fiat** settlement, so _some_ trust is structurally unavoidable. `zkPix` (zkTLS) shrinks that trust to a cryptographic proof of the bank's own confirmation rather than blind trust in a P2Pix key. The prover walkaway requirements and the rest of the trust-minimization work are tracked openly in [`SECURITY.md`](./SECURITY.md).

@@ -15,7 +15,8 @@ import { getNetworksLiquidity } from '@/blockchain/events';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
-import type { Address, Hex } from 'viem';
+import type { Address } from 'viem';
+import type { PixProof } from '@/utils/pixProof';
 
 enum Step {
   Search,
@@ -82,20 +83,13 @@ const confirmBuyClick = async (
   }
 };
 
-const releaseTransaction = async (params: {
-  pixTimestamp: Hex;
-  signature: Hex;
-}) => {
+const releaseTransaction = async (proof: PixProof) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
 
   try {
-    await releaseLock(
-      BigInt(lockID.value),
-      params.pixTimestamp,
-      params.signature,
-    );
+    await releaseLock(BigInt(lockID.value), proof);
 
     try {
       await updateWalletStatus();
