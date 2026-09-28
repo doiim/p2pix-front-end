@@ -74,9 +74,9 @@ Reads are split by concern so that no single party is silently authoritative:
 
 ### 5. Distribution layer
 
-One workflow, `.github/workflows/ci.yml` (`CI & Deploy`), builds pushes to `main` and `develop`, tags and PRs; `main` and tag builds are production (`VITE_APP_ENV=production`), the rest development. It installs with `--frozen-lockfile`, lints, checks formatting, runs the test step, generates the ABIs, builds, then deploys from hosted CI runners — team-run infrastructure, a deviation listed under the walkaway requirements in `SECURITY.md`:
+One workflow, `.gitea/workflows/ci.yml` (`CI & Deploy`), builds every branch and tag push, PRs and manual dispatches. Build mode follows the audience: PR previews, `main` and tags build production (`VITE_APP_ENV=production`, mainnet config); other branch pushes build development (testnet config). It installs, lints, checks formatting, runs the test step, generates the ABIs, builds, then deploys from hosted CI runners — team-run infrastructure, a deviation listed under the walkaway requirements in `SECURITY.md`:
 
-- **Self-hosted server.** `dist/` is rsynced over SSH into a directory named after the ref. Production is served at `p2pix.co`, development builds under `*.demo.p2pix.co` — a convenient origin, never the trust root.
+- **Self-hosted server.** `dist/` is rsynced over SSH into a directory named after the ref (PRs under `pr/<n>`). Development builds are served at `*.demo.p2pix.co`, PR previews (production builds) at `*.pr.demo.p2pix.co` — a convenient origin, never the trust root.
 - **IPFS.** `dist/` is added to our kubo node (`ipshipyard/ipfs-deploy-action`) and pinned at Pinata by hash. The **hash is the anchor**; gateways are interchangeable.
 - **IPNS.** An IPNS name, anchored by the `_dnslink.p2pix.co` TXT record and resolvable as `ipns://p2pix.co`, is republished to the new CID on `main` only. The DNS record is a trust anchor — a deviation; ENS and a `.onion` mirror are tracked in `SECURITY.md`.
 

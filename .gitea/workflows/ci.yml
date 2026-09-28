@@ -1,18 +1,18 @@
 name: CI & Deploy
 
 env:
-  IS_PROD: ${{ github.ref_name == 'main' || github.ref_type == 'tag' }}
+  BUILD_MODE: ${{ gitea.event_name != 'pull_request' && gitea.ref_type == 'branch' && gitea.ref_name != 'main' && 'development' || 'production' }}
+  RAW_TARGET: ${{ gitea.event.number && format('pr/{0}', gitea.event.number) || gitea.ref_name }}
 
 on:
   push:
-    branches: [main, develop]
+    branches: ['**']
     tags: ['*']
   pull_request:
-    branches: [main, develop]
   workflow_dispatch:
 
 concurrency:
-  group: deploy-${{ github.ref }}
+  group: deploy-${{ gitea.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -26,6 +26,9 @@ jobs:
 
       - name: Fetch git notes (release CIDs)
         run: git fetch origin refs/notes/*:refs/notes/*
+
+      - name: Deploy target slug
+        run: echo "DEPLOY_TARGET=$(printf '%s' "$RAW_TARGET" | tr -C '[:alnum:]-' '-')" >> "$GITHUB_ENV"
 
       - uses: oven-sh/setup-bun@v2
 
@@ -42,7 +45,7 @@ jobs:
         run: bunx vitest run --passWithNoTests
 
       - name: Install submodule deps
-        run: corepack enable && yarn --cwd p2pix-smart-contracts install --immutable
+        run: node p2pix-smart-contracts/.yarn/releases/yarn-4.9.2.cjs --cwd p2pix-smart-contracts install --immutable
 
       - name: Generate contract ABIs
         env:
@@ -52,10 +55,10 @@ jobs:
 
       - name: Build SPA
         env:
-          VITE_APP_ENV: ${{ env.IS_PROD == 'true' && 'production' || 'development' }}
+          VITE_APP_ENV: ${{ env.BUILD_MODE }}
           VITE_REOWN_PROJECT_ID: ${{ secrets.VITE_REOWN_PROJECT_ID || vars.VITE_REOWN_PROJECT_ID }}
           VITE_PIMLICO_SPONSORSHIP_POLICY_ID: ${{ secrets.VITE_PIMLICO_SPONSORSHIP_POLICY_ID || vars.VITE_PIMLICO_SPONSORSHIP_POLICY_ID }}
-        run: bun run build-only
+        run: bun run build-only --mode "$VITE_APP_ENV"
 
       - name: Deploy via RSYNC
         uses: up9cloud/action-rsync@v1
@@ -65,7 +68,7 @@ jobs:
           HOST: ${{ secrets.SSH_HOST }}
           KEY: ${{ secrets.SSH_KEY }}
           SOURCE: dist/
-          TARGET: ${{ github.ref_name }}
+          TARGET: ${{ env.DEPLOY_TARGET }}
 
       - name: Deploy to IPFS
         uses: ipshipyard/ipfs-deploy-action@v2
@@ -92,7 +95,7 @@ jobs:
             -d "{\"hash\":\"$IPFS_CID\",\"pinataMetadata\":{\"name\":\"p2pix_${VERSION}\"}}"
 
       - name: Update IPNS pointer
-        if: steps.ipfs.outcome == 'success' && github.ref == 'refs/heads/main'
+        if: steps.ipfs.outcome == 'success' && gitea.ref == 'refs/heads/main'
         env:
           KUBO_HOST: ${{ secrets.KUBO_HOST }}
           KUBO_API_AUTH: ${{ secrets.KUBO_API_AUTH }}
