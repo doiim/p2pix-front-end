@@ -128,7 +128,7 @@ export const addLock = async (
     );
   }
 
-  if (!wallet) throw new Error('Wallet not connected');
+  if (!wallet) throw new Error('Carteira não conectada');
   if (!account) throw new Error('Account not available');
 
   const { request } = await client.simulateContract({
@@ -178,7 +178,7 @@ export const withdrawDeposit = async (
     return aaReceipt.success;
   }
 
-  if (!wallet) throw new Error('Wallet not connected');
+  if (!wallet) throw new Error('Carteira não conectada');
   if (!account) throw new Error('Account not available');
 
   const { request } = await client.simulateContract({
@@ -231,7 +231,7 @@ export const releaseLock = async (
     return aaReceipt.receipt;
   }
 
-  if (!wallet) throw new Error('Wallet not connected');
+  if (!wallet) throw new Error('Carteira não conectada');
   if (!account) throw new Error('Account not available');
 
   // The released signature covers only pixTarget/amount/timestamp, so it also
