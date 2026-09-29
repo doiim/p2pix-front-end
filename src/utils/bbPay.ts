@@ -85,6 +85,9 @@ export const createSolicitation = async (
     throw new Error(`Error creating solicitation: ${response.status}`);
   }
   const data = await response.json();
+  // A missing number would otherwise poll `GET /release/undefined` forever.
+  if (data.numeroSolicitacao === undefined || data.numeroSolicitacao === null)
+    throw new Error('Unexpected /request answer');
   return {
     numeroSolicitacao: String(data.numeroSolicitacao),
     textoQrCode:
