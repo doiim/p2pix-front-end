@@ -43,7 +43,7 @@ jobs:
         run: bun run format:check
 
       - name: Unit tests
-        run: bunx vitest run --passWithNoTests
+        run: bunx vitest run
 
       - name: Install submodule deps
         run: node p2pix-smart-contracts/.yarn/releases/yarn-4.9.2.cjs --cwd p2pix-smart-contracts install --immutable

@@ -7,7 +7,7 @@ import CustomAlert from '@/components/ui/CustomAlert.vue';
 import {
   listValidDepositTransactionsByWalletAddress,
   listAllTransactionByWalletAddress,
-  getActiveLockAmount,
+  getSellerLockState,
   getExpiredLockIds,
   sweepExpiredLocks,
 } from '@/blockchain/wallet';
@@ -23,6 +23,8 @@ const { walletAddress, network, selectedToken } = user;
 const loadingWithdraw = ref<boolean>(false);
 const showAlert = ref<boolean>(false);
 const showSweepAlert = ref<boolean>(false);
+const showSweepEmptyAlert = ref<boolean>(false);
+const showSweepErrorAlert = ref<boolean>(false);
 const loadingSweep = ref<boolean>(false);
 
 const depositList = ref<ValidDeposit[]>([]);
@@ -76,8 +78,11 @@ const callSweepExpired = async () => {
     await getWalletTransactions();
     if (swept > 0) {
       showSweepAlert.value = true;
+    } else {
+      showSweepEmptyAlert.value = true;
     }
   } catch (error) {
+    showSweepErrorAlert.value = true;
     console.log('Não foi possível recuperar as reservas expiradas!', error);
   } finally {
     loadingSweep.value = false;
@@ -95,8 +100,12 @@ const getWalletTransactions = async () => {
       walletAddress.value,
     );
 
-    activeLockAmount.value = await getActiveLockAmount(walletAddress.value);
-    expiredLockIds.value = await getExpiredLockIds(walletAddress.value);
+    // One subgraph + `getLocksStatus` read feeds both figures; fetching them
+    // separately (getActiveLockAmount then getExpiredLockIds) doubled it.
+    const { activeLockAmount: lockAmount, expiredLockIds: expiredIds } =
+      await getSellerLockState(walletAddress.value);
+    activeLockAmount.value = lockAmount;
+    expiredLockIds.value = expiredIds;
 
     if (walletDeposits) {
       depositList.value = walletDeposits;
@@ -138,6 +147,16 @@ watch(network, async () => {
       v-if="showSweepAlert"
       :type="'sweep'"
       @close-alert="showSweepAlert = false"
+    />
+    <CustomAlert
+      v-if="showSweepEmptyAlert"
+      :type="'sweepEmpty'"
+      @close-alert="showSweepEmptyAlert = false"
+    />
+    <CustomAlert
+      v-if="showSweepErrorAlert"
+      :type="'sweepError'"
+      @close-alert="showSweepErrorAlert = false"
     />
     <div class="page">
       <div class="header" v-if="!loadingWithdraw && !walletAddress">

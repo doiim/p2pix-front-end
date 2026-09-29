@@ -19,6 +19,10 @@ if (props.type === 'sell') {
   alertPaddingLeft.value = '30%';
 } else if (props.type === 'sweep') {
   alertPaddingLeft.value = '35%';
+} else if (props.type === 'sweepEmpty') {
+  alertPaddingLeft.value = '35%';
+} else if (props.type === 'sweepError') {
+  alertPaddingLeft.value = '35%';
 }
 
 switch (props.type) {
@@ -43,6 +47,12 @@ switch (props.type) {
   case 'sweep':
     alertText.value =
       'Tudo certo! As reservas expiradas voltaram para o seu saldo disponível.';
+    break;
+  case 'sweepEmpty':
+    alertText.value = 'As reservas já foram recuperadas.';
+    break;
+  case 'sweepError':
+    alertText.value = 'Não foi possível recuperar as reservas expiradas!';
     break;
 }
 </script>

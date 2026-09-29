@@ -265,11 +265,13 @@ const fetchLockIds = async (
   }
 };
 
-export const checkUnreleasedLock = async (
+const getLockStatuses = async (
+  field: 'buyer' | 'seller',
   walletAddress: Address,
-): Promise<UnreleasedLock | undefined> => {
-  const { address, abi, client } = await getContract();
-  const lockIds = await fetchLockIds('buyer', walletAddress);
+  onlyRpcProvider = true,
+) => {
+  const { address, abi, client } = await getContract(onlyRpcProvider);
+  const lockIds = await fetchLockIds(field, walletAddress);
   if (!lockIds.length) return undefined;
 
   const [sortedIDs, status] = await client.readContract({
@@ -279,6 +281,16 @@ export const checkUnreleasedLock = async (
     args: [lockIds],
   });
 
+  return { address, abi, client, sortedIDs, status };
+};
+
+export const checkUnreleasedLock = async (
+  walletAddress: Address,
+): Promise<UnreleasedLock | undefined> => {
+  const locks = await getLockStatuses('buyer', walletAddress, false);
+  if (!locks) return undefined;
+
+  const { sortedIDs, status } = locks;
   const unreleasedLockId = status.findIndex(
     (s: LockStatus) => s === LockStatus.Active,
   );
@@ -290,17 +302,30 @@ export const checkUnreleasedLock = async (
 export const getActiveLockAmount = async (
   walletAddress: Address,
 ): Promise<number> => {
-  const { address, abi, client } = await getContract(true);
-  const lockIds = await fetchLockIds('seller', walletAddress);
-  if (!lockIds.length) return 0;
+  const { activeLockAmount } = await getSellerLockState(walletAddress);
+  return activeLockAmount;
+};
 
-  const [sortedIDs, status] = await client.readContract({
-    address,
-    abi,
-    functionName: 'getLocksStatus',
-    args: [lockIds],
-  });
+export const getExpiredLockIds = async (seller: Address): Promise<bigint[]> => {
+  const locks = await getLockStatuses('seller', seller);
+  if (!locks) return [];
 
+  const { sortedIDs, status } = locks;
+  return sortedIDs.filter((_, i) => status[i] === LockStatus.Expired);
+};
+
+/**
+ * One subgraph + `getLocksStatus` read for both seller figures the manage view
+ * shows. Fetching them through `getActiveLockAmount` and `getExpiredLockIds`
+ * ran the same prologue twice per refresh (review), so the view calls this.
+ */
+export const getSellerLockState = async (
+  seller: Address,
+): Promise<{ activeLockAmount: number; expiredLockIds: bigint[] }> => {
+  const locks = await getLockStatuses('seller', seller);
+  if (!locks) return { activeLockAmount: 0, expiredLockIds: [] };
+
+  const { address, abi, client, sortedIDs, status } = locks;
   const mapLocksResults = await client.multicall({
     contracts: sortedIDs.map((id) => ({
       address,
@@ -310,28 +335,18 @@ export const getActiveLockAmount = async (
     })),
   });
 
-  return mapLocksResults.reduce((total, lock, index) => {
+  const activeLockAmount = mapLocksResults.reduce((total, lock, index) => {
     if (status[index] === LockStatus.Active && lock.status === 'success') {
       const { amount } = toLock(lock.result);
       return total + Number(formatEther(amount));
     }
     return total;
   }, 0);
-};
 
-export const getExpiredLockIds = async (seller: Address): Promise<bigint[]> => {
-  const { address, abi, client } = await getContract(true);
-  const lockIds = await fetchLockIds('seller', seller);
-  if (!lockIds.length) return [];
-
-  const [sortedIDs, status] = await client.readContract({
-    address,
-    abi,
-    functionName: 'getLocksStatus',
-    args: [lockIds],
-  });
-
-  return sortedIDs.filter((_, i) => status[i] === LockStatus.Expired);
+  return {
+    activeLockAmount,
+    expiredLockIds: sortedIDs.filter((_, i) => status[i] === LockStatus.Expired),
+  };
 };
 
 export const sweepExpiredLocks = async (
