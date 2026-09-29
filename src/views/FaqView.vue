@@ -61,13 +61,13 @@ const openItem = (index: number) => {
         >
           <div class="flex cursor-pointer" @click="openItem(index)">
             <img
-              alt="plus"
+              alt="Expandir"
               src="@/assets/plus.svg?url"
               class="icon"
               v-if="!item.isOpen"
             />
             <img
-              alt="minus"
+              alt="Recolher"
               src="@/assets/minus.svg?url"
               class="icon"
               v-if="item.isOpen"

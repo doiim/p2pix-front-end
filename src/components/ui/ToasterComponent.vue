@@ -48,14 +48,14 @@ watch(network, checkNetwork, { immediate: true });
       class="fixed bottom-0 left-0 right-0 bg-red-500 text-white p-4 flex justify-between items-center z-50"
     >
       <div>
-        <span class="font-bold">Wrong network!</span>
-        <span> Please switch to {{ targetNetworkName }}.</span>
+        <span class="font-bold">Rede incorreta!</span>
+        <span> Troque para {{ targetNetworkName }}.</span>
       </div>
       <button
         @click="switchNetwork"
         class="bg-white text-red-500 px-4 py-2 rounded font-bold hover:bg-gray-100 transition-colors"
       >
-        Switch Network
+        Trocar rede
       </button>
     </div>
   </transition>

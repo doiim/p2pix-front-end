@@ -26,7 +26,7 @@ switch (props.type) {
     break;
   case 'sell':
     alertText.value =
-      'Tudo certo! Os tokens já foram reservados e sua oferta está disponível.';
+      'Tudo certo! Sua oferta foi criada e os tokens estão disponíveis para compra.';
     break;
   case 'redirect':
     alertText.value = 'Existe uma compra em aberto. Continuar?';
@@ -55,7 +55,7 @@ switch (props.type) {
       </div>
       <img
         src="../../assets/closeAlertIcon.svg"
-        alt="close alert"
+        alt="Fechar alerta"
         class="w-3 cursor-pointer"
         @click="$emit('close-alert')"
       />

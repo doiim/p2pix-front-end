@@ -3,12 +3,12 @@
     "name": "1. Como Começar",
     "items": [
       {
-        "title": "O que é uma carteira (wallet)?",
-        "content": "Cripto-wallet é um software que armazena criptomoedas e criptoativos de forma segura. Existem também dispositivos físicos chamados de cold/hard wallets. Com a carteira-cripto você consegue comprar e vender tokens sem a necessidade de uma corretora (exchange), por exemplo. Cripto-ativos não ficam de fato armazenados nessa carteira, mas sim as informações que possibilitam acessá-los numa blockchain, como suas chaves pública e privada.\n<br>\n\n* **O que é um endereço de carteira (wallet address)?**\n    Sequência alfanumérica que permite que você envie e receba suas criptomoedas em segurança. Por exemplo: 3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy.\n\n* **Como conectar sua carteira ao p2pix?**\n    Clique em 'Conectar Carteira'. Escolha qual wallet ou ponte (bridge) utilizará para se conectar (MetaMask ou WalletConnect). Ao clicar, sua carteira se abrirá. Caso seja seu 1º acesso, certifique-se de que permitiu sua carteira a se conectar com nossa plataforma. \n\n* **Como instalar MetaMask no Google Chrome?** \n    MetaMask é uma web3 wallet que pode ser adicionada como extensão no seu browser (navegador). Para instalar esse plugin (add-on) no Google Chrome, basta você acessar a Chrome Web Store e pesquisar “MetaMask”. Certifique-se de que é a versão legítima da carteira pelo número de downloads (bastante alto, pois é a maior cold wallet da web3), então é só clicar em “Adicionar ao Chrome”. Depois da instalação ser concluída, basta seguir o passo-a-passo proposto na interface da MetaMask para a criação da conta, login e senha. O caminho para a instalação em outros browsers como Firefox, Opera, entre outros navegadores, é o mesmo. \n\n<br>\nNota: Não esqueça de guardar sua seed phrase em um local seguro! Sem ela é impossível recuperar o acesso à sua carteira (caso perca sua senha) e também aos seus cripto ativos, eles serão perdidos - literalmente - para sempre.\n"
+        "title": "O que é uma carteira?",
+        "content": "Cripto-wallet é um software que armazena criptomoedas e criptoativos de forma segura. Existem também dispositivos físicos, chamados de carteiras de hardware. Com a carteira cripto você consegue comprar e vender tokens sem a necessidade de uma corretora, por exemplo. Os criptoativos não ficam de fato armazenados nessa carteira, mas sim as informações que possibilitam acessá-los numa blockchain, como suas chaves pública e privada.\n<br>\n\n* **O que é um endereço de carteira?**\n    Sequência alfanumérica que permite que você envie e receba suas criptomoedas em segurança. Por exemplo: 3J98t1WpEZ73CNmQviecrnyiWrnqRhWNLy.\n\n* **Como conectar sua carteira ao p2pix?**\n    Clique em 'Entrar' e escolha como quer se conectar: MetaMask, WalletConnect ou passkey. Ao escolher, sua carteira se abrirá. Caso seja seu primeiro acesso, certifique-se de permitir que sua carteira se conecte à nossa plataforma.\n\n* **Como instalar a MetaMask no Google Chrome?** \n    A MetaMask é uma carteira web3 que pode ser adicionada como extensão no seu navegador. Para instalar no Google Chrome, acesse a Chrome Web Store e pesquise por “MetaMask”. Certifique-se de que é a versão legítima da carteira pelo número de downloads (bem alto, pois é a carteira mais usada da web3) e clique em “Adicionar ao Chrome”. Depois da instalação, siga o passo a passo proposto na interface da MetaMask para criar a conta, fazer login e definir a senha. O caminho para instalar em outros navegadores, como Firefox e Opera, é o mesmo. \n<br>\nNota: Não esqueça de guardar sua frase de recuperação (seed phrase) em um local seguro! Sem ela é impossível recuperar o acesso à sua carteira (caso perca sua senha) e também aos seus criptoativos — eles serão perdidos, literalmente, para sempre.\n"
       },
       {
-        "title": "O que é uma rede (network)?",
-        "content": "Criptomoedas são transacionadas em redes de computadores, nas blockchains é que ficam armazenadas as informações sobre suas transações, não em um servidor. Existem [diversas redes no ecossistema cripto](https://www.gemini.com/cryptopedia/blockchain-technology-explained), como a rede do Bitcoin, da Ethereum, para citar as duas mais conhecidas.  \n<br>\n\n* **Como selecionar a rede?**\nVocê deve ficar atento a rede que está selecionada em sua carteira. Na MetaMask, escolha a você escolhe a rede que vai operar clicando na primeira caixa ao lado do seu avatar:\n![Image Ethereum](/src/assets/faqEthereum.jpeg)\nCaso você copie um endereço na sua MetaMask estando selecionada a Rede Ethereum Mainnet e queira operar na Polygon, seus cripto ativos serão perdidos. \n\n* **O que é taxa de rede (gas fee)?**\nCusto de transação do blockchain. Você paga essa taxa para a rede que vai remunerar os validadores. É uma forma de incentivar os validadores a dar continuidade nos seus serviços. "
+        "title": "O que é uma rede?",
+        "content": "Criptomoedas são transacionadas em redes de computadores. Nas blockchains ficam armazenadas as informações sobre suas transações, não em um servidor. Existem [diversas redes no ecossistema cripto](https://www.gemini.com/cryptopedia/blockchain-technology-explained), como as redes do Bitcoin e da Ethereum, para citar as duas mais conhecidas.  \n<br>\n\n* **Como selecionar a rede?**\nVocê deve ficar atento à rede selecionada em sua carteira. Na MetaMask, você escolhe a rede em que vai operar clicando na primeira caixa ao lado do seu avatar:\n![MetaMask: seleção de rede](/src/assets/faqEthereum.jpeg)\nCaso você copie um endereço na sua MetaMask com a Rede Ethereum Mainnet selecionada e queira operar na Arbitrum, seus criptoativos serão perdidos.\n\n* **O que é taxa de rede (gas fee)?**\nÉ o custo de transação da blockchain. Você paga essa taxa para a rede, que remunera os validadores. É uma forma de incentivar os validadores a dar continuidade aos seus serviços. "
       }
     ]
   },
@@ -17,15 +17,15 @@
     "items": [
       {
         "title": "Como comprar?",
-        "content": "1. Conectar wallet (MetaMask ou WalletConnect)\n2. Digitar amount (quantidade);\n3. Solicitar token (criptomoeda);\n4. Identificar vendedor (da lista de pessoas);\n    *   Escanear QRCode (ou acrescenta chave manualmente);\n    *   Colar e2eID (identificação end-to-end) a.k.a. código de identificação (API Pix / comprovante bancário);\n5. Receber na carteira (wallet conectada."
+        "content": "1. Conectar a carteira (MetaMask, WalletConnect ou passkey);\n2. Digitar a quantidade de tokens desejada;\n3. Informar seu CPF ou CNPJ;\n4. Confirmar a oferta e escanear o QR Code para pagar o Pix;\n5. Após a confirmação do Pix, os tokens são liberados para a sua carteira."
       },
       {
         "title": "O que é uma stablecoin?",
-        "content": "É uma criptomoeda com lastro em moeda fiduciária (por exemplo, Real brasileiro ou Dólar americando). Cada stablecoin gerada por um projeto emissor tem a mesma quantidade em reserva da moeda fiduciária em seu caixa. Alguns exemplos de stablecoins pareadas com dólar americano são USDt, DAI, USDc. Já vinculadas ao preço do Real são BRZ, MBRL e cREAL.\n<br>\n\n* **O que é o BRZ?**\n    [BRZ](https://www.brztoken.io/) é a sigla para Brazilian Digital Token. É um tipo de criptomoeda que tem valor pareado com o Real (BRL). Ou seja, 1 BRZ tem valor igual a 1 BRL."
+        "content": "É uma criptomoeda com lastro em moeda fiduciária (por exemplo, o Real brasileiro ou o Dólar americano). Cada stablecoin gerada por um projeto emissor mantém em caixa a mesma quantidade em reserva da moeda fiduciária. Alguns exemplos de stablecoins pareadas com o dólar americano são USDt, DAI e USDc. Já vinculadas ao preço do Real estão BRZ, MBRL e cREAL.\n<br>\n\n* **O que é o BRZ?**\n    [BRZ](https://www.brztoken.io/) é a sigla para Brazilian Digital Token. É um tipo de criptomoeda com valor pareado ao Real (BRL). Ou seja, 1 BRZ tem valor igual a 1 BRL."
       },
       {
         "title": "De quem estou comprando?",
-        "content": "Vendedores fazem as ofertas e indicam a chave-Pix que irão receber o valor transacionado. Essa oferta fica travada no smart contract até que as transações sejam concluídas e você possa fazer o saque dos seus tokens. \n\n<br>\n\n* **Onde encontrar comprovante do Pix?**\n    Quando você faz um Pix um comprovante é gerado automaticamente para o pagador e para o recebedor. Esse comprovante pode ser acessado no momento da transação via app/site do banco ou pelo seu extrato bancário convencional.\n* **Para onde vão os tokens que eu comprei?**\n    Os tokens comprados terão como destino a carteira que você conectou ao p2pix. \n    Nota: Lembre-se sempre de configurar a sua carteira na rede correta em que quer receber seus tokens. "
+        "content": "Vendedores fazem as ofertas e indicam a chave Pix que irão receber o valor transacionado. Essa oferta fica registrada no contrato inteligente até que a compra seja concluída e os tokens sejam liberados para a sua carteira. \n\n<br>\n\n* **Onde encontrar o comprovante do Pix?**\n    Quando você faz um Pix, um comprovante é gerado automaticamente para o pagador e para o recebedor. Ele pode ser acessado no momento da transação pelo app ou site do banco, ou pelo seu extrato bancário.\n* **Para onde vão os tokens que eu comprei?**\n    Os tokens comprados vão para a carteira que você conectou ao p2pix. \n    Nota: Lembre-se sempre de configurar a sua carteira na rede correta em que quer receber seus tokens. "
       }
     ]
   },
@@ -34,19 +34,19 @@
     "items": [
       {
         "title": "Como vender?",
-        "content": "1. Enviar tokens;\n2. Indique sua chave-Pix;\n3. Criar [whitelist](https://academy.binance.com/en/glossary/whitelist) onde quer receber isso;\n4. Withdraw (saque) para remoção dos tokens;\n5. Lock (trava de 24h) para esperar transações antes dos saques.\n"
+        "content": "1. Conectar a carteira;\n2. Informar a oferta e seus dados de identificação e bancários, usados para registrar a chave Pix;\n3. Aprovar os tokens e enviar a oferta para a rede;\n4. Acompanhar a oferta em 'Gerenciar Ofertas' e, quando quiser, sacar o saldo.\n"
       },
       {
         "title": "O que é aprovar tokens?",
-        "content": "Aprovações de tokens funcionam como permissões de sua carteira a um determinado [dApp](https://ethereum.org/en/developers/docs/dapps/) para movimentar os tokens. Ao aprovar tokens, você permite que nosso contrato inteligente acesse e execute as transações na sua carteira web3."
+        "content": "Aprovar tokens é dar permissão para que o contrato inteligente do p2pix movimente os tokens da sua carteira. Ao aprovar, você permite que nosso contrato acesse e execute as transações na sua carteira web3."
       },
       {
-        "title": "O que é o lock na rede?",
-        "content": "\"Travamento\" na rede é uma forma de especificar um tempo para retirada dos ativos digitais. O contrato inteligente do p2pix 'trava' os tokens enviados para a rede por 24 horas. Só depois de transcorridas essas 24h que o saque dos tokens estará liberado. Isso ocorre para garantir uma transação segura para os vendedores."
+        "title": "O que é uma reserva na rede?",
+        "content": "Uma reserva é feita pelo comprador ao escolher a sua oferta: o contrato inteligente separa do saldo da oferta a quantidade reservada. Se o Pix for confirmado, os tokens reservados são transferidos para o comprador. Se a reserva expirar sem pagamento, o valor volta para o saldo da sua oferta e fica disponível para saque. Essa reserva temporária garante uma transação segura para os vendedores."
       },
       {
         "title": "Como retirar a oferta?",
-        "content": "Caso você desista da sua oferta, você pode invalidar sua ordem de venda e impedir um novo ‘lock’ na rede."
+        "content": "Para retirar a oferta, use o saque em 'Gerenciar Ofertas'. O saque desativa a oferta — novas reservas deixam de ser aceitas — e devolve para a sua carteira o saldo que não estiver em reservas ativas."
       }
     ]
   }

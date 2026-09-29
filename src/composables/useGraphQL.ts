@@ -130,7 +130,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
       transactionsData.value = processActivityData(data);
     } catch (err) {
       error.value =
-        err instanceof Error ? err.message : 'Failed to fetch transactions';
+        err instanceof Error ? err.message : 'Falha ao buscar as transações';
     } finally {
       loading.value = false;
     }
@@ -197,7 +197,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
       error.value =
         err instanceof Error
           ? err.message
-          : 'Failed to fetch user transactions';
+          : 'Falha ao buscar as transações do usuário';
     } finally {
       loading.value = false;
     }

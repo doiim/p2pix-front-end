@@ -67,7 +67,7 @@ const handleSweep = async () => {
   if (result) {
     notify(
       'success',
-      `Varredura enviada! userOpHash: ${result.userOpHash.slice(0, 10)}...`,
+      `Varredura enviada! Hash da operação: ${result.userOpHash.slice(0, 10)}...`,
     );
   } else {
     notify('error', error.value ?? 'Falha ao varrer');
@@ -84,14 +84,14 @@ const handleSweep = async () => {
 
     <template v-else>
       <div class="text-container">
-        <span class="text font-bold text-3xl leading-9">Smart account</span>
+        <span class="text font-bold text-3xl leading-9">Conta inteligente</span>
       </div>
 
       <template v-if="!isReady">
         <div class="main-container max-w-md">
           <p class="text-gray-400 text-sm text-center">
-            Os recursos da conta Kernel não estão configurados. Defina o bundler
-            da chain em config/networks.ts.
+            Os recursos da conta inteligente não estão configurados. Defina o
+            bundler da rede em config/networks.ts.
           </p>
         </div>
       </template>
@@ -145,7 +145,7 @@ const handleSweep = async () => {
               </div>
             </div>
             <div v-if="lastUserOpHash" class="text-xs text-green-400 break-all">
-              Último userOpHash: {{ lastUserOpHash }}
+              Último hash da operação: {{ lastUserOpHash }}
             </div>
           </div>
         </div>

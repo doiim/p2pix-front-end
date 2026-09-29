@@ -222,7 +222,7 @@ const walletMenuOptions: MenuOption[] = [
     showInMobile: true,
   },
   {
-    label: 'Sweep / Recovery',
+    label: 'Conta inteligente',
     route: '/sweep',
     showInDesktop: true,
     showInMobile: true,
@@ -262,14 +262,14 @@ const handleMenuOptionClick = (option: MenuOption): void => {
       class="default-button flex items-center md:h-auto md:py-2 h-10 py-0"
     >
       <img
-        alt="P2Pix logo"
+        alt="Logotipo do P2Pix"
         class="logo hidden md:inline-block"
         width="200"
         height="75"
         src="@/assets/logo.svg?url"
       />
       <img
-        alt="P2Pix logo"
+        alt="Logotipo do P2Pix"
         class="logo inline-block md:hidden h-10"
         width="40"
         height="40"
@@ -410,7 +410,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
           ]"
         >
           <img
-            alt="Choosed network image"
+            alt="Rede selecionada"
             :src="getNetworkImage(network.name)"
             height="24"
             width="24"
@@ -419,7 +419,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
             class="default-text hidden sm:inline-block text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out whitespace-nowrap text-ellipsis overflow-hidden"
             :class="{ '!text-gray-900': currencyMenuOpenToggle }"
           >
-            {{ user.network.value.name || 'Invalid Chain' }}
+            {{ user.network.value.name || 'Rede inválida' }}
           </span>
           <div
             class="transition-all duration-500 ease-in-out mt-1"
@@ -447,7 +447,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
                 @click="networkChange(network)"
               >
                 <img
-                  :alt="network.name + ' image'"
+                  :alt="network.name + ' logo'"
                   width="20"
                   height="20"
                   :src="getNetworkImage(network.name)"
@@ -492,7 +492,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
               (infoMenuOpenToggle = false),
             ]"
           >
-            <img alt="Account image" src="@/assets/account.svg?url" />
+            <img alt="Carteira conectada" src="@/assets/account.svg?url" />
             <span
               class="default-text text-gray-50 group-hover:text-gray-900 transition-all duration-500 ease-in-out truncate text-ellipsis"
               :class="{ '!text-gray-900': menuOpenToggle }"
@@ -649,7 +649,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
             @click="networkChange(network)"
           >
             <img
-              :alt="network.name + 'image'"
+              :alt="network.name + ' logo'"
               width="20"
               height="20"
               :src="getNetworkImage(network.name)"

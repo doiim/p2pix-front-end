@@ -70,7 +70,7 @@ export function usePasskeyAccount() {
 
   const getAaClient = async () => {
     const context = await getActiveAaContext();
-    if (!context) throw new Error('AA context not available');
+    if (!context) throw new Error('Contexto da conta inteligente indisponível');
     smartAccountAddress.value = context.account.address;
     return context;
   };
@@ -93,7 +93,7 @@ export function usePasskeyAccount() {
       balances.value = result.tokens;
     } catch (cause) {
       error.value =
-        cause instanceof Error ? cause.message : 'Failed to fetch balances';
+        cause instanceof Error ? cause.message : 'Falha ao buscar os saldos';
     }
   };
 
@@ -105,7 +105,9 @@ export function usePasskeyAccount() {
       const { context, paymasterToken, result } = await readBalances();
       const tokenBalance = result.tokens[0];
       if (!tokenBalance || tokenBalance.balance === 0n) {
-        throw new Error('BRZ balance is required to pay for sweep gas');
+        throw new Error(
+          'É necessário saldo em BRZ para pagar o gás da varredura',
+        );
       }
 
       const nativeCall: AaCall[] =
@@ -129,7 +131,7 @@ export function usePasskeyAccount() {
         probe.costInToken +
         (probe.costInToken * FEE_HEADROOM_BPS) / BPS_DENOMINATOR;
       if (tokenBalance.balance <= feeReserve) {
-        throw new Error('BRZ balance does not cover sweep gas');
+        throw new Error('O saldo em BRZ não cobre o gás da varredura');
       }
 
       const transferAmount = tokenBalance.balance - feeReserve;
@@ -138,14 +140,17 @@ export function usePasskeyAccount() {
         ...nativeCall,
       ]);
       if (quote.costInToken > feeReserve) {
-        throw new Error('Sweep gas changed; refresh balances and try again');
+        throw new Error(
+          'O gás da varredura mudou; atualize os saldos e tente novamente',
+        );
       }
 
       const userOpHash = await sendPreparedErc20UserOperation(context, quote);
       const receipt = await context.erc20Client.waitForUserOperationReceipt({
         hash: userOpHash,
       });
-      if (!receipt.success) throw new Error(`AA sweep failed: ${userOpHash}`);
+      if (!receipt.success)
+        throw new Error(`Falha na varredura: ${userOpHash}`);
 
       lastUserOpHash.value = userOpHash;
       return {
@@ -156,7 +161,7 @@ export function usePasskeyAccount() {
         },
       };
     } catch (cause) {
-      error.value = cause instanceof Error ? cause.message : 'Sweep failed';
+      error.value = cause instanceof Error ? cause.message : 'Falha ao varrer';
       return null;
     } finally {
       busy.value = false;

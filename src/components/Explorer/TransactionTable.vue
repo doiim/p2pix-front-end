@@ -26,7 +26,7 @@ const copyFeedbackTimeout = ref<{ [key: string]: NodeJS.Timeout | null }>({});
 const getTransactionTypeInfo = (type: string) => {
   const typeMap = {
     deposit: { label: 'Depósito', status: 'completed' as const },
-    lock: { label: 'Bloqueio', status: 'open' as const },
+    lock: { label: 'Reserva', status: 'open' as const },
     release: { label: 'Liberação', status: 'completed' as const },
     return: { label: 'Retorno', status: 'expired' as const },
   };

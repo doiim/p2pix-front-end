@@ -21,7 +21,7 @@ const props = defineProps({
           class="flex flex-col text-center justify-center w-full items-center p-2 px-3 rounded-3xl lg:min-w-fit gap-1"
         >
           <img
-            alt="Polygon image"
+            alt="Validando transação"
             src="@/assets/validating.svg?url"
             width="96"
             height="48"

@@ -83,11 +83,13 @@ const cancelWithdraw = () => {
         </p>
         <div class="flex gap-2 w-32 sm:w-56" v-if="activeLockAmount != 0">
           <span class="text-xs font-normal text-gray-400" ref="infoText">
-            {{ `com ${activeLockAmount.toFixed(2)} ${selectedToken} em lock` }}
+            {{
+              `com ${activeLockAmount.toFixed(2)} ${selectedToken} reservados`
+            }}
           </span>
           <div class="absolute mt-[2px] md-view group">
             <img
-              alt="info image"
+              alt="Mais informações"
               src="@/assets/info.svg?url"
               aria-describedby="tooltip"
             />
@@ -95,9 +97,9 @@ const cancelWithdraw = () => {
               role="tooltip"
               class="w-56 z-50 tooltip md-view hidden group-hover:block"
             >
-              Valor "em lock" significa que a quantia está aguardando
+              Valor "reservado" significa que a quantia está aguardando
               confirmação de compra e só estará disponível para saque caso a
-              transação expire.
+              reserva expire.
             </div>
           </div>
         </div>

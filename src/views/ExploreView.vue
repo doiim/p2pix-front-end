@@ -27,7 +27,7 @@ const {
 const transactionTypes = [
   { key: 'all', label: 'Todas' },
   { key: 'deposit', label: 'Depósitos' },
-  { key: 'lock', label: 'Bloqueios' },
+  { key: 'lock', label: 'Reservas' },
   { key: 'release', label: 'Liberações' },
   { key: 'return', label: 'Retornos' },
 ];
@@ -75,7 +75,7 @@ onMounted(async () => {
         />
 
         <AnalyticsCard
-          title="Total de Bloqueios"
+          title="Total de Reservas"
           :value="analytics.totalLocks"
           :loading="analyticsLoading"
         />

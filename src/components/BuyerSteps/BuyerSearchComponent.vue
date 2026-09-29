@@ -271,7 +271,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
               @click="openTokenSelection()"
             >
               <img
-                alt="Token image"
+                alt="Imagem do token"
                 class="sm:w-fit w-4"
                 :src="getTokenImage(selectedToken)"
               />
@@ -283,7 +283,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
               <ChevronDown
                 class="pr-4 sm:pr-0 transition-all duration-500 ease-in-out invert"
                 :class="{ 'scale-y-[-1]': selectTokenToggle }"
-                alt="Chevron Down"
+                alt="Expandir"
               />
             </button>
             <transition name="dropdown">
@@ -363,7 +363,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
           "
         >
           <span class="text-red-500 font-normal text-sm"
-            >Atualmente não há liquidez nas rede selecionada para sua
+            >Atualmente não há liquidez nas redes selecionadas para sua
             demanda</span
           >
         </div>

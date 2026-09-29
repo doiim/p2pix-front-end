@@ -31,7 +31,7 @@ const props = withDefaults(defineProps<Props>(), {
       </div>
     </div>
     <div v-if="icon && !loading" class="analytics-icon">
-      <img :src="icon" :alt="`${title} icon`" class="w-8 h-8" />
+      <img :src="icon" alt="" class="w-8 h-8" />
     </div>
   </div>
 </template>

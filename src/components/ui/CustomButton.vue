@@ -49,14 +49,14 @@ const handleClick = () => {
       <img
         v-if="icon && iconPosition === 'left'"
         :src="icon"
-        :alt="`${text} icon`"
+        alt=""
         class="button-icon"
       />
       <span class="button-text">{{ text }}</span>
       <img
         v-if="icon && iconPosition === 'right'"
         :src="icon"
-        :alt="`${text} icon`"
+        alt=""
         class="button-icon"
       />
     </template>

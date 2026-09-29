@@ -100,7 +100,7 @@ watch(network, async () => {
     />
     <div class="page">
       <div class="header" v-if="!loadingWithdraw && !walletAddress">
-        Por Favor Conecte Sua Carteira
+        Por favor, conecte sua carteira
       </div>
       <div class="header" v-if="!loadingWithdraw && walletAddress">
         Gerenciar Ofertas

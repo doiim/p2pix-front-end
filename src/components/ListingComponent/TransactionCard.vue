@@ -22,7 +22,7 @@ const eventName = computed(() => {
     DepositAdded: 'Oferta',
     LockAdded: 'Reserva',
     LockReleased: 'Compra',
-    DepositWithdrawn: 'Retirada',
+    DepositWithdrawn: 'Saque',
   };
 
   return possibleEventName[props.transaction.event] || 'Desconhecido';
@@ -104,7 +104,7 @@ const handleExplorerClick = () => {
         >
           <span class="last-release-info">{{ explorerName }}</span>
           <img
-            alt="Redirect image"
+            alt="Abrir no explorador"
             src="@/assets/redirect.svg?url"
             class="w-3 h-3 sm:w-4 sm:h-4"
           />

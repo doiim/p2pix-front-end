@@ -103,8 +103,8 @@ const handleSelectedToken = (token: TokenEnum): void => {
       <span
         class="text font-medium sm:text-base text-xs sm:max-w-[28rem] max-w-[30rem] sm:tracking-normal tracking-wide"
       >
-        Digite sua oferta, informe a chave Pix, selecione a rede, aprove o envio
-        da transação e confirme sua oferta.
+        Digite sua oferta, informe seus dados de identificação e bancários,
+        aprove os tokens e confirme o envio da oferta para a rede.
       </span>
     </div>
 
@@ -135,7 +135,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
             @click="openTokenSelection()"
           >
             <img
-              alt="Token image"
+              alt="Imagem do token"
               class="sm:w-fit w-4"
               :src="getTokenImage(selectedToken)"
             />
@@ -148,7 +148,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
             <ChevronDown
               class="text-gray-900 pr-4 sm:pr-0 transition-all duration-500 ease-in-out"
               :class="{ 'scale-y-[-1]': selectTokenToggle }"
-              alt="Chevron Down"
+              alt="Expandir"
             />
           </button>
           <transition name="dropdown">

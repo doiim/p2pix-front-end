@@ -21,9 +21,10 @@ const props = defineProps({
       </span>
       <span
         class="text font-normal sm:text-base text-xs sm:max-w-[30rem] max-w-[22rem]"
-        >Após a confirmação sua oferta estará disponível para outros usuários.
-        Caso deseje retirar a oferta, será necessário aguardar 24h para receber
-        os tokens de volta.</span
+        >Após a confirmação, sua oferta ficará disponível para os compradores.
+        Se quiser retirar a oferta, use o saque em 'Gerenciar Ofertas': o saldo
+        que não estiver em reservas ativas volta para a sua carteira e a oferta
+        deixa de aceitar novas reservas.</span
       >
     </div>
     <div class="main-container">
@@ -42,9 +43,9 @@ const props = defineProps({
         </div>
         <div class="mb-5">
           <p>
-            <b>Atenção! </b> Os tokens ofertados ficam registrados no smart
-            contract e serão transferidos automaticamente para o comprador assim
-            que o Pix for detectado e confirmado.
+            <b>Atenção! </b> Os tokens ofertados ficam registrados no contrato
+            inteligente e serão transferidos automaticamente para o comprador
+            assim que o Pix for confirmado.
           </p>
         </div>
         <CustomButton

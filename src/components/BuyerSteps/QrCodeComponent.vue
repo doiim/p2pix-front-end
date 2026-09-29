@@ -175,7 +175,7 @@ onUnmounted(() => {
         >
           <SpinnerComponent width="8" height="8"></SpinnerComponent>
         </div>
-        <span class="text-center font-bold">Código pix</span>
+        <span class="text-center font-bold">Código Pix</span>
         <div class="break-words w-4/5">
           <span class="text-center text-xs">
             {{ qrCode }}
@@ -183,7 +183,7 @@ onUnmounted(() => {
         </div>
         <div class="flex flex-col items-center gap-1">
           <img
-            alt="Copy PIX code"
+            alt="Copiar código Pix"
             src="@/assets/copyPix.svg?url"
             width="16"
             height="16"
