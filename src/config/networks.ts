@@ -56,7 +56,9 @@ const wired = (isProd ? prodNetworks : testNetworks).filter(
 );
 
 if (wired.length === 0)
-  throw new Error('[networks] no wired deployments for this environment; check the contracts submodule deploys/*.json');
+  throw new Error(
+    '[networks] no wired deployments for this environment; check the contracts submodule deploys/*.json',
+  );
 
 export const Networks = wired as [NetworkConfig, ...NetworkConfig[]];
 
