@@ -1,6 +1,5 @@
 import { NetworkConfig } from '@/model/NetworkEnum';
 import { ref, computed, type Ref } from 'vue';
-import { sepolia, rootstock, rootstockTestnet } from 'viem/chains';
 
 export interface Transaction {
   id: string;

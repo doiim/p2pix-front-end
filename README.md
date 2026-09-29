@@ -45,11 +45,11 @@ Create a `.env` file with the three variables the build reads:
 
 | Var | Purpose |
 | --- | --- |
-| `VITE_APP_ENV` | `production` selects Ethereum mainnet + Arbitrum One and the production oracle (`api.p2pix.co`); any other value selects Sepolia + Rootstock Testnet and the demo hosts |
+| `VITE_APP_ENV` | `production` selects Ethereum mainnet + Arbitrum One and the production oracle (`api.p2pix.co`); any other value selects Sepolia and the demo hosts |
 | `VITE_REOWN_PROJECT_ID` | Reown AppKit project id (required; the app throws at startup without it) |
 | `VITE_PIMLICO_SPONSORSHIP_POLICY_ID` | Pimlico sponsorship policy; enables the smart-account rail and therefore passkey login |
 
-RPC, bundler and subgraph URLs and token addresses are set in `src/config/networks.ts` (see [`ARCHITECTURE.md`](./ARCHITECTURE.md)); contract addresses are read from the smart-contracts submodule's deployments.
+RPC, bundler and subgraph URLs and token addresses are set in `src/config/networks.ts` (see [`ARCHITECTURE.md`](./ARCHITECTURE.md)); contract addresses — and which networks are listed at all — come from the smart-contracts submodule's `deploys/*.json`, so an un-deployed network is not offered.
 
 ## Build Setup
 

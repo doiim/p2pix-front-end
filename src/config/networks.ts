@@ -1,5 +1,5 @@
 import type { Address } from 'viem';
-import { arbitrum, mainnet, rootstockTestnet, sepolia } from 'viem/chains';
+import { arbitrum, mainnet, sepolia } from 'viem/chains';
 import type { AppKitNetwork as WalletNetwork } from '@doiim/reown-appkit/networks';
 import { NetworkConfig } from '@/model/NetworkEnum';
 
@@ -10,55 +10,55 @@ const deploys = import.meta.glob<{ p2pix: Address; token: Address }>(
   './*.json',
   { eager: true, import: 'default', base: '/p2pix-smart-contracts/deploys' },
 );
-const p2pix = (name: string) => ({
-  p2pix: { address: deploys[`./${name}.json`]?.p2pix },
-});
+const record = (name: string) => deploys[`./${name}.json`];
+const p2pix = (name: string) => ({ p2pix: { address: record(name)?.p2pix } });
+
+const ifWired = (
+  name: string,
+  network: NetworkConfig,
+): NetworkConfig | undefined => (record(name)?.p2pix ? network : undefined);
 
 // prettier-ignore
-const prodNetworks: [NetworkConfig, ...NetworkConfig[]] = [
-  {
+const prodNetworks = [
+  ifWired('mainnet', {
     ...mainnet,
     rpcUrls: { default: { http: ['https://eth-mainnet.g.alchemy.com/v2/LgaUspQXUtbBxAF8qApKG8L5-FesOVLH'] } },
     contracts: { ...mainnet.contracts, ...p2pix('mainnet') },
     tokens: { BRZ: { address: '0xC40356e14842e951A2A1F156d5be28cC6E4C2697' } },
     aa: { bundlerUrl: 'https://api.pimlico.io/v2/1/rpc?apikey=pim_MQjrtKPAPnQ2oyfvyr128e' },
     subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/mainnet/p2pix'],
-  },
-  {
+  }),
+  ifWired('arbitrum', {
     ...arbitrum,
     rpcUrls: { default: { http: ['https://arb-mainnet.g.alchemy.com/v2/Ypckt5vbPFn6Knfwyfai0DevHqw8ukJl'] } },
     contracts: { ...arbitrum.contracts, ...p2pix('arbitrum') },
     tokens: { BRZ: { address: '0xa8940698fda5a07abaef4a5ccdf2f1bb525b47a2' } },
     aa: { bundlerUrl: 'https://api.pimlico.io/v2/42161/rpc?apikey=pim_MQjrtKPAPnQ2oyfvyr128e' },
     subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/arbitrum/p2pix'],
-  },
+  }),
 ];
 
 // prettier-ignore
-const testNetworks: [NetworkConfig, ...NetworkConfig[]] = [
-  {
+const testNetworks = [
+  ifWired('sepolia', {
     ...sepolia,
     rpcUrls: { default: { http: ['https://eth-sepolia.g.alchemy.com/v2/LgaUspQXUtbBxAF8qApKG8L5-FesOVLH'] } },
     contracts: { ...sepolia.contracts, ...p2pix('sepolia') },
-    tokens: { BRZ: { address: deploys['./sepolia.json']?.token } },
+    tokens: { BRZ: { address: record('sepolia')?.token } },
     aa: { bundlerUrl: 'https://api.pimlico.io/v2/11155111/rpc?apikey=pim_MQjrtKPAPnQ2oyfvyr128e' },
     subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/p-2-pix/sepolia'],
-  },
-  {
-    ...rootstockTestnet,
-    rpcUrls: { default: { http: ['https://rootstock-testnet.g.alchemy.com/v2/dHLGA_JZ4cW83ZB23SBhCCqys3niIUDv'] } },
-    contracts: { ...rootstockTestnet.contracts, ...p2pix('rootstockTestnet') },
-    tokens: { BRZ: { address: deploys['./rootstockTestnet.json']?.token } },
-    // No `aa` here: Pimlico serves no Rootstock network, so a bundler URL built
-    // for this chain id would be accepted by isAaAvailable and then rejected at
-    // send time. Leaving AA off keeps passkey login from being offered at all.
-    // https://dashboard.pimlico.io/request-chain-deployment
-    subgraphUrls: ['https://api.studio.thegraph.com/query/113713/p-2-pix/version/rootstock-testnet'],
-  },
+  }),
 ];
 
-export const Networks =
-  import.meta.env.VITE_APP_ENV === 'production' ? prodNetworks : testNetworks;
+const isProd = import.meta.env.VITE_APP_ENV === 'production';
+const wired = (isProd ? prodNetworks : testNetworks).filter(
+  (network): network is NetworkConfig => network !== undefined,
+);
+
+if (wired.length === 0)
+  throw new Error('[networks] no wired deployments for this environment; check the contracts submodule deploys/*.json');
+
+export const Networks = wired as [NetworkConfig, ...NetworkConfig[]];
 
 export const DEFAULT_NETWORK = Networks[0];
 

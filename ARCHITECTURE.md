@@ -27,7 +27,7 @@ Build-time configuration, injected by CI (the build also bakes in git-derived re
 
 RPC, bundler and subgraph URLs and the mainnet BRZ addresses are literals in `src/config/networks.ts`; changing one is a code change and a rebuild. This is a disclosed trade-off, not a hidden one: the URLs embed Alchemy and Pimlico API keys — rate-limit credentials that ship in the bundle regardless — so parking them in env vars would hide nothing and buy nothing. The P2Pix contract addresses and the testnet BRZ (MockToken) addresses come from the submodule's `deploys/` records.
 
-Networks: production = Ethereum mainnet and Arbitrum One; development = Sepolia and Rootstock Testnet. A network is one `NetworkConfig` entry in `src/config/networks.ts`: the viem chain plus `contracts.p2pix`, `tokens`, `subgraphUrls` and an optional `aa` block; the smart-account rail exists only where `aa` is set.
+Networks: production = Ethereum mainnet and Arbitrum One; development = Sepolia. A network is one `NetworkConfig` entry in `src/config/networks.ts`: the viem chain plus `contracts.p2pix`, `tokens`, `subgraphUrls` and an optional `aa` block; the smart-account rail exists only where `aa` is set. The list is that code registry filtered by the submodule's `deploys/`: a network appears only when its deploy record is present and carries a non-empty `p2pix`, so placeholders and un-deployed networks drop out, and an environment with no wired deployment fails fast at startup rather than shipping an empty network picker. Rootstock Testnet is deliberately not listed: its deploy record predates the current contract and has not been refreshed against it, so the shipped ABIs do not match it.
 
 ### 2. Architecture
 
