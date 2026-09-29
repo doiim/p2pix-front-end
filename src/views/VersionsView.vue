@@ -34,7 +34,12 @@ const ALLOWED_TAGS =
 const ALLOWED_ATTRS = 'href src alt title align colspan rowspan start'.split(
   ' ',
 );
-const UNSAFE_URL = /^\s*(?:javascript|data|vbscript):/i;
+// WHATWG URL parsing strips every C0 control and space (U+0000–U+0020) before
+// resolving the scheme, so `java\tscript:` and `&#1;javascript:` both reach the
+// same parser as `javascript:`. Canonicalize before testing.
+const UNSAFE_URL = /^(?:javascript|data|vbscript):/i;
+const isUnsafeUrl = (value: string): boolean =>
+  UNSAFE_URL.test(value.replace(/[\u0000-\u0020]+/g, ''));
 
 const releaseNotes = (md?: string): string => {
   if (!md) return '';
@@ -45,14 +50,28 @@ const releaseNotes = (md?: string): string => {
   );
 
   for (const el of doc.body.querySelectorAll('*')) {
+    // GFM task lists render as `<input type="checkbox" disabled>`; keep the
+    // checked state as text instead of filtering the marker away.
+    if (el.tagName.toLowerCase() === 'input') {
+      if (el.getAttribute('type') === 'checkbox') {
+        el.replaceWith(el.hasAttribute('checked') ? '☑ ' : '☐ ');
+      } else {
+        el.remove();
+      }
+      continue;
+    }
     if (!ALLOWED_TAGS.includes(el.tagName.toLowerCase())) {
-      el.remove();
+      // Unwrap instead of removing: `remove()` would drop non-listed wrappers
+      // (`details`, `summary`, `div`, …) together with their text. The
+      // `querySelectorAll('*')` result is a static list, so the unwrapped
+      // children are still visited and scrubbed later in document order.
+      el.replaceWith(...el.childNodes);
       continue;
     }
     for (const { name, value } of [...el.attributes]) {
       const key = name.toLowerCase();
       const isUrl = key === 'href' || key === 'src';
-      if (!ALLOWED_ATTRS.includes(key) || (isUrl && UNSAFE_URL.test(value))) {
+      if (!ALLOWED_ATTRS.includes(key) || (isUrl && isUnsafeUrl(value))) {
         el.removeAttribute(name);
       }
     }
