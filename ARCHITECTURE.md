@@ -96,7 +96,7 @@ One workflow, `.gitea/workflows/ci.yml` (`CI & Deploy`), builds every branch and
 
 ### 7. zkPix
 
-`zkPix` is the release path described above: the contract verifies a **proof of Pix payment**, produced with **zkTLS** from the bank's own confirmation, in place of a signature from a party we operate. The prover lives in a separate repository (`zkPix`); its proof-verifying contracts sit on the contracts repository's `zkpix` branch, one commit ahead of the submodule pin this repo carries — until the pin moves, a clean checkout generates the pre-zkPix ABI and this frontend does not type-check against it.
+`zkPix` is the release path described above: the contract verifies a **proof of Pix payment**, produced with **zkTLS** from the bank's own confirmation, in place of a signature from a party we operate. The prover lives in a separate repository (`zkPix`), and the submodule pin carries the proof-verifying contracts — a clean checkout generates matching ABIs and this frontend type-checks against them.
 
 - **Prover flow.** On `GET /release/<n>` the prover reads the charge from BB Pay and, once the bank reports it paid, opens a Primus network task (Base Sepolia in development) and has the selected **Primus attestor** replay one request to the bank over zkTLS in proxy mode with the prover's mTLS client certificate and a read-only OAuth token: `GET /solicitacoes/<n>`.
 - **Attestor signature.** The attestor signs — a raw keccak over the packed attestation — the request URL, the JSON paths it was asked to reveal and the revealed values: amount, settled sum, payee, Pix `txId` and reconciliation code.
