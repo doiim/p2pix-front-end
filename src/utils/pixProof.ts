@@ -66,7 +66,10 @@ const packStrings = (parts: string[]): Hex =>
 /**
  * The digest the Primus attestor signed, rebuilt the way the contract does
  * (`PrimusAttestation.digest`): a raw keccak over the packed attestation, no
- * EIP-191 prefix. Lets the client check a proof before paying for gas.
+ * EIP-191 prefix. Nothing in `src/` runs a pre-check with it: that needs the
+ * contract's own `bank` settings and its on-chain attestor allowlist. It is
+ * the reference rebuild the release path must match, exercised by
+ * `tests/blockchain/pixProof.test.ts`.
  */
 export const pixProofDigest = (proof: PixProof, bank: BankConfig): Hex => {
   const urls = [
