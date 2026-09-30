@@ -32,11 +32,11 @@ P2Pix is self-custodial for signing, but releasing an escrow relies on third-par
 - **What it sees or can block:** Reown, not you, controls the login key.
 - **Escape path:** `/sweep` drains the smart account to any address (needs BRZ for gas); the key itself cannot be exported.
 
-### Reown Blockchain API + Alchemy RPC + The Graph (reads)
+### Alchemy RPC + The Graph (reads)
 
-- **What it is:** the read layer — RPC and indexed events.
-- **What it sees or can block:** your addresses, read requests and query parameters.
-- **Escape path:** point the app at your own RPC and subgraph — a config change and rebuild.
+- **What it is:** the read layer — RPC and indexed events, read only through the endpoints the app configures.
+- **What it sees or can block:** your addresses, read requests and query parameters. Reads go to the configured RPCs in `src/config/networks.ts` (Alchemy) and the per-network subgraphs — Alchemy and The Graph are what still observe read metadata; with `reownRpcFallback: false` they never fall through to Reown's Blockchain API (`rpc.walletconnect.org`).
+- **Escape path:** point the app at a different RPC provider or your own user-configurable endpoints, and at your own subgraph — a config change and rebuild.
 
 ### Pimlico bundler + paymaster (ERC-4337)
 
@@ -61,13 +61,13 @@ P2Pix is self-custodial for signing, but releasing an escrow relies on third-par
 | Zero telemetry endpoints | ✅ | The app ships no analytics; the AppKit fork removes Reown's analytics pipeline and stubs Coinbase telemetry (`ARCHITECTURE.md` §1). |
 | Open standards + readable artifacts | ⚠️ | This front-end is public under MIT; the release oracle (`api.p2pix.co`) is closed. |
 | License commitment | ✅ | MIT here (permissive, accepted); no source-available component in this front-end. A no-relicense pledge is not yet recorded. |
-| Verifiable data layer | ❌ | Reads are single-source per concern (Reown Blockchain API / Alchemy RPC, The Graph); no light client or deterministic replay. |
+| Verifiable data layer | ❌ | Reads are single-source per concern (Alchemy RPC, The Graph); no light client or deterministic replay. |
 | Content-hash distribution + ENS anchoring | ⚠️ | IPFS pin + IPNS anchored by a DNS TXT record; ENS and a `.onion` mirror are not shipped. |
 | Structural metadata hardening | ⚠️ | Not substantiated in `ARCHITECTURE.md`; AppKit contacts cloud feature-flag and wallet/asset-image endpoints on load. |
 | Reproducible, signed releases | ❌ | Rebuilding a tag to its recorded CID is an open gap (`ARCHITECTURE.md` §6); releases are not signed. |
 | Explicit privacy boundaries | ✅ | Metadata-only guarantee; on-chain content is public (`DESIGN.md` §C.5). |
 | Signing safety | ⚠️ | Exact-amount approvals, chainId checks and wallet-visible actions; no EIP-4361 (no off-chain auth) and no documented tx simulation. |
-| Read-path metadata hygiene | ❌ | Reads go through shared RPC/indexer endpoints with no user-configurable option in the shipped app. |
+| Read-path metadata hygiene | ❌ | Reads go through the configured shared RPC/indexer endpoints (Alchemy, The Graph) with no user-configurable option in the shipped app; Reown's Blockchain API is no longer a read provider (`reownRpcFallback: false`). |
 | Zero option | ❌ | Contract writes are callable directly (✓), but escrow release has no intermediary-free path today; the Bacen ask ([bacen/pix-api#61](https://github.com/bacen/pix-api/issues/61)) is the primary route to one. |
 | User-controlled defenses | ✅ | No default blocklists, venue steering, or opaque AI in the shipped app. |
 | Cross-layer review | ✅ | No documented relocation of a chokepoint between layers. |

@@ -133,6 +133,7 @@ export const setupAppKit = (): WagmiAdapter => {
     networks: wagmiNetworks,
     projectId: reownProjectId,
     passkey: passkeyConfig,
+    reownRpcFallback: false,
   });
 
   createAppKit({
