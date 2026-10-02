@@ -24,61 +24,46 @@ const formatDate = (dateString: string): string => {
   });
 };
 
-// Release notes come from `git notes` and are bound to v-html, so the rendered
-// HTML is filtered down to an allow-list before it reaches the DOM. Kept inline
-// (no dependency) on purpose.
-const ALLOWED_TAGS =
-  'a blockquote br code del em h1 h2 h3 h4 h5 h6 hr i img li ol p pre s strong table tbody td th thead tr ul'.split(
-    ' ',
-  );
-const ALLOWED_ATTRS = 'href src alt title align colspan rowspan start'.split(
-  ' ',
-);
-// WHATWG URL parsing strips every C0 control and space (U+0000–U+0020) before
-// resolving the scheme, so `java\tscript:` and `&#1;javascript:` both reach the
-// same parser as `javascript:`. Canonicalize before testing.
-const UNSAFE_URL = /^(?:javascript|data|vbscript):/i;
-const isUnsafeUrl = (value: string): boolean =>
-  UNSAFE_URL.test(value.replace(/[\u0000-\u0020]+/g, ''));
-
-const releaseNotes = (md?: string): string => {
-  if (!md) return '';
-
-  const doc = new DOMParser().parseFromString(
-    marked.parse(md, { breaks: true, gfm: true }) as string,
-    'text/html',
-  );
-
-  for (const el of doc.body.querySelectorAll('*')) {
-    // GFM task lists render as `<input type="checkbox" disabled>`; keep the
-    // checked state as text instead of filtering the marker away.
-    if (el.tagName.toLowerCase() === 'input') {
-      if (el.getAttribute('type') === 'checkbox') {
-        el.replaceWith(el.hasAttribute('checked') ? '☑ ' : '☐ ');
-      } else {
-        el.remove();
-      }
-      continue;
-    }
-    if (!ALLOWED_TAGS.includes(el.tagName.toLowerCase())) {
-      // Unwrap instead of removing: `remove()` would drop non-listed wrappers
-      // (`details`, `summary`, `div`, …) together with their text. The
-      // `querySelectorAll('*')` result is a static list, so the unwrapped
-      // children are still visited and scrubbed later in document order.
-      el.replaceWith(...el.childNodes);
-      continue;
-    }
-    for (const { name, value } of [...el.attributes]) {
-      const key = name.toLowerCase();
-      const isUrl = key === 'href' || key === 'src';
-      if (!ALLOWED_ATTRS.includes(key) || (isUrl && isUnsafeUrl(value))) {
-        el.removeAttribute(name);
-      }
-    }
-  }
-
-  return doc.body.innerHTML;
+// Release notes are markdown, never HTML: raw HTML in a note renders as
+// visible text, and links only carry schemes we choose to allow. v-html then
+// receives only markup this renderer itself emits. Kept inline (no dependency)
+// on purpose.
+const ESCAPES: Record<string, string> = {
+  '&': '&amp;',
+  '<': '&lt;',
+  '>': '&gt;',
+  '"': '&quot;',
+  "'": '&#39;',
 };
+const escapeHtml = (s: string): string =>
+  s.replace(/[&<>"']/g, (c) => ESCAPES[c]);
+// RFC 3986 scheme, then our allow-list: unknown schemes degrade to text
+// instead of reaching a browser URL parser or an external handler.
+const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
+const SAFE_SCHEME = /^(?:https?|mailto|ipfs):/i;
+const safeHref = (href: string): boolean =>
+  !HAS_SCHEME.test(href) || SAFE_SCHEME.test(href);
+
+marked.use({
+  renderer: {
+    html: ({ text }) => escapeHtml(text),
+    checkbox: ({ checked }) => (checked ? '☑ ' : '☐ '),
+    link({ href, title, tokens }) {
+      const label = this.parser.parseInline(tokens);
+      if (!safeHref(href)) return label;
+      const t = title ? ` title="${escapeHtml(title)}"` : '';
+      return `<a href="${escapeHtml(href)}"${t}>${label}</a>`;
+    },
+    image({ href, title, text }) {
+      if (!safeHref(href)) return escapeHtml(text ?? '');
+      const t = title ? ` title="${escapeHtml(title)}"` : '';
+      return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text ?? '')}"${t}>`;
+    },
+  },
+});
+
+const releaseNotes = (md?: string): string =>
+  md ? (marked.parse(md, { breaks: true, gfm: true }) as string) : '';
 </script>
 
 <template>
