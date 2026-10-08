@@ -11,6 +11,9 @@ import {
   LockIdUnrecoverableError,
 } from '@/blockchain/buyerMethods';
 import { updateWalletStatus, checkUnreleasedLock } from '@/blockchain/wallet';
+import { isAmountNotAllowedError } from '@/blockchain/reputation';
+import { useReputation } from '@/composables/useReputation';
+import type { BuyPress, LimitChange } from '@/utils/reputation';
 import { getNetworksLiquidity } from '@/blockchain/events';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
@@ -25,6 +28,7 @@ enum Step {
 
 const user = useUser();
 user.setSellerView(false);
+const reputation = useReputation();
 
 // States
 const { loadingLock, walletAddress, network } = user;
@@ -38,13 +42,23 @@ const showModal = ref<boolean>(false);
 const showBuyAlert = ref<boolean>(false);
 const showLockRecoveryAlert = ref<boolean>(false);
 const paramLockID = window.history.state?.lockID;
+// Set when the contract refused the lock with AmountNotAllowed: the search step reopens with that press.
+const searchRefusal = ref<BuyPress | null>(null);
+// The limit before and after the last release, for the purchase-complete screen; null when unknown or unchanged.
+const newLimit = ref<LimitChange | null>(null);
+
+// A refusal belongs to the search step it reopened: leaving that step (e.g. to resume a pending lock) drops it.
+watch(flowStep, (step) => {
+  if (step !== Step.Search) searchRefusal.value = null;
+});
 
 const confirmBuyClick = async (
   selectedDeposit: ValidDeposit,
-  tokenValue: number,
+  press: BuyPress,
 ) => {
+  searchRefusal.value = null;
   participantID.value = selectedDeposit.participantID;
-  tokenAmount.value = tokenValue;
+  tokenAmount.value = press.amount;
 
   if (selectedDeposit) {
     flowStep.value = Step.Buy;
@@ -56,12 +70,12 @@ const confirmBuyClick = async (
     // stale id from purchase #1 for a successful recovery of purchase #2.
     lockID.value = '';
 
-    await addLock(selectedDeposit.seller, selectedDeposit.token, tokenValue)
+    await addLock(selectedDeposit.seller, selectedDeposit.token, press.amount)
       .then((_lockID) => {
         lockID.value = String(_lockID);
       })
       .catch(async (err) => {
-        console.log(err);
+        console.error(err);
         if (err instanceof LockIdUnrecoverableError) {
           // The lock is funded on-chain: look it up instead of abandoning it.
           await checkForUnreleasedLocks().catch(console.error);
@@ -74,6 +88,13 @@ const confirmBuyClick = async (
             showLockRecoveryAlert.value = true;
           }
           return;
+        }
+        if (isAmountNotAllowedError(err)) {
+          // Re-read while the loading screen is up, so the search step opens with the limit the
+          // contract applied; at most 4 s, since nothing is being sent. A slower read keeps running
+          // and the search step shows it land ("Verificando seu limite…", then R3).
+          await reputation.refresh({ timeoutMs: 4000 });
+          searchRefusal.value = press;
         }
         flowStep.value = Step.Search;
       });
@@ -89,13 +110,29 @@ const releaseTransaction = async (params: {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
   loadingRelease.value = true;
+  newLimit.value = null;
+  const beforeTokens = reputation.snapshot.value?.limitTokens ?? null;
+  const networkName = network.value.name;
 
   try {
-    await releaseLock(
+    const receipt = await releaseLock(
       BigInt(lockID.value),
       params.pixTimestamp,
       params.signature,
     );
+    // Not awaited: the screen shows now and the line appears once the read lands. refresh() never rejects.
+    void reputation.refresh({ minBlock: receipt.blockNumber }).then((read) => {
+      newLimit.value =
+        read.ok &&
+        beforeTokens !== null &&
+        read.snapshot.limitTokens !== beforeTokens
+          ? {
+              networkName,
+              beforeTokens,
+              afterTokens: read.snapshot.limitTokens,
+            }
+          : null;
+    });
 
     try {
       await updateWalletStatus();
@@ -163,6 +200,7 @@ onMounted(async () => {
   <div>
     <SearchComponent
       v-if="flowStep == Step.Search"
+      :refusal="searchRefusal"
       @token-buy="confirmBuyClick"
     />
     <CustomAlert
@@ -199,6 +237,7 @@ onMounted(async () => {
         <BuyConfirmedComponent
           :tokenAmount="tokenAmount"
           :is-current-step="flowStep == Step.List"
+          :new-limit="newLimit"
           @make-another-transaction="flowStep = Step.Search"
         />
       </div>

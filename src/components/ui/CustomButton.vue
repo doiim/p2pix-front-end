@@ -155,8 +155,8 @@ const handleClick = () => {
   @apply font-semibold;
 }
 
-/* Loader animation */
+/* Loader animation; my-0.5 makes the 20px ring fill the 24px text-base line, so the button keeps its height */
 .loader {
-  @apply w-5 h-5 border-2 border-gray-900 border-t-transparent rounded-full animate-spin;
+  @apply w-5 h-5 my-0.5 border-2 border-gray-900 border-t-transparent rounded-full animate-spin motion-reduce:animate-none;
 }
 </style>

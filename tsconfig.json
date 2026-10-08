@@ -3,7 +3,8 @@
   "include": [
     "src/**/*",
     "src/**/*.vue",
-    "scripts"
+    "scripts",
+    "tests/**/*"
   ],
   "compilerOptions": {
     "strict": true,
