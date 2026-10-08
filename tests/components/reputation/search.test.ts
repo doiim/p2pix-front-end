@@ -15,7 +15,7 @@ const chain = vi.hoisted(() => {
     limitTokens: 2256n,
     failing: false,
     hold: false,
-    held: [] as (() => void)[],
+    held: new Array<() => void>(),
     reads: 0,
   };
   const snapshot = (
@@ -135,8 +135,7 @@ const field = (host: Element, selector: string) => {
   if (!(input instanceof HTMLInputElement)) throw new Error(`no ${selector}`);
   return input;
 };
-const amountInput = (host: Element) =>
-  field(host, 'input[name="tokenAmount"]');
+const amountInput = (host: Element) => field(host, 'input[name="tokenAmount"]');
 const cpfInput = (host: Element) =>
   field(host, 'input[placeholder^="Digite seu CPF"]');
 
