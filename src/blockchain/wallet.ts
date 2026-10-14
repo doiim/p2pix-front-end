@@ -345,7 +345,9 @@ export const getSellerLockState = async (
 
   return {
     activeLockAmount,
-    expiredLockIds: sortedIDs.filter((_, i) => status[i] === LockStatus.Expired),
+    expiredLockIds: sortedIDs.filter(
+      (_, i) => status[i] === LockStatus.Expired,
+    ),
   };
 };
 
