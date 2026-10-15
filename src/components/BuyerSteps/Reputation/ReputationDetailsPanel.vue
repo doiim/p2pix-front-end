@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted } from 'vue';
 import {
-  buildLimitChart,
-  CHART_WIDE,
   formatBrl,
   formatTokens,
   LOCKAMOUNT_UPPERBOUND_TOKENS,
@@ -14,7 +12,6 @@ import type {
   PanelTag,
   ReputationSnapshot,
 } from '@/utils/reputation';
-import ReputationChart from './ReputationChart.vue';
 import ReputationHowItWorks from './ReputationHowItWorks.vue';
 import ReputationTagGroup from './ReputationTagGroup.vue';
 import ReputationVerification from './ReputationVerification.vue';
@@ -34,27 +31,10 @@ const emit = defineEmits<{
   close: [];
 }>();
 
-const chartAvailable = computed(
-  () =>
-    buildLimitChart(
-      {
-        curve: props.snapshot.curve,
-        creditTokens: props.snapshot.creditTokens,
-        limitTokens: props.snapshot.limitTokens,
-        amountCents: props.amountCents,
-      },
-      CHART_WIDE,
-    ).kind !== 'none',
-);
-
-const tags = computed(() =>
-  (['chart', 'howItWorks', 'verification'] as const).filter(
-    (item) => item !== 'chart' || chartAvailable.value,
-  ),
-);
+const tags = ['howItWorks', 'verification'] as const;
 
 const activeTag = computed(() =>
-  props.tag !== null && tags.value.includes(props.tag) ? props.tag : null,
+  props.tag !== null && tags.includes(props.tag) ? props.tag : null,
 );
 
 const excessCents = computed(() => {
@@ -163,13 +143,6 @@ const accountNoun = computed(() =>
           >. Cada compra usa uma única oferta.
         </p>
       </template>
-      <ReputationChart
-        v-else-if="activeTag === 'chart'"
-        :curve="snapshot.curve"
-        :credit-tokens="snapshot.creditTokens"
-        :limit-tokens="snapshot.limitTokens"
-        :amount-cents="amountCents"
-      />
       <ReputationHowItWorks
         v-else-if="activeTag === 'howItWorks'"
         :limit-tokens="snapshot.limitTokens"

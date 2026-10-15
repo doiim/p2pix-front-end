@@ -10,7 +10,6 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:tag': [tag: PanelTag | null] }>();
 
 const LABELS: Record<PanelTag, string> = {
-  chart: 'Gráfico',
   howItWorks: 'Como funciona',
   verification: 'Verificação',
 };

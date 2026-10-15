@@ -12,7 +12,6 @@ import {
   castAddrToKey,
   creditTokensFromWei,
   effectiveLimit,
-  limiterReplica,
 } from '@/utils/reputation';
 import type {
   ReputationErrorKind,
@@ -79,28 +78,12 @@ export const readReputationSnapshot = async (
     functionName: 'limiter' as const,
     args: [credit] as const,
   });
-  // A plain array, not a tuple: viem cannot type a tuple with an array spread into it. Every call
-  // here returns uint256, so the reads stay typed.
-  const moduleCalls = [
-    limiterCall(creditTokens),
-    limiterCall(0n),
-    {
-      address: reputation,
-      abi: reputationAbi,
-      functionName: 'maxLimit' as const,
-    },
-    {
-      address: reputation,
-      abi: reputationAbi,
-      functionName: 'magicValue' as const,
-    },
-    ...CURVE_PROBE_CREDITS.map(limiterCall),
-  ];
+  // Every call here returns uint256, so the reads stay typed.
+  const moduleCalls = [limiterCall(creditTokens), limiterCall(0n)];
   const moduleReads = await client
     .multicall({ allowFailure: true, blockNumber, contracts: moduleCalls })
     .catch(rpcFailure);
-  const [limiterRead, baseRead, maxLimitRead, magicValueRead, ...probeReads] =
-    moduleReads;
+  const [limiterRead, baseRead] = moduleReads;
   // viem hands every call the same error object when the aggregate call itself failed (transport);
   // a call that reverted or returned no data gets its own, which points at the module.
   if (limiterRead.status === 'failure' || baseRead.status === 'failure')
@@ -133,30 +116,6 @@ export const readReputationSnapshot = async (
           .catch(rpcFailure)
       : null;
 
-  const curve =
-    maxLimitRead.status === 'success' &&
-    magicValueRead.status === 'success' &&
-    maxLimitRead.result > 0n
-      ? {
-          base: baseValue,
-          maxLimit: maxLimitRead.result,
-          magicValue: magicValueRead.result,
-        }
-      : null;
-  // Every limiter value read at this block; the replica must reproduce all of them (D8). A probe
-  // that reverted (null) must be one the replica cannot compute either.
-  const limiterReads = [
-    { credit: 0n, value: baseValue },
-    { credit: creditTokens, value: limiterValue },
-    ...(nextLimiterValue === null
-      ? []
-      : [{ credit: creditTokens + limitTokens, value: nextLimiterValue }]),
-    ...CURVE_PROBE_CREDITS.map((credit, i) => ({
-      credit,
-      value: probeReads[i].status === 'success' ? probeReads[i].result : null,
-    })),
-  ];
-
   return {
     chainId: target.chainId,
     p2pix,
@@ -171,13 +130,6 @@ export const readReputationSnapshot = async (
     newWalletLimitTokens: effectiveLimit(baseValue),
     nextLimitTokens:
       nextLimiterValue === null ? null : effectiveLimit(nextLimiterValue),
-    curve:
-      curve !== null &&
-      limiterReads.every(
-        (read) => limiterReplica(curve, read.credit) === read.value,
-      )
-        ? curve
-        : null,
   };
 };
 
@@ -186,14 +138,6 @@ export const isAmountNotAllowedError = (err: unknown): boolean =>
   causeChain(err, MAX_CAUSE_DEPTH)
     .flatMap(revertDataCandidates)
     .some((hex) => hex.toLowerCase() === AMOUNT_NOT_ALLOWED_SELECTOR);
-
-// Fixed credits (10 to 10^9 tokens) at which the module must match the replica before the chart may
-// plot it: the user's own credit points alone leave most of the plotted range unchecked. They do
-// not depend on the user or the typed amount.
-const CURVE_PROBE_CREDITS = Array.from(
-  { length: 9 },
-  (_, i) => 10n ** BigInt(i + 1),
-);
 
 const rpcFailure = (cause: unknown): never => {
   throw new ReputationReadError('rpc', { cause });
