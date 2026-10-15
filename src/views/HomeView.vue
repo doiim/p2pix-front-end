@@ -60,47 +60,45 @@ const confirmBuyClick = async (
   participantID.value = selectedDeposit.participantID;
   tokenAmount.value = press.amount;
 
-  if (selectedDeposit) {
-    flowStep.value = Step.Buy;
-    user.setLoadingLock(true);
+  flowStep.value = Step.Buy;
+  user.setLoadingLock(true);
 
-    // Reset any lockID left over from a previous purchase so that, if addLock
-    // throws LockIdUnrecoverableError and checkForUnreleasedLocks does not
-    // recover an id, the `if (lockID.value)` check below does not mistake a
-    // stale id from purchase #1 for a successful recovery of purchase #2.
-    lockID.value = '';
+  // Reset any lockID left over from a previous purchase so that, if addLock
+  // throws LockIdUnrecoverableError and checkForUnreleasedLocks does not
+  // recover an id, the `if (lockID.value)` check below does not mistake a
+  // stale id from purchase #1 for a successful recovery of purchase #2.
+  lockID.value = '';
 
-    await addLock(selectedDeposit.seller, selectedDeposit.token, press.amount)
-      .then((_lockID) => {
-        lockID.value = String(_lockID);
-      })
-      .catch(async (err) => {
-        console.error(err);
-        if (err instanceof LockIdUnrecoverableError) {
-          // The lock is funded on-chain: look it up instead of abandoning it.
-          await checkForUnreleasedLocks().catch(console.error);
-          if (lockID.value) {
-            showModal.value = false;
-          } else {
-            // Without an id there is nothing for the QR step to render, so go
-            // back to the search screen and say the lock is out there.
-            flowStep.value = Step.Search;
-            showLockRecoveryAlert.value = true;
-          }
-          return;
+  await addLock(selectedDeposit.seller, selectedDeposit.token, press.amount)
+    .then((_lockID) => {
+      lockID.value = String(_lockID);
+    })
+    .catch(async (err) => {
+      console.error(err);
+      if (err instanceof LockIdUnrecoverableError) {
+        // The lock is funded on-chain: look it up instead of abandoning it.
+        await checkForUnreleasedLocks().catch(console.error);
+        if (lockID.value) {
+          showModal.value = false;
+        } else {
+          // Without an id there is nothing for the QR step to render, so go
+          // back to the search screen and say the lock is out there.
+          flowStep.value = Step.Search;
+          showLockRecoveryAlert.value = true;
         }
-        if (isAmountNotAllowedError(err)) {
-          // Re-read while the loading screen is up, so the search step opens with the limit the
-          // contract applied; at most 4 s, since nothing is being sent. A slower read keeps running
-          // and the search step shows it land ("Verificando seu limite…", then R3).
-          await reputation.refresh({ timeoutMs: 4000 });
-          searchRefusal.value = press;
-        }
-        flowStep.value = Step.Search;
-      });
+        return;
+      }
+      if (isAmountNotAllowedError(err)) {
+        // Re-read while the loading screen is up, so the search step opens with the limit the
+        // contract applied; at most 4 s, since nothing is being sent. A slower read keeps running
+        // and the search step shows it land ("Verificando seu limite…", then R3).
+        await reputation.refresh({ timeoutMs: 4000 });
+        searchRefusal.value = press;
+      }
+      flowStep.value = Step.Search;
+    });
 
-    user.setLoadingLock(false);
-  }
+  user.setLoadingLock(false);
 };
 
 const releaseTransaction = async (params: {

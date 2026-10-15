@@ -168,19 +168,17 @@ const enableConfirmButton = computed(
     hasLiquidity.value,
 );
 
+// A refusal belongs to the network and account it happened on, but must survive mount: only a real
+// change drops it. On the immediate run Vue passes `[]` as the previous value of a multi-source watch.
 watch(
   [() => network.value.id, walletAddress],
-  () => {
+  (_, previous) => {
     tag.value = null;
     void reputation.ensure();
+    if (previous.length > 0) refused.value = false;
   },
   { immediate: true },
 );
-
-// Not immediate: a refusal belongs to the network and account it happened on, but must survive mount.
-watch([() => network.value.id, walletAddress], () => {
-  refused.value = false;
-});
 
 watch(amountText, () => {
   refused.value = false;

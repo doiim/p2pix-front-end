@@ -21,7 +21,6 @@ export type SnapshotReader = (
 export type ReputationStore = {
   snapshot: ComputedRef<ReputationSnapshot | null>; // current (chain, p2pix, walletAddress) only; null for guests, before the first read lands, after a failed read
   reading: ComputedRef<boolean>; // a read for the current key is in flight
-  error: ComputedRef<ReputationErrorKind | null>; // last failure for the current key; cleared by the next success
   ensure: () => Promise<ReputationRead>; // cached → ok immediately; in flight → same promise; else start a read
   refresh: (opts?: RefreshOptions) => Promise<ReputationRead>; // always a new read; NEVER rejects
 };
@@ -29,13 +28,9 @@ export type ReputationStore = {
 type Outcome =
   | { snapshot: ReputationSnapshot; error: null }
   | { snapshot: null; error: ReputationErrorKind };
-type Entry = {
-  snapshot: ReputationSnapshot | null;
-  error: ReputationErrorKind | null;
-  reading: boolean;
-};
+type Entry = { snapshot: ReputationSnapshot | null; reading: boolean };
 
-const IDLE: Entry = { snapshot: null, error: null, reading: false };
+const IDLE: Entry = { snapshot: null, reading: false };
 const DISCONNECTED: ReputationRead = { ok: false, reason: 'disconnected' };
 const STALE: ReputationRead = { ok: false, reason: 'stale' };
 const TIMEOUT: ReputationRead = { ok: false, reason: 'timeout' };
@@ -87,7 +82,7 @@ export const createReputationStore = (
         const newest = latest.get(key);
         // Superseded: answer with the read that will commit.
         if (newest !== undefined && newest.seq !== seq) return newest.settled;
-        entries.set(key, { ...outcome, reading: false });
+        entries.set(key, { snapshot: outcome.snapshot, reading: false });
         if (currentKey() !== key) return STALE;
         return outcome.snapshot === null
           ? { ok: false, reason: outcome.error }
@@ -120,7 +115,6 @@ export const createReputationStore = (
   return {
     snapshot: computed(() => current.value.snapshot),
     reading: computed(() => current.value.reading),
-    error: computed(() => current.value.error),
     ensure,
     refresh,
   };
@@ -136,13 +130,12 @@ const withTimeout = (
   settled: Promise<ReputationRead>,
   ms: number,
 ): Promise<ReputationRead> =>
-  new Promise((resolve) => {
-    const timer = setTimeout(() => resolve(TIMEOUT), ms);
-    void settled.then((result) => {
-      clearTimeout(timer);
-      resolve(result);
-    });
-  });
+  Promise.race([
+    settled,
+    new Promise<ReputationRead>((resolve) =>
+      setTimeout(() => resolve(TIMEOUT), ms),
+    ),
+  ]);
 
 const selectedTarget = (): ReputationTarget | null => {
   const user = useUser();

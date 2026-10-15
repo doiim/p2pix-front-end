@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, onBeforeUnmount, onMounted } from 'vue';
 import {
   buildLimitChart,
   CHART_WIDE,
   formatBrl,
   formatTokens,
   LOCKAMOUNT_UPPERBOUND_TOKENS,
+  maxFill,
   REPUTATION_LOWERBOUND_TOKENS,
 } from '@/utils/reputation';
 import type {
@@ -61,13 +62,19 @@ const excessCents = computed(() => {
   return excess > 0n ? excess : 0n;
 });
 
-// Same condition as the Máx "offer" binding: a smaller offer is what one purchase can reach.
-const offerCents = computed(() =>
-  props.maxOfferCents !== null &&
-  props.maxOfferCents < props.snapshot.limitTokens * 100n
-    ? props.maxOfferCents
-    : null,
-);
+// A smaller offer is what one purchase can reach: the Máx "offer" binding.
+const offerCents = computed(() => {
+  const fill = maxFill(props.snapshot.limitTokens, props.maxOfferCents);
+  return fill.binding === 'offer' ? fill.cents : null;
+});
+
+// On the document: the panel opens from the row's chevron, so focus is usually outside it.
+const onKeydown = (event: KeyboardEvent) => {
+  if (event.key === 'Escape') emit('close');
+};
+
+onMounted(() => document.addEventListener('keydown', onKeydown));
+onBeforeUnmount(() => document.removeEventListener('keydown', onKeydown));
 
 // At most one of limit changed > new account > cap; the offer note may follow it.
 const leadNote = computed(() => {
@@ -94,7 +101,6 @@ const accountNoun = computed(() =>
       role="region"
       aria-label="Detalhes do limite"
       class="flex flex-col p-3 sm:p-4 rounded-lg bg-gray-100"
-      @keydown.esc="emit('close')"
     >
       <template v-if="activeTag === null">
         <p class="m-0 text-sm font-medium text-gray-600">
