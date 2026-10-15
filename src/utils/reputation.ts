@@ -1,6 +1,6 @@
 import type { Address } from 'viem';
 
-// Mirrors p2pix-smart-contracts/contracts/core/Constants.sol (internal constants, no getter; pinned by tests/reputation/constants.test.ts).
+// Mirrors p2pix-smart-contracts/contracts/core/Constants.sol (internal constants, no getter).
 /** @public */
 export const WAD = 10n ** 18n;
 export const REPUTATION_LOWERBOUND_TOKENS = 100n;
