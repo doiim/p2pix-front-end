@@ -7,6 +7,8 @@
 // id is the only remaining Pimlico env var read here.
 // VITE_REOWN_PROJECT_ID is read directly in config/appkit.ts.
 
+import type { TokenEnum } from '@/model/NetworkEnum';
+
 /**
  * Per-chain AA settings. All fields are optional.
  */
@@ -22,6 +24,12 @@ export type AaConfig = {
    * `MIN_FEE_BALANCE_WEI_DEFAULT`.
    */
   minFeeBalance?: bigint;
+  /**
+   * Token Pimlico's ERC-20 paymaster charges gas in. Unset = sponsorship only
+   * (P2Pix pays gas and charges its fee inside protocol transactions). Unset on
+   * every network today because the paymaster does not support BRZ.
+   */
+  feeToken?: TokenEnum;
 };
 
 const DEMO_RP_ID = 'demo.p2pix.co';
@@ -38,9 +46,9 @@ export const rpId =
 /**
  * Default minimum fee token balance (in wei) to attempt paymaster fees, used
  * when a chain's `AaConfig.minFeeBalance` is unset. Assumes an 18-decimal fee
- * token (e.g., BRZ); override per chain if a network's fee token differs.
+ * token; override per chain if a network's fee token differs.
  */
-export const MIN_FEE_BALANCE_WEI_DEFAULT = 100000000000000000n; // 0.1 BRZ (18 decimals)
+export const MIN_FEE_BALANCE_WEI_DEFAULT = 100000000000000000n; // 0.1 fee token (18 decimals)
 
 const env = (key: string): string | undefined =>
   (import.meta.env[key] as string | undefined)?.trim() || undefined;

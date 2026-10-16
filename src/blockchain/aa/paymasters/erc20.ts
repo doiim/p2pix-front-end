@@ -2,7 +2,6 @@ import { erc20Abi, type Address, type Hex, type PublicClient } from 'viem';
 import { type UserOperation } from 'viem/account-abstraction';
 
 import type { AaCall, AaContext } from '../types';
-import { TokenEnum } from '@/model/NetworkEnum';
 
 /**
  * The account holds fee token, but not enough for this operation. Callers can
@@ -25,9 +24,14 @@ export type PreparedErc20Quote = {
   userOperation: UserOperation<'0.7'>;
 };
 
-/** Pimlico's ERC-20 fee token is the very token the P2Pix deployment trades. */
-const paidTokenFor = (context: AaContext): Address =>
-  context.network.tokens[TokenEnum.BRZ].address;
+/** Pimlico's ERC-20 fee token is the one set in `AaConfig.feeToken`. */
+const paidTokenFor = (context: AaContext): Address => {
+  const feeToken = context.network.aa?.feeToken;
+  if (!feeToken) {
+    throw new Error(`No ERC-20 fee token configured for ${context.network.id}`);
+  }
+  return context.network.tokens[feeToken].address;
+};
 
 /** Verify the configured token against Pimlico before creating a PIX lock. */
 export const assertErc20PaymasterTokenSupported = async (
@@ -69,6 +73,7 @@ export const prepareErc20PaymasterQuote = async (
   let cost: { costInToken: bigint };
   try {
     const erc20Client = context.erc20Client;
+    if (!erc20Client) throw new Error('ERC-20 paymaster client unavailable');
     const publicClient = context.account.client as PublicClient;
     const readBalance = async (): Promise<bigint> =>
       knownTokenBalance ??

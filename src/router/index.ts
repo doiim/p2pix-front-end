@@ -54,8 +54,8 @@ const router = createRouter({
       component: VersionsView,
     },
     {
-      path: '/sweep',
-      name: 'sweep',
+      path: '/account',
+      name: 'account',
       component: SweepView,
     },
   ],

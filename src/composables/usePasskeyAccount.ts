@@ -3,30 +3,41 @@ import {
   getTokenBalances,
   type TokenBalance,
 } from '@doiim/passkeys/smart-account';
-import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem';
+import {
+  encodeFunctionData,
+  erc20Abi,
+  zeroAddress,
+  type Address,
+  type Hex,
+} from 'viem';
 
 import { isAaAvailable } from '@/blockchain/aa/aaContext';
-import { getActiveAaContext } from '@/blockchain/aa/operations';
-import { getAaOwnerKind, readPasskeySession } from '@/blockchain/aa/session';
-import type { AaCall } from '@/blockchain/aa/types';
 import {
-  prepareErc20PaymasterQuote,
-  sendPreparedErc20UserOperation,
-} from '@/blockchain/aa/paymasters/erc20';
+  getActiveAaContext,
+  sendAaOperation,
+} from '@/blockchain/aa/operations';
+import { getAaOwnerKind, readPasskeySession } from '@/blockchain/aa/session';
+import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
+import { appendHistory } from '@/composables/account/userOpHistory';
 import { useUser } from '@/composables/useUser';
-import { TokenEnum } from '@/model/NetworkEnum';
+import { formatTokenAmount } from '@/utils/formatTokenAmount';
+import { NATIVE_TOKEN, type SendToken } from '@/model/NetworkEnum';
 
-type SweepResult = {
-  userOpHash: Hex;
-  swept: {
-    eth: bigint;
-    tokens: TokenBalance[];
-  };
+export type SendParams = { token: SendToken; amount: bigint; to: Address };
+
+export type SendResult = { userOpHash: Hex; txHash?: Hex };
+
+type Balances = {
+  context: AaContext;
+  result: { eth: bigint; tokens: TokenBalance[] };
 };
 
-const FEE_HEADROOM_BPS = 2_000n;
-const BPS_DENOMINATOR = 10_000n;
+/** The read entry for a token, matched by address rather than by list position. */
+const balanceAt = (tokens: TokenBalance[], address: Address) => {
+  const needle = address.toLowerCase();
+  return tokens.find((token) => token.address.toLowerCase() === needle);
+};
 
 const tokenTransfer = (
   token: Address,
@@ -42,141 +53,184 @@ const tokenTransfer = (
   }),
 });
 
+/** `funds` carries the whole read: the sent token and the native coin differ. */
+const assertSendFunds = (params: SendParams, funds: Balances): void => {
+  const held =
+    params.token === NATIVE_TOKEN
+      ? funds.result.eth
+      : (balanceAt(
+          funds.result.tokens,
+          funds.context.network.tokens[params.token].address,
+        )?.balance ?? 0n);
+  if (held < params.amount) {
+    throw new Error(
+      params.token === NATIVE_TOKEN
+        ? 'Saldo insuficiente'
+        : `Saldo de ${params.token} insuficiente`,
+    );
+  }
+};
+
+// Module-level state: the account page and every screen inside it share one
+// instance (same pattern as useUser).
+const busy = ref(false);
+const error = ref<string | null>(null);
+const balancesLoaded = ref(false);
+const balances = ref<TokenBalance[]>([]);
+const ethBalance = ref<bigint>(0n);
+const smartAccountAddress = ref<Address | null>(null);
+
 export function usePasskeyAccount() {
   const user = useUser();
-  const busy = ref(false);
-  const error = ref<string | null>(null);
-  const lastUserOpHash = ref<string | null>(null);
-  const balances = ref<TokenBalance[]>([]);
-  const ethBalance = ref<bigint>(0n);
-  const smartAccountAddress = ref<Address | null>(
-    user.walletAddress.value ??
-      readPasskeySession()?.smartAccountAddress ??
-      null,
-  );
 
   const isReady = computed(() => {
     if (!isAaAvailable(user.network.value)) return false;
     // The wallet address is part of the readiness check on purpose: a null
     // address means the AA smart account never resolved, so the account is
-    // not actually usable even when an owner kind exists. Including it here
-    // also keeps the reactive dependency live — the read determines the
-    // result, so no minifier can legally drop it.
+    // not actually usable even when an owner kind exists.
     return (
       Boolean(user.walletAddress.value) &&
       Boolean(getAaOwnerKind(getCurrentAccount().connector?.id))
     );
   });
 
-  const getAaClient = async () => {
+  const nativeDecimals = computed(
+    () => user.network.value.nativeCurrency.decimals,
+  );
+  const nativeSymbol = computed(() => user.network.value.nativeCurrency.symbol);
+  const nativeText = computed(() =>
+    formatTokenAmount(ethBalance.value, nativeDecimals.value),
+  );
+  const symbolOf = (token: SendToken): string =>
+    token === NATIVE_TOKEN ? nativeSymbol.value : token;
+  const decimalsOf = (token: SendToken): number => {
+    if (token === NATIVE_TOKEN) return nativeDecimals.value;
+    const { address } = user.network.value.tokens[token];
+    return balanceAt(balances.value, address)?.decimals ?? nativeDecimals.value;
+  };
+  /** Held balance of any sendable token; the native coin has its own read. */
+  const balanceOf = (token: SendToken): bigint =>
+    token === NATIVE_TOKEN
+      ? ethBalance.value
+      : (balanceAt(balances.value, user.network.value.tokens[token].address)
+          ?.balance ?? 0n);
+
+  const readBalances = async (): Promise<Balances> => {
     const context = await getActiveAaContext();
     if (!context) throw new Error('Contexto da conta inteligente indisponível');
     smartAccountAddress.value = context.account.address;
-    return context;
-  };
-
-  const readBalances = async () => {
-    const context = await getAaClient();
-    const paymasterToken = context.network.tokens[TokenEnum.BRZ].address;
     const result = await getTokenBalances(
       getPublicClient(),
       context.account.address,
-      [paymasterToken],
+      Object.values(context.network.tokens).map((token) => token.address),
     );
-    return { context, paymasterToken, result };
+    return {
+      context,
+      result,
+    };
   };
 
   const refreshBalances = async (): Promise<void> => {
     try {
-      const { result } = await readBalances();
+      const { context, result } = await readBalances();
+      // A network switch may have happened while this request was in flight.
+      if (context.network.id !== user.network.value.id) return;
       ethBalance.value = result.eth;
       balances.value = result.tokens;
+      balancesLoaded.value = true;
     } catch (cause) {
+      // `balancesLoaded` stays false on purpose: consumers must render `error`
+      // (never the loading state) when a read fails.
       error.value =
         cause instanceof Error ? cause.message : 'Falha ao buscar os saldos';
     }
   };
 
-  const sweep = async (recipient: Address): Promise<SweepResult | null> => {
+  const explorerTxUrl = (hash: Hex): string | null => {
+    const base = user.network.value.blockExplorers?.default.url;
+    return base ? `${base.replace(/\/$/, '')}/tx/${hash}` : null;
+  };
+
+  const send = async (params: SendParams): Promise<SendResult | null> => {
     busy.value = true;
     error.value = null;
-    lastUserOpHash.value = null;
     try {
-      const { context, paymasterToken, result } = await readBalances();
-      const tokenBalance = result.tokens[0];
-      if (!tokenBalance || tokenBalance.balance === 0n) {
-        throw new Error(
-          'É necessário saldo em BRZ para pagar o gás da varredura',
-        );
+      const funds = await readBalances();
+      const { context } = funds;
+      const calls: AaCall[] =
+        params.token === NATIVE_TOKEN
+          ? [{ to: params.to, value: params.amount, data: '0x' }]
+          : [
+              tokenTransfer(
+                context.network.tokens[params.token].address,
+                params.to,
+                params.amount,
+              ),
+            ];
+      assertSendFunds(params, funds);
+
+      // Unset fee token: sendAaOperation sponsors before reading either
+      // argument, so the zero address placeholder is never used.
+      const feeToken = context.network.aa?.feeToken;
+      const receipt = await sendAaOperation(
+        context,
+        calls,
+        feeToken ? context.network.tokens[feeToken].address : zeroAddress,
+        feeToken && params.token === feeToken ? params.amount : 0n,
+      );
+      const { userOpHash } = receipt;
+      if (!receipt.success) {
+        throw new Error(`Operação falhou na rede: ${userOpHash}`);
       }
-
-      const nativeCall: AaCall[] =
-        result.eth > 0n
-          ? [{ to: recipient, value: result.eth, data: '0x' }]
-          : [];
-
-      // Probe with a non-zero amount so the transfer has the same gas shape as
-      // the real call: only zero-vs-non-zero changes the recipient's SSTORE
-      // cost, not the amount itself. It cannot be the whole balance, though —
-      // the probe is simulated, and an account that just sent everything has
-      // nothing left to pay the paymaster's postOp charge with. Sending most
-      // of it keeps the shape and leaves the simulation solvent. The exact
-      // operation is prepared again once the real reserve is known.
-      const probeAmount = (tokenBalance.balance * 9n) / 10n;
-      const probe = await prepareErc20PaymasterQuote(context, [
-        tokenTransfer(paymasterToken, recipient, probeAmount),
-        ...nativeCall,
-      ]);
-      const feeReserve =
-        probe.costInToken +
-        (probe.costInToken * FEE_HEADROOM_BPS) / BPS_DENOMINATOR;
-      if (tokenBalance.balance <= feeReserve) {
-        throw new Error('O saldo em BRZ não cobre o gás da varredura');
-      }
-
-      const transferAmount = tokenBalance.balance - feeReserve;
-      const quote = await prepareErc20PaymasterQuote(context, [
-        tokenTransfer(paymasterToken, recipient, transferAmount),
-        ...nativeCall,
-      ]);
-      if (quote.costInToken > feeReserve) {
-        throw new Error(
-          'O gás da varredura mudou; atualize os saldos e tente novamente',
-        );
-      }
-
-      const userOpHash = await sendPreparedErc20UserOperation(context, quote);
-      const receipt = await context.erc20Client.waitForUserOperationReceipt({
-        hash: userOpHash,
+      const txHash = receipt.receipt.transactionHash;
+      appendHistory({
+        id: userOpHash,
+        token: params.token,
+        amount: params.amount.toString(),
+        to: params.to,
+        from: context.account.address,
+        chainId: context.network.id,
+        timestamp: Date.now(),
+        txHash,
       });
-      if (!receipt.success)
-        throw new Error(`Falha na varredura: ${userOpHash}`);
-
-      lastUserOpHash.value = userOpHash;
-      return {
-        userOpHash,
-        swept: {
-          eth: result.eth,
-          tokens: [{ ...tokenBalance, balance: transferAmount }],
-        },
-      };
+      await refreshBalances();
+      return { userOpHash, txHash };
     } catch (cause) {
-      error.value = cause instanceof Error ? cause.message : 'Falha ao varrer';
+      error.value = cause instanceof Error ? cause.message : 'Falha ao enviar';
       return null;
     } finally {
       busy.value = false;
     }
   };
 
+  /** Forget everything tied to the previous chain/session. */
+  const reset = (): void => {
+    smartAccountAddress.value =
+      user.walletAddress.value ??
+      readPasskeySession()?.smartAccountAddress ??
+      null;
+    balances.value = [];
+    ethBalance.value = 0n;
+    balancesLoaded.value = false;
+    error.value = null;
+  };
+
   return {
     busy,
     error,
-    lastUserOpHash,
+    balancesLoaded,
     balances,
     ethBalance,
     smartAccountAddress,
     isReady,
-    sweep,
+    nativeSymbol,
+    nativeText,
+    symbolOf,
+    decimalsOf,
+    balanceOf,
+    send,
     refreshBalances,
+    explorerTxUrl,
+    reset,
   };
 }

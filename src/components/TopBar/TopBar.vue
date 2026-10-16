@@ -223,7 +223,7 @@ const walletMenuOptions: MenuOption[] = [
   },
   {
     label: 'Conta inteligente',
-    route: '/sweep',
+    route: '/account',
     showInDesktop: true,
     showInMobile: true,
   },

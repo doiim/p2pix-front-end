@@ -5,6 +5,11 @@ import type { Address } from 'viem';
 import { DEFAULT_NETWORK, Networks } from '@/config/networks';
 import { TokenEnum, NetworkConfig } from '@/model/NetworkEnum';
 
+export type Toast = { type: 'success' | 'error'; message: string };
+
+/** How long a toast stays on screen — shared by every toast in the app. */
+const TOAST_MS = 3_000;
+
 const walletAddress = ref<Address | null>(null);
 const balance = ref('');
 const network = ref(DEFAULT_NETWORK);
@@ -16,6 +21,8 @@ const loadingWalletTransactions = ref(false);
 const loadingNetworkLiquidity = ref(false);
 const seller = ref<Participant>({} as Participant);
 const sellerId = ref('');
+const toast = ref<Toast | null>(null);
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function useUser() {
   // Actions become regular functions
@@ -70,6 +77,12 @@ export function useUser() {
     sellerId.value = id;
   };
 
+  const showToast = (type: Toast['type'], message: string): void => {
+    toast.value = { type, message };
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (toast.value = null), TOAST_MS);
+  };
+
   return {
     // State
     walletAddress,
@@ -83,6 +96,7 @@ export function useUser() {
     loadingNetworkLiquidity,
     seller,
     sellerId,
+    toast,
 
     // Actions
     setWalletAddress,
@@ -97,5 +111,6 @@ export function useUser() {
     setLoadingNetworkLiquidity,
     setSeller,
     setSellerId,
+    showToast,
   };
 }

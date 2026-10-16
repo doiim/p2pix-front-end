@@ -12,8 +12,11 @@ export type AaOwnerKind = 'passkey' | 'reown';
 export type AaContext = {
   account: SmartAccount;
   sponsoredClient: SmartAccountClient;
-  /** Paid operations that must already have a real ERC-20 balance. */
-  erc20Client: SmartAccountClient;
+  /**
+   * Paid operations that must already have a real ERC-20 balance. Absent when
+   * the network sets no `AaConfig.feeToken` (sponsorship only).
+   */
+  erc20Client?: SmartAccountClient;
   ownerKind: AaOwnerKind;
   network: NetworkConfig;
   pimlicoClient: PimlicoClient;

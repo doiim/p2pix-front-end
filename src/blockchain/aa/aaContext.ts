@@ -3,14 +3,20 @@ import {
   toKernelPasskeyAccount,
   buildOperationScopedPimlicoClients,
 } from '@doiim/passkeys/smart-account';
-import type { Account, Chain, Transport, WalletClient } from 'viem';
+import {
+  zeroAddress,
+  type Account,
+  type Chain,
+  type Transport,
+  type WalletClient,
+} from 'viem';
 import type { SmartAccount } from 'viem/account-abstraction';
 
 import {
   rpId,
   sponsorshipPolicyId as configuredSponsorshipPolicyId,
 } from '@/config/aa';
-import { TokenEnum, type NetworkConfig } from '@/model/NetworkEnum';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 import { getAaOwnerKind, readPasskeySession } from './session';
 import type { AaContext, AaOwnerKind, AaRuntime } from './types';
 
@@ -98,13 +104,19 @@ const createContext = async (
     );
   }
 
+  const feeTokenAddress = aa.feeToken
+    ? network.tokens[aa.feeToken].address
+    : undefined;
+
   const common = {
     account,
     chain: network,
     publicClient,
     bundlerUrl,
     sponsorshipPolicyId,
-    erc20Token: network.tokens[TokenEnum.BRZ].address,
+    // The library requires a token; with none configured the paid client is
+    // built but never exposed, so nothing can send through it.
+    erc20Token: feeTokenAddress ?? zeroAddress,
   } as const;
 
   const regular = buildOperationScopedPimlicoClients(common);
@@ -112,7 +124,7 @@ const createContext = async (
   return {
     account,
     sponsoredClient: regular.sponsoredClient,
-    erc20Client: regular.erc20Client,
+    erc20Client: feeTokenAddress ? regular.erc20Client : undefined,
     ownerKind,
     network,
     pimlicoClient: regular.pimlicoClient,

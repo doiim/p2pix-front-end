@@ -1,7 +1,12 @@
 import type { Address, Chain } from 'viem';
 import { arbitrum, mainnet, rootstockTestnet, sepolia } from 'viem/chains';
 import type { AppKitNetwork as WalletNetwork } from '@doiim/reown-appkit/networks';
-import { NetworkConfig } from '@/model/NetworkEnum';
+import {
+  NATIVE_TOKEN,
+  TokenEnum,
+  type NetworkConfig,
+  type SendToken,
+} from '@/model/NetworkEnum';
 
 export type { WalletNetwork };
 
@@ -72,3 +77,29 @@ export const DEFAULT_NETWORK = Networks[0];
  * Note: NetworkConfig extends Chain with extra fields (tokens, aa).
  * AppKit uses the Chain subset; extra fields are harmless but not used. */
 export const wagmiNetworks: [WalletNetwork, ...WalletNetwork[]] = Networks;
+
+/** Tokens the send flow can move on a network: the configured ERC-20s plus the native coin. */
+export const sendableTokens = (network: NetworkConfig): SendToken[] => [
+  ...(Object.keys(network.tokens) as TokenEnum[]),
+  NATIVE_TOKEN,
+];
+
+/** Configured token for an activity row's `token`, which the subgraph emits as
+ * an on-chain address (deposit/withdraw), a configured symbol (release/return),
+ * or not at all (lock). Absent values resolve to the network's ERC-20, the
+ * labelling those rows had before the field existed. */
+export const tokenByAddress = (
+  network: NetworkConfig,
+  value: string | undefined,
+): SendToken => {
+  const tokens = Object.keys(network.tokens) as TokenEnum[];
+  if (value === undefined) return tokens[0];
+  const needle = value.toLowerCase();
+  return (
+    tokens.find(
+      (token) =>
+        token.toLowerCase() === needle ||
+        network.tokens[token].address.toLowerCase() === needle,
+    ) ?? NATIVE_TOKEN
+  );
+};

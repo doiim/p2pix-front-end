@@ -8,6 +8,7 @@ import { PASSKEY_CONNECTOR_ID } from '@/blockchain/aa/session';
 
 const user = useUser();
 const { network } = user;
+const { toast } = user;
 const appKitAccount = useWalletAccount();
 const appKitNetwork = useWalletNetwork();
 
@@ -59,6 +60,15 @@ watch(network, checkNetwork, { immediate: true });
       </button>
     </div>
   </transition>
+
+  <p
+    v-if="toast"
+    :role="toast.type === 'error' ? 'alert' : 'status'"
+    class="pointer-events-none fixed bottom-6 left-1/2 z-[60] -translate-x-1/2 rounded-lg px-4 py-2 text-center text-sm font-medium text-white shadow-lg"
+    :class="toast.type === 'success' ? 'bg-emerald-600' : 'bg-red-600'"
+  >
+    {{ toast.message }}
+  </p>
 </template>
 
 <style scoped>

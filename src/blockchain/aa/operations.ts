@@ -3,7 +3,6 @@ import type { UserOperationReceipt } from 'viem/account-abstraction';
 
 import { useUser } from '@/composables/useUser';
 import { MIN_FEE_BALANCE_WEI_DEFAULT } from '@/config/aa';
-import { TokenEnum } from '@/model/NetworkEnum';
 import {
   assertErc20PaymasterTokenSupported,
   InsufficientFeeTokenBalanceError,
@@ -130,12 +129,15 @@ export const sendAaOperation = async (
   feeToken: Address,
   feeTokenOutflow: bigint = 0n,
 ): Promise<UserOperationReceipt> => {
+  const configuredFeeToken = aa.network.aa?.feeToken;
+  if (!configuredFeeToken) return sendSponsored(aa, calls);
+
   const publicClient = aa.account.client as PublicClient;
 
   // Pimlico always charges in the configured paymaster token, which is not
   // necessarily the token being moved, so the fee gate must read that balance.
   const feeTokenBalance = await publicClient.readContract({
-    address: aa.network.tokens[TokenEnum.BRZ].address,
+    address: aa.network.tokens[configuredFeeToken].address,
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: [aa.account.address],
@@ -156,6 +158,10 @@ export const sendAaOperation = async (
     return sendSponsored(aa, calls);
   }
 
+  // The fee token comes from `AaConfig.feeToken`, unset today because Pimlico's
+  // ERC-20 paymaster does not support BRZ; such networks never reach this
+  // point (P2Pix pays gas and charges its fee inside protocol transactions).
+  // The paid rail is kept for when the paymaster supports the token.
   // The paymaster may not support the app token at all (wrong chain,
   // unconfigured). Sponsorship is still open, and on a release the PIX has
   // already been paid, so we MUST fall back rather than rethrow. The error is
@@ -189,5 +195,7 @@ export const sendAaOperation = async (
   }
 
   const hash = await sendPreparedErc20UserOperation(aa, quote);
+  // Set whenever `feeToken` is, which the short-circuit above guarantees.
+  if (!aa.erc20Client) throw new Error('ERC-20 paymaster client unavailable');
   return aa.erc20Client.waitForUserOperationReceipt({ hash });
 };
