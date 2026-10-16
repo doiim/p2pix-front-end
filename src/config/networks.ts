@@ -56,7 +56,7 @@ const testNetworks = [
     contracts: { ...sepolia.contracts, ...p2pix('sepolia') },
     tokens: { BRZ: { address: record('sepolia')?.token } },
     aa: { bundlerUrl: 'https://api.pimlico.io/v2/11155111/rpc?apikey=pim_MQjrtKPAPnQ2oyfvyr128e' },
-    subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/p-2-pix/sepolia'],
+    subgraphUrls: ['https://api.studio.thegraph.com/query/1763496/p-2-pix-arthur/sepolia'],
   }),
 ];
 
