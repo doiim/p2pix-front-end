@@ -44,6 +44,12 @@ P2Pix is self-custodial for signing, but releasing an escrow relies on third-par
 - **What it sees or can block:** the relayer observes UserOp traffic, sender address and fee-token balances.
 - **Escape path:** any alternative ERC-4337 bundler/paymaster can relay the UserOp.
 
+### DOMPurify (`dompurify`, Cure53)
+
+- **What it is:** the HTML sanitizer behind every `v-html` that renders markdown (release notes, FAQ) in `src/utils/markdown.ts`. Runs in the browser, makes no network calls; pinned to an exact version whose integrity hash `bun.lock` checks.
+- **What it sees or can block:** only the rendered markdown; a compromised release could let script-bearing markup through on those pages.
+- **Escape path:** the renderer is HTML-blind first (raw HTML in markdown renders as text), so DOMPurify only owns URI/tag policy after attribute decoding; any spec-compliant post-parse sanitizer can replace it in that one module.
+
 ### P2Pix oracle + BB Pay
 
 - **What it is:** bridges off-chain Pix settlement to onchain release.

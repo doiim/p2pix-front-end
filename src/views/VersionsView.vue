@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { marked } from 'marked';
+import { renderMarkdown } from '@/utils/markdown';
 
 const currentVersion = import.meta.env.APP_VERSION as string;
 const versions = (import.meta.env.APP_RELEASES ?? []) as {
@@ -23,47 +23,6 @@ const formatDate = (dateString: string): string => {
     day: 'numeric',
   });
 };
-
-// Release notes are markdown, never HTML: raw HTML in a note renders as
-// visible text, and links only carry schemes we choose to allow. v-html then
-// receives only markup this renderer itself emits. Kept inline (no dependency)
-// on purpose.
-const ESCAPES: Record<string, string> = {
-  '&': '&amp;',
-  '<': '&lt;',
-  '>': '&gt;',
-  '"': '&quot;',
-  "'": '&#39;',
-};
-const escapeHtml = (s: string): string =>
-  s.replace(/[&<>"']/g, (c) => ESCAPES[c]);
-// RFC 3986 scheme, then our allow-list: unknown schemes degrade to text
-// instead of reaching a browser URL parser or an external handler.
-const HAS_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
-const SAFE_SCHEME = /^(?:https?|mailto|ipfs):/i;
-const safeHref = (href: string): boolean =>
-  !HAS_SCHEME.test(href) || SAFE_SCHEME.test(href);
-
-marked.use({
-  renderer: {
-    html: ({ text }) => escapeHtml(text),
-    checkbox: ({ checked }) => (checked ? '☑ ' : '☐ '),
-    link({ href, title, tokens }) {
-      const label = this.parser.parseInline(tokens);
-      if (!safeHref(href)) return label;
-      const t = title ? ` title="${escapeHtml(title)}"` : '';
-      return `<a href="${escapeHtml(href)}"${t}>${label}</a>`;
-    },
-    image({ href, title, text }) {
-      if (!safeHref(href)) return escapeHtml(text ?? '');
-      const t = title ? ` title="${escapeHtml(title)}"` : '';
-      return `<img src="${escapeHtml(href)}" alt="${escapeHtml(text ?? '')}"${t}>`;
-    },
-  },
-});
-
-const releaseNotes = (md?: string): string =>
-  md ? (marked.parse(md, { breaks: true, gfm: true }) as string) : '';
 </script>
 
 <template>
@@ -114,7 +73,7 @@ const releaseNotes = (md?: string): string =>
           <div
             v-if="version.notes"
             class="version-notes"
-            v-html="releaseNotes(version.notes)"
+            v-html="renderMarkdown(version.notes)"
           ></div>
           <div class="version-actions">
             <a

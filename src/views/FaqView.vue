@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import type { Faq } from '@/model/Faq';
 import { ref } from 'vue';
-import { marked } from 'marked';
 import faqContent from '@/utils/files/faqContent.json';
+import { renderMarkdown } from '@/utils/markdown';
 
 const faq = ref<Faq>(faqContent);
 
@@ -15,15 +15,6 @@ const setSelectedSection = (index: number) => {
 const openItem = (index: number) => {
   faq.value[selectedSection.value].items[index].isOpen =
     !faq.value[selectedSection.value].items[index].isOpen;
-
-  marked.setOptions({
-    breaks: true,
-    gfm: true,
-  });
-
-  faq.value[selectedSection.value].items[index].content = marked(
-    faq.value[selectedSection.value].items[index].content,
-  ) as string;
 };
 </script>
 
@@ -74,7 +65,11 @@ const openItem = (index: number) => {
             />
             <h4 class="item-title">{{ item.title }}</h4>
           </div>
-          <div class="content" v-if="item.isOpen" v-html="item.content"></div>
+          <div
+            class="content"
+            v-if="item.isOpen"
+            v-html="renderMarkdown(item.content)"
+          ></div>
           <div class="hr"></div>
         </div>
       </div>

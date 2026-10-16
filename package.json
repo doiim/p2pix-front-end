@@ -28,6 +28,7 @@
     "@vueuse/core": "^14.3.0",
     "@wagmi/core": "^3.4.8",
     "@wagmi/vue": "^0.5.11",
+    "dompurify": "3.4.17",
     "marked": "^18.0.3",
     "permissionless": "^0.3.6",
     "qrcode": "^1.5.4",
