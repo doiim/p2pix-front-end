@@ -35,7 +35,7 @@ P2Pix is self-custodial for signing, but releasing an escrow relies on third-par
 ### Alchemy RPC + The Graph (reads)
 
 - **What it is:** the read layer — RPC and indexed events, read only through the endpoints the app configures.
-- **What it sees or can block:** your addresses, read requests and query parameters. Reads go to the configured RPCs in `src/config/networks.ts` (Alchemy) and the per-network subgraphs — Alchemy and The Graph are what still observe read metadata; with `reownRpcFallback: false` they never fall through to Reown's Blockchain API (`rpc.walletconnect.org`).
+- **What it sees or can block:** your addresses, read requests and query parameters. Reads go to the configured RPCs in `src/config/networks.ts` (Alchemy) and the per-network subgraphs. The buy screen reads every configured network's RPC and subgraph on page load (not only the selected one), so each of those endpoints sees the visitor's IP on every visit — Alchemy and The Graph are what still observe read metadata; with `reownRpcFallback: false` they never fall through to Reown's Blockchain API (`rpc.walletconnect.org`).
 - **Escape path:** point the app at a different RPC provider or your own user-configurable endpoints, and at your own subgraph — a config change and rebuild.
 
 ### Pimlico bundler + paymaster (ERC-4337)

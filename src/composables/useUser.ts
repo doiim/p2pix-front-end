@@ -19,6 +19,7 @@ const sellerView = ref(false);
 const depositsValidList = ref<ValidDeposit[]>([]);
 const loadingWalletTransactions = ref(false);
 const loadingNetworkLiquidity = ref(false);
+const failedLiquidityNetworks = ref<NetworkConfig[]>([]);
 const seller = ref<Participant>({} as Participant);
 const sellerId = ref('');
 const toast = ref<Toast | null>(null);
@@ -69,6 +70,10 @@ export function useUser() {
     loadingNetworkLiquidity.value = isLoading;
   };
 
+  const setFailedLiquidityNetworks = (networks: NetworkConfig[]) => {
+    failedLiquidityNetworks.value = networks;
+  };
+
   const setSeller = (newSeller: Participant) => {
     seller.value = newSeller;
   };
@@ -94,6 +99,7 @@ export function useUser() {
     depositsValidList,
     loadingWalletTransactions,
     loadingNetworkLiquidity,
+    failedLiquidityNetworks,
     seller,
     sellerId,
     toast,
@@ -109,6 +115,7 @@ export function useUser() {
     setDepositsValidList,
     setLoadingWalletTransactions,
     setLoadingNetworkLiquidity,
+    setFailedLiquidityNetworks,
     setSeller,
     setSellerId,
     showToast,

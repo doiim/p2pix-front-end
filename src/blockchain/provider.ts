@@ -19,9 +19,12 @@ const getCurrentAccount = () => {
   return wagmiGetAccount(getWagmiConfig());
 };
 
-const getPublicClient = (): PublicClient => {
-  const chainId = getUserChainId();
-  return wagmiGetPublicClient(getWagmiConfig(), { chainId }) as PublicClient;
+// Defaults to the selected chain; pass a chainId to read a specific network
+// (a client is bound to one chain and cannot read another).
+const getPublicClient = (chainId: number = getUserChainId()): PublicClient => {
+  const client = wagmiGetPublicClient(getWagmiConfig(), { chainId });
+  if (!client) throw new Error(`No public client for chain ${chainId}`);
+  return client as PublicClient;
 };
 
 const getWalletClient = async (): Promise<WalletClient | null> => {

@@ -25,7 +25,13 @@ const {
   selectedToken,
   depositsValidList,
   loadingNetworkLiquidity,
+  failedLiquidityNetworks,
 } = user;
+
+// A network whose read failed has unknown liquidity, not zero liquidity.
+const selectedNetworkUnread = computed(() =>
+  failedLiquidityNetworks.value.some((n) => n.id === network.value.id),
+);
 
 // html references
 const tokenDropdownRef = ref<any>(null);
@@ -358,6 +364,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
           v-else-if="
             !hasLiquidity &&
             !loadingNetworkLiquidity &&
+            !selectedNetworkUnread &&
             tokenValue > 0 &&
             !exceedsReputationLimit
           "
@@ -365,6 +372,15 @@ const handleSubmit = async (e: Event): Promise<void> => {
           <span class="text-red-500 font-normal text-sm"
             >Atualmente não há liquidez nas redes selecionadas para sua
             demanda</span
+          >
+        </div>
+        <div
+          class="flex justify-center"
+          v-if="failedLiquidityNetworks.length && !loadingNetworkLiquidity"
+        >
+          <span class="text-red-500 font-normal text-sm"
+            >Não foi possível ler a liquidez de:
+            {{ failedLiquidityNetworks.map((n) => n.name).join(', ') }}</span
           >
         </div>
         <div

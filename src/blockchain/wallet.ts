@@ -6,19 +6,12 @@ import { getCurrentAccount, getPublicClient, getContract } from './provider';
 
 import { getValidDeposits, getUnreleasedLockById } from './events';
 import { toLock } from './buyerMethods';
+import { escapeForGraphQL } from '@/utils/escapeForGraphQL';
 
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { WalletTransaction } from '@/model/WalletTransaction';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
 import { LockStatus } from '@/model/LockStatus';
-
-// Addresses today come from viem/wagmi and are well-formed hex, but the
-// GraphQL builders below interpolate them straight into a quoted literal, so
-// any future caller passing an unvalidated string could break out of the
-// literal and rewrite the query. Escape the only character that ends the
-// literal; behavior for well-formed addresses is unchanged.
-const escapeForGraphQL = (address: Address): string =>
-  address.toLowerCase().replace(/"/g, '\\"');
 
 export const updateWalletStatus = async (): Promise<void> => {
   const user = useUser();
@@ -51,10 +44,15 @@ export const listValidDepositTransactionsByWalletAddress = async (
   walletAddress: Address,
 ): Promise<ValidDeposit[]> => {
   const user = useUser();
+  // Wallet views render their own lists; keep them usable when the subgraph
+  // or RPC is down instead of leaving their loading state stuck.
   const walletDeposits = await getValidDeposits(
     user.network.value.tokens[user.selectedToken.value].address,
     user.network.value,
-  );
+  ).catch((error) => {
+    console.error('[wallet] could not read deposits', error);
+    return [];
+  });
   if (walletDeposits) {
     return walletDeposits
       .filter((deposit) => deposit.seller == walletAddress)
