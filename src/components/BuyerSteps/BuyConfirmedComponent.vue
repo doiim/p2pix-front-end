@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { withdrawDeposit } from '@/blockchain/buyerMethods';
 import {
+  getCurrentAccount,
+  getPublicClient,
+  getWalletClient,
+} from '@/blockchain/provider';
+import {
   getActiveLockAmount,
   listAllTransactionByWalletAddress,
   listValidDepositTransactionsByWalletAddress,
@@ -11,6 +16,7 @@ import type { WalletTransaction } from '@/model/WalletTransaction';
 import { useUser } from '@/composables/useUser';
 import { onMounted, ref, watch } from 'vue';
 import ListingComponent from '@/components/ListingComponent/ListingComponent.vue';
+import { erc20Abi, UserRejectedRequestError } from 'viem';
 
 // props
 const props = defineProps<{
@@ -24,6 +30,11 @@ const { walletAddress } = useUser();
 const lastWalletTransactions = ref<WalletTransaction[]>([]);
 const depositList = ref<ValidDeposit[]>([]);
 const activeLockAmount = ref<number>(0);
+const isWatchingToken = ref(false);
+const watchTokenAlert = ref<{
+  type: 'success' | 'error';
+  message: string;
+} | null>(null);
 
 // methods
 
@@ -67,6 +78,83 @@ const callWithdraw = async (amount: string) => {
   }
 };
 
+const watchToken = async () => {
+  const token = user.network.value.tokens[user.selectedToken.value];
+  const chainId = user.network.value.id;
+  const walletClient = await getWalletClient();
+
+  if (!walletClient) {
+    watchTokenAlert.value = {
+      type: 'error',
+      message:
+        'Carteira não disponível. Conecte uma carteira e tente novamente.',
+    };
+    return;
+  }
+
+  isWatchingToken.value = true;
+  watchTokenAlert.value = null;
+  try {
+    // `wallet_watchAsset` registers against whatever chain the wallet is
+    // actually on, so make sure it matches the token's chain first — otherwise
+    // the user gets a phantom token for the wrong network.
+    if (getCurrentAccount().chainId !== chainId) {
+      await walletClient.request({
+        method: 'wallet_switchEthereumChain',
+        params: [{ chainId: `0x${chainId.toString(16)}` }],
+      });
+    }
+
+    // Read symbol/decimals from the token itself — the chain is the source of
+    // truth, and a wrong decimals in watchAsset renders every wallet balance
+    // scaled wrong, permanently (EIP-747 has no unregister).
+    const client = getPublicClient();
+    const [symbol, decimals] = await Promise.all([
+      client.readContract({
+        address: token.address,
+        abi: erc20Abi,
+        functionName: 'symbol',
+      }),
+      client.readContract({
+        address: token.address,
+        abi: erc20Abi,
+        functionName: 'decimals',
+      }),
+    ]);
+
+    await walletClient.request({
+      method: 'wallet_watchAsset',
+      params: {
+        type: 'ERC20',
+        options: {
+          address: token.address,
+          symbol,
+          decimals,
+        },
+      },
+    });
+    watchTokenAlert.value = {
+      type: 'success',
+      message: `Token ${user.selectedToken.value} cadastrado na carteira.`,
+    };
+  } catch (error) {
+    // 4001 is the user declining in their wallet, not a failure.
+    const rejected =
+      error instanceof UserRejectedRequestError ||
+      (typeof error === 'object' &&
+        error !== null &&
+        (error as { code?: number }).code === 4001);
+    watchTokenAlert.value = {
+      type: 'error',
+      message: rejected
+        ? 'Cadastro do token cancelado.'
+        : 'Não foi possível cadastrar o token. Tente novamente.',
+    };
+  } finally {
+    isWatchingToken.value = false;
+  }
+};
+
 // Emits
 const emit = defineEmits(['makeAnotherTransaction']);
 
@@ -103,7 +191,22 @@ onMounted(async () => {
             cadastrar o {{ user.selectedToken }} em sua carteira.
           </p>
         </div>
-        <CustomButton :text="'Cadastrar token'" @buttonClicked="() => {}" />
+        <CustomButton
+          :text="'Cadastrar token'"
+          :loading="isWatchingToken"
+          @buttonClicked="watchToken"
+        />
+        <div
+          v-if="watchTokenAlert"
+          class="mt-3 p-3 rounded text-sm text-center"
+          :class="
+            watchTokenAlert.type === 'success'
+              ? 'bg-green-100 text-green-800'
+              : 'bg-red-100 text-red-700'
+          "
+        >
+          {{ watchTokenAlert.message }}
+        </div>
       </div>
       <button
         type="button"
