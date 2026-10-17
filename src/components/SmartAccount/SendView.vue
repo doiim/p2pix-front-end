@@ -3,8 +3,7 @@ import { computed } from 'vue';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useSendForm } from '@/composables/account/useSendForm';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
-import { sendableTokens } from '@/config/networks';
-import { NATIVE_TOKEN } from '@/model/NetworkEnum';
+import { TokenEnum } from '@/model/NetworkEnum';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 import { useUser } from '@/composables/useUser';
@@ -17,25 +16,21 @@ const account = usePasskeyAccount();
 const user = useUser();
 const form = useSendForm();
 
+// The configured ERC-20s, then the native coin (no token).
 const options = computed(() =>
-  sendableTokens(user.network.value).map((token) => ({
+  [...Object.values(TokenEnum), undefined].map((token) => ({
     token,
-    image:
-      token === NATIVE_TOKEN
-        ? getNetworkImage(user.network.value.name)
-        : getTokenImage(token),
+    symbol: account.symbolOf(token),
+    image: token
+      ? getTokenImage(token)
+      : getNetworkImage(user.network.value.name),
   })),
 );
 const selected = computed(() =>
   options.value.find((opt) => opt.token === form.token.value),
 );
 const maxText = computed(() =>
-  form.maxAmount.value === null
-    ? '…'
-    : formatTokenAmount(
-        form.maxAmount.value,
-        account.decimalsOf(form.token.value ?? NATIVE_TOKEN),
-      ),
+  formatTokenAmount(form.maxAmount.value, account.decimalsOf(form.token.value)),
 );
 </script>
 
@@ -62,37 +57,25 @@ const maxText = computed(() =>
           class="h-5 w-5"
         />
         <span class="text-sm font-medium text-gray-900 sm:text-lg">
-          {{ form.symbol.value || 'Token' }}
+          {{ form.symbol.value }}
         </span>
         <template #items="{ close }">
           <button
             v-for="opt in options"
-            :key="opt.token"
+            :key="opt.symbol"
             type="button"
             class="menu-item"
             @click="(close(), form.setToken(opt.token))"
           >
-            <img
-              :src="opt.image"
-              :alt="account.symbolOf(opt.token)"
-              class="h-5 w-5"
-            />
-            {{ account.symbolOf(opt.token) }}
+            <img :src="opt.image" :alt="opt.symbol" class="h-5 w-5" />
+            {{ opt.symbol }}
           </button>
         </template>
       </DropdownChip>
     </div>
-    <div
-      v-if="form.token.value"
-      class="mt-2 flex items-center justify-between text-xs text-gray-400"
-    >
+    <div class="mt-2 flex items-center justify-between text-xs text-gray-400">
       <span>Disponível: {{ maxText }} {{ form.symbol.value }}</span>
-      <button
-        type="button"
-        class="acct-link"
-        :disabled="form.maxAmount.value === null"
-        @click="form.setMax()"
-      >
+      <button type="button" class="acct-link" @click="form.setMax()">
         Usar máximo
       </button>
     </div>

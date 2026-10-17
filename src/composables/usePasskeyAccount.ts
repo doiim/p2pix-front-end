@@ -21,10 +21,14 @@ import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
 import { useUser } from '@/composables/useUser';
-import { formatTokenAmount } from '@/utils/formatTokenAmount';
-import { NATIVE_TOKEN, type SendToken } from '@/model/NetworkEnum';
+import type { TokenEnum } from '@/model/NetworkEnum';
 
-export type SendParams = { token: SendToken; amount: bigint; to: Address };
+export type SendParams = {
+  /** ERC-20 to move; absent means the chain's native coin. */
+  token?: TokenEnum;
+  amount: bigint;
+  to: Address;
+};
 
 export type SendResult = { userOpHash: Hex; txHash?: Hex };
 
@@ -56,7 +60,7 @@ const tokenTransfer = (
 /** `funds` carries the whole read: the sent token and the native coin differ. */
 const assertSendFunds = (params: SendParams, funds: Balances): void => {
   const held =
-    params.token === NATIVE_TOKEN
+    params.token === undefined
       ? funds.result.eth
       : (balanceAt(
           funds.result.tokens,
@@ -64,7 +68,7 @@ const assertSendFunds = (params: SendParams, funds: Balances): void => {
         )?.balance ?? 0n);
   if (held < params.amount) {
     throw new Error(
-      params.token === NATIVE_TOKEN
+      params.token === undefined
         ? 'Saldo insuficiente'
         : `Saldo de ${params.token} insuficiente`,
     );
@@ -94,26 +98,16 @@ export function usePasskeyAccount() {
     );
   });
 
-  const nativeDecimals = computed(
-    () => user.network.value.nativeCurrency.decimals,
-  );
-  const nativeSymbol = computed(() => user.network.value.nativeCurrency.symbol);
-  const nativeText = computed(() =>
-    formatTokenAmount(ethBalance.value, nativeDecimals.value),
-  );
-  const symbolOf = (token: SendToken): string =>
-    token === NATIVE_TOKEN ? nativeSymbol.value : token;
-  const decimalsOf = (token: SendToken): number => {
-    if (token === NATIVE_TOKEN) return nativeDecimals.value;
-    const { address } = user.network.value.tokens[token];
-    return balanceAt(balances.value, address)?.decimals ?? nativeDecimals.value;
-  };
-  /** Held balance of any sendable token; the native coin has its own read. */
-  const balanceOf = (token: SendToken): bigint =>
-    token === NATIVE_TOKEN
-      ? ethBalance.value
-      : (balanceAt(balances.value, user.network.value.tokens[token].address)
-          ?.balance ?? 0n);
+  // No token means the chain's native coin, which has its own read.
+  const tokenRead = (token: TokenEnum) =>
+    balanceAt(balances.value, user.network.value.tokens[token].address);
+  const symbolOf = (token?: TokenEnum): string =>
+    token ?? user.network.value.nativeCurrency.symbol;
+  const decimalsOf = (token?: TokenEnum): number =>
+    (token && tokenRead(token)?.decimals) ??
+    user.network.value.nativeCurrency.decimals;
+  const balanceOf = (token?: TokenEnum): bigint =>
+    token ? (tokenRead(token)?.balance ?? 0n) : ethBalance.value;
 
   const readBalances = async (): Promise<Balances> => {
     const context = await getActiveAaContext();
@@ -158,7 +152,7 @@ export function usePasskeyAccount() {
       const funds = await readBalances();
       const { context } = funds;
       const calls: AaCall[] =
-        params.token === NATIVE_TOKEN
+        params.token === undefined
           ? [{ to: params.to, value: params.amount, data: '0x' }]
           : [
               tokenTransfer(
@@ -223,8 +217,6 @@ export function usePasskeyAccount() {
     ethBalance,
     smartAccountAddress,
     isReady,
-    nativeSymbol,
-    nativeText,
     symbolOf,
     decimalsOf,
     balanceOf,

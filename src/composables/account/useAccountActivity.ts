@@ -1,8 +1,7 @@
 import { computed, ref } from 'vue';
 import type { Address } from 'viem';
 
-import { tokenByAddress } from '@/config/networks';
-import { type SendToken } from '@/model/NetworkEnum';
+import { TokenEnum } from '@/model/NetworkEnum';
 import { useGraphQL, type Transaction } from '@/composables/useGraphQL';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useUser } from '@/composables/useUser';
@@ -13,7 +12,8 @@ export type ActivityItem = {
   title: string;
   direction: 'in' | 'out' | 'neutral';
   amount: bigint;
-  token: SendToken;
+  /** Absent means the chain's native coin. */
+  token?: TokenEnum;
   /** Milliseconds since epoch. */
   timestamp: number;
   href: string | null;
@@ -60,6 +60,15 @@ export function useAccountActivity() {
   const items = ref<ActivityItem[]>([]);
   const loading = ref(false);
 
+  /** Subgraph rows always move a configured ERC-20: deposits name it by
+   * address; lock/release/return carry none, so they read as the selected one. */
+  const tokenAt = (address: string | undefined): TokenEnum =>
+    Object.values(TokenEnum).find(
+      (token) =>
+        user.network.value.tokens[token].address.toLowerCase() ===
+        address?.toLowerCase(),
+    ) ?? user.selectedToken.value;
+
   const refresh = async (): Promise<void> => {
     const address = account.smartAccountAddress.value;
     if (!address) return;
@@ -82,7 +91,7 @@ export function useAccountActivity() {
         id: tx.id,
         ...SUBGRAPH[tx.type],
         amount: BigInt(tx.amount || '0'),
-        token: tokenByAddress(user.network.value, tx.token),
+        token: tokenAt(tx.token),
         timestamp: Number(tx.blockTimestamp) * 1000,
         href: account.explorerTxUrl(tx.transactionHash as Address),
       }),

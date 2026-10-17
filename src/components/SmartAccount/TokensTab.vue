@@ -3,21 +3,22 @@ import { computed } from 'vue';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useUser } from '@/composables/useUser';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
-import { NATIVE_TOKEN } from '@/model/NetworkEnum';
-import { sendableTokens } from '@/config/networks';
+import { TokenEnum } from '@/model/NetworkEnum';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import AccountEmptyState from './AccountEmptyState.vue';
 
 const account = usePasskeyAccount();
 const user = useUser();
 
+// The configured ERC-20s, then the native coin (no token).
+const tokens = [...Object.values(TokenEnum), undefined];
+
 const rows = computed(() =>
-  sendableTokens(user.network.value).map((token) => ({
+  tokens.map((token) => ({
     symbol: account.symbolOf(token),
-    image:
-      token === NATIVE_TOKEN
-        ? getNetworkImage(user.network.value.name)
-        : getTokenImage(token),
+    image: token
+      ? getTokenImage(token)
+      : getNetworkImage(user.network.value.name),
     text: formatTokenAmount(
       account.balanceOf(token),
       account.decimalsOf(token),
@@ -25,9 +26,7 @@ const rows = computed(() =>
   })),
 );
 const isEmpty = computed(() =>
-  sendableTokens(user.network.value).every(
-    (token) => account.balanceOf(token) === 0n,
-  ),
+  tokens.every((token) => account.balanceOf(token) === 0n),
 );
 </script>
 

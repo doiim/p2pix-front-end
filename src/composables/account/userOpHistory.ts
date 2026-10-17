@@ -1,10 +1,11 @@
 import type { Address, Hex } from 'viem';
-import { NATIVE_TOKEN, TokenEnum, type SendToken } from '@/model/NetworkEnum';
+import { TokenEnum } from '@/model/NetworkEnum';
 
 export type UserOpHistoryEntry = {
   /** userOpHash — unique per operation. */
   id: Hex;
-  token: SendToken;
+  /** ERC-20 sent; absent means the chain's native coin. */
+  token?: TokenEnum;
   /** Raw amount in wei as a decimal string (bigint is not JSON-safe). */
   amount: string;
   to: Address;
@@ -17,8 +18,6 @@ export type UserOpHistoryEntry = {
 
 const CAP = 100;
 
-const TOKEN_VALUES: string[] = [...Object.values(TokenEnum), NATIVE_TOKEN];
-
 const key = (chainId: number, address: Address): string =>
   `p2pix.aa.history.${chainId}.${address.toLowerCase()}`;
 
@@ -28,7 +27,7 @@ const isEntry = (value: unknown): value is UserOpHistoryEntry => {
     typeof e?.id === 'string' &&
     typeof e.timestamp === 'number' &&
     typeof e.amount === 'string' &&
-    TOKEN_VALUES.includes(e.token)
+    (e.token === undefined || Object.values(TokenEnum).includes(e.token))
   );
 };
 

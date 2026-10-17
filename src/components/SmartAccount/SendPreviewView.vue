@@ -25,7 +25,7 @@ const explorerHref = computed(() =>
 
 const handleSend = async () => {
   const to = form.receiverAddress.value;
-  if (form.token.value === null || form.amount.value === null || !to) return;
+  if (form.amount.value === null || !to) return;
   const result = await account.send({
     token: form.token.value,
     amount: form.amount.value,

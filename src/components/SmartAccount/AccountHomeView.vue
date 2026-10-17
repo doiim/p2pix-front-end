@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { ref } from 'vue';
 import router from '@/router/index';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import {
@@ -10,8 +10,7 @@ import { useSendForm } from '@/composables/account/useSendForm';
 import { useUser } from '@/composables/useUser';
 import { useWalletDisconnect } from '@/config/appkit';
 import { resetAaAccountCache } from '@/blockchain/aa/operations';
-import { sendableTokens } from '@/config/networks';
-import { NATIVE_TOKEN } from '@/model/NetworkEnum';
+import { TokenEnum } from '@/model/NetworkEnum';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { getNetworkImage } from '@/utils/imagesPath';
 import CustomButton from '@/components/ui/CustomButton.vue';
@@ -31,10 +30,6 @@ const user = useUser();
 const { disconnect } = useWalletDisconnect();
 
 const tab = ref(0);
-
-const erc20Tokens = computed(() =>
-  sendableTokens(user.network.value).filter((token) => token !== NATIVE_TOKEN),
-);
 
 const shortAddress = () => {
   const a = account.smartAccountAddress.value ?? '';
@@ -57,7 +52,7 @@ const handleDisconnect = async () => {
       <div v-if="account.balancesLoaded.value">
         <p class="acct-label">Saldo da conta</p>
         <p
-          v-for="token in erc20Tokens"
+          v-for="token in TokenEnum"
           :key="token"
           class="text-xl font-semibold text-gray-900"
         >
@@ -70,7 +65,8 @@ const handleDisconnect = async () => {
           {{ token }}
         </p>
         <p class="text-xs text-gray-400">
-          {{ account.nativeText.value }} {{ account.nativeSymbol.value }}
+          {{ formatTokenAmount(account.balanceOf(), account.decimalsOf()) }}
+          {{ account.symbolOf() }}
         </p>
       </div>
       <div v-else-if="account.error.value">
