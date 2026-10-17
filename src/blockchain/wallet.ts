@@ -237,10 +237,11 @@ type LockAddedResponse = {
   };
 };
 
+/** Undefined when the subgraph could not answer: lock ids are unknown. */
 const fetchLockIds = async (
   field: 'buyer' | 'seller',
   walletAddress: Address,
-): Promise<bigint[]> => {
+): Promise<bigint[] | undefined> => {
   const subgraphUrl = useUser().network.value.subgraphUrls[0];
 
   try {
@@ -259,9 +260,9 @@ const fetchLockIds = async (
       throw new Error(`Subgraph returned ${response.status}`);
     }
     const data = (await response.json()) as LockAddedResponse;
-    return (data.data?.lockAddeds ?? []).map((lock) => BigInt(lock.lockID));
+    return data.data?.lockAddeds?.map((lock) => BigInt(lock.lockID));
   } catch {
-    return [];
+    return undefined;
   }
 };
 
@@ -272,7 +273,9 @@ const getLockStatuses = async (
 ) => {
   const { address, abi, client } = await getContract(onlyRpcProvider);
   const lockIds = await fetchLockIds(field, walletAddress);
-  if (!lockIds.length) return undefined;
+  // Undefined: the subgraph could not answer. Null: there are no locks.
+  if (!lockIds) return undefined;
+  if (!lockIds.length) return null;
 
   const [sortedIDs, status] = await client.readContract({
     address,
@@ -306,8 +309,12 @@ export const getActiveLockAmount = async (
   return activeLockAmount;
 };
 
-export const getExpiredLockIds = async (seller: Address): Promise<bigint[]> => {
+/** Undefined when the subgraph could not answer: expired locks are unknown. */
+export const getExpiredLockIds = async (
+  seller: Address,
+): Promise<bigint[] | undefined> => {
   const locks = await getLockStatuses('seller', seller);
+  if (locks === undefined) return undefined;
   if (!locks) return [];
 
   const { sortedIDs, status } = locks;
@@ -356,6 +363,8 @@ export const sweepExpiredLocks = async (
   token: Address,
 ): Promise<number> => {
   const lockIds = await getExpiredLockIds(seller);
+  // An outage must show as a failed sweep, not as "already recovered".
+  if (!lockIds) throw new Error('Subgraph unavailable: expired locks unknown');
   if (!lockIds.length) return 0;
 
   const { address, abi, client, wallet, account } = await getContract();

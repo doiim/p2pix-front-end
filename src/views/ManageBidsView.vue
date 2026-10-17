@@ -42,7 +42,7 @@ const callWithdraw = async (amount: string) => {
       // party). Re-read at send time so a stale page-load snapshot cannot
       // brick the seller's own withdrawal.
       const expiredLocks = walletAddress.value
-        ? await getExpiredLockIds(walletAddress.value)
+        ? ((await getExpiredLockIds(walletAddress.value)) ?? [])
         : [];
       withdraw = await withdrawDeposit(
         amount,
