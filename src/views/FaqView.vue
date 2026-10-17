@@ -2,7 +2,14 @@
 import type { Faq } from '@/model/Faq';
 import { ref } from 'vue';
 import faqContent from '@/utils/files/faqContent.json';
-import { renderMarkdown } from '@/utils/markdown';
+import DOMPurify from 'dompurify';
+import { marked } from 'marked';
+
+// marked passes raw HTML through untouched; DOMPurify is the policy before v-html.
+const renderMarkdown = (md: string): string =>
+  DOMPurify.sanitize(
+    marked.parse(md, { async: false, breaks: true, gfm: true }),
+  );
 
 const faq = ref<Faq>(faqContent);
 
