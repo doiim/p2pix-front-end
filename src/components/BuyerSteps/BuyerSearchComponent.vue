@@ -236,17 +236,6 @@ const handleSubmit = async (e: Event): Promise<void> => {
 
 <template>
   <div class="page">
-    <div class="text-container">
-      <span
-        class="text font-extrabold sm:text-5xl text-3xl sm:max-w-[29rem] max-w-[20rem]"
-      >
-        Adquira cripto com apenas um Pix</span
-      >
-      <span class="text font-medium sm:text-base text-sm max-w-[28rem]"
-        >Digite um valor, confira a oferta, conecte sua carteira e receba os
-        tokens após realizar o Pix</span
-      >
-    </div>
     <form class="main-container" @submit="handleSubmit">
       <div class="backdrop-blur -z-10 w-full h-full"></div>
       <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg">
@@ -423,15 +412,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
 }
 
 .page {
-  @apply flex flex-col items-center justify-center w-full mt-16;
-}
-
-.text-container {
-  @apply flex flex-col items-center justify-center gap-4;
-}
-
-.text {
-  @apply text-white text-center;
+  @apply flex flex-col items-center justify-center w-full;
 }
 
 input[type='number'] {

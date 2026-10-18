@@ -15,6 +15,8 @@ import { getNetworksLiquidity } from '@/blockchain/events';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
+import AccountBalances from '@/components/Account/AccountBalances.vue';
+import AccountTransactions from '@/components/Account/AccountTransactions.vue';
 import type { Address, Hex } from 'viem';
 
 enum Step {
@@ -161,10 +163,33 @@ onMounted(async () => {
 
 <template>
   <div>
-    <SearchComponent
+    <div
       v-if="flowStep == Step.Search"
-      @token-buy="confirmBuyClick"
-    />
+      class="flex flex-col items-center w-full mt-16"
+    >
+      <div class="flex flex-col items-center gap-4 text-white text-center">
+        <span
+          class="font-extrabold sm:text-5xl text-3xl sm:max-w-[29rem] max-w-[20rem]"
+        >
+          Adquira cripto com apenas um Pix</span
+        >
+        <span class="font-medium sm:text-base text-sm max-w-[28rem]"
+          >Digite um valor, confira a oferta, conecte sua carteira e receba os
+          tokens após realizar o Pix</span
+        >
+      </div>
+      <!-- Reversed so the balances sit left of the buy card on wide screens
+           and below it, after the transactions, when the row wraps. -->
+      <div
+        class="flex flex-row-reverse flex-wrap justify-center items-start gap-x-6 w-full"
+      >
+        <div class="flex flex-col items-center w-full md:max-w-lg">
+          <SearchComponent @token-buy="confirmBuyClick" />
+          <AccountTransactions />
+        </div>
+        <AccountBalances />
+      </div>
+    </div>
     <CustomAlert
       v-if="showLockRecoveryAlert"
       :type="'lockPending'"

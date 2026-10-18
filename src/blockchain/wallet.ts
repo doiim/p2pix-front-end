@@ -1,4 +1,4 @@
-import { formatEther, type Address } from 'viem';
+import { erc20Abi, formatEther, type Address } from 'viem';
 import { useUser } from '@/composables/useUser';
 import { getEffectiveWalletAddress } from './aa/operations';
 
@@ -11,6 +11,7 @@ import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { WalletTransaction } from '@/model/WalletTransaction';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
 import { LockStatus } from '@/model/LockStatus';
+import { TokenEnum } from '@/model/NetworkEnum';
 
 // Addresses today come from viem/wagmi and are well-formed hex, but the
 // GraphQL builders below interpolate them straight into a quoted literal, so
@@ -45,6 +46,23 @@ export const updateWalletStatus = async (): Promise<void> => {
 
   user.setWalletAddress(address);
   user.setBalance(formatEther(balance));
+};
+
+export const getTokenBalances = async (
+  address: Address,
+): Promise<{ token: TokenEnum; amount: bigint }[]> => {
+  const network = useUser().network.value;
+  return Promise.all(
+    Object.values(TokenEnum).map(async (token) => ({
+      token,
+      amount: await getPublicClient().readContract({
+        address: network.tokens[token].address,
+        abi: erc20Abi,
+        functionName: 'balanceOf',
+        args: [address],
+      }),
+    })),
+  );
 };
 
 export const listValidDepositTransactionsByWalletAddress = async (
