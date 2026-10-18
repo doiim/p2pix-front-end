@@ -14,9 +14,9 @@ watch(
     // Drop the result if the account or network changed while reading.
     let stale = false;
     onCleanup(() => (stale = true));
-    const list = address
-      ? await listAllTransactionByWalletAddress(address)
-      : [];
+    transactions.value = [];
+    if (!address) return;
+    const list = await listAllTransactionByWalletAddress(address);
     if (!stale) transactions.value = list;
   },
   { immediate: true },

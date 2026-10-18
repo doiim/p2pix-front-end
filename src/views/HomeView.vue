@@ -163,10 +163,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <div
-      v-if="flowStep == Step.Search"
-      class="flex flex-col items-center w-full mt-16"
-    >
+    <div v-if="flowStep == Step.Search" class="mt-16">
       <div class="flex flex-col items-center gap-4 text-white text-center">
         <span
           class="font-extrabold sm:text-5xl text-3xl sm:max-w-[29rem] max-w-[20rem]"
@@ -181,7 +178,7 @@ onMounted(async () => {
       <!-- Reversed so the balances sit left of the buy card on wide screens
            and below it, after the transactions, when the row wraps. -->
       <div
-        class="flex flex-row-reverse flex-wrap justify-center items-start gap-x-6 w-full"
+        class="flex flex-row-reverse flex-wrap justify-center items-start gap-x-6"
       >
         <div class="flex flex-col items-center w-full md:max-w-lg">
           <SearchComponent @token-buy="confirmBuyClick" />

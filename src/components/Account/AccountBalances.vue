@@ -1,53 +1,51 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
-import { formatEther } from 'viem';
+import { ref, watch } from 'vue';
+import { formatEther, formatUnits } from 'viem';
+import { getTokenBalances } from '@doiim/passkeys/smart-account';
 import { useUser } from '@/composables/useUser';
-import { getTokenBalances } from '@/blockchain/wallet';
+import { getPublicClient } from '@/blockchain/provider';
+import { TokenEnum } from '@/model/NetworkEnum';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 
 const user = useUser();
-const tokenBalances = ref<Awaited<ReturnType<typeof getTokenBalances>>>([]);
+const tokens = Object.values(TokenEnum);
+const rows = ref<{ symbol: string; image: string; amount: number }[]>([]);
 
 watch(
   [user.walletAddress, user.network],
-  async ([address], _, onCleanup) => {
+  async ([address, network], _, onCleanup) => {
     // Drop the result if the account or network changed while reading.
     let stale = false;
     onCleanup(() => (stale = true));
-    const balances = address ? await getTokenBalances(address) : [];
-    if (!stale) tokenBalances.value = balances;
+    rows.value = [];
+    if (!address) return;
+    const balances = await getTokenBalances(
+      getPublicClient(),
+      address,
+      tokens.map((token) => network.tokens[token].address),
+    );
+    if (stale) return;
+    rows.value = [
+      {
+        symbol: network.nativeCurrency.symbol,
+        image: getNetworkImage(network.name),
+        amount: Number(formatEther(balances.eth)),
+      },
+      ...balances.tokens.map((balance, index) => ({
+        symbol: tokens[index],
+        image: getTokenImage(tokens[index]),
+        amount: Number(formatUnits(balance.balance, balance.decimals)),
+      })),
+    ].filter((row) => row.amount > 0);
   },
   { immediate: true },
 );
-
-const rows = computed(() => {
-  if (!user.walletAddress.value) return [];
-  const network = user.network.value;
-  return [
-    {
-      symbol: network.nativeCurrency.symbol,
-      image: getNetworkImage(network.name),
-      amount: Number(user.balance.value),
-    },
-    ...tokenBalances.value.map((balance) => ({
-      symbol: balance.token,
-      image: getTokenImage(balance.token),
-      amount: Number(formatEther(balance.amount)),
-    })),
-  ].filter((row) => row.amount > 0);
-});
 </script>
 
 <template>
-  <section
-    v-if="rows.length"
-    class="main-container lg:max-w-90"
-    aria-labelledby="account-balances-title"
-  >
+  <div v-if="rows.length" class="main-container lg:max-w-90!">
     <div class="w-full bg-white rounded-lg p-5">
-      <h2 id="account-balances-title" class="text-sm font-medium text-gray-600">
-        Saldos
-      </h2>
+      <h2 class="text-sm font-medium text-gray-600">Saldos</h2>
       <ul class="flex flex-col gap-3 mt-4">
         <li
           v-for="row in rows"
@@ -67,5 +65,5 @@ const rows = computed(() => {
         </li>
       </ul>
     </div>
-  </section>
+  </div>
 </template>
