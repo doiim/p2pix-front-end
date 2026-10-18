@@ -1,7 +1,7 @@
 import type { Address, Chain } from 'viem';
 import { arbitrum, mainnet, rootstockTestnet, sepolia } from 'viem/chains';
 import type { AppKitNetwork as WalletNetwork } from '@doiim/reown-appkit/networks';
-import { NetworkConfig } from '@/model/NetworkEnum';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 
 export type { WalletNetwork };
 
