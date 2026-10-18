@@ -41,6 +41,7 @@ Signing is client-side on two rails, chosen by the connector the user logged in 
   - On email/social login Kernel's owner is a Reown-managed signer (deviation in `SECURITY.md`) — a key you do not hold — which the app forces to its EOA account type (`ensureReownEoaAccount`, `src/config/appkit.ts`).
   - Passkeys are registered for RP id `p2pix.co` in production and `demo.p2pix.co` in development. The RP id is a build-time constant (`src/config/aa.ts`) that WebAuthn requires to be a registrable suffix of the page origin, binding the passkey rail to those hosts.
   - **Escape path:** `/sweep` (`SweepView`, `usePasskeyAccount.sweep`), on either smart-account login, sends the smart account's ETH in full and its BRZ minus a fee reserve to an address the user enters — a sovereign exit from the smart account. Gas is paid through the ERC-20 paymaster, so it needs a BRZ balance.
+  - **Send:** the home's account panel (`AccountSend`, `usePasskeyAccount.sendTransfer`) sends one asset to an address the user enters. Like the sweep it is paid only through the ERC-20 paymaster, never sponsored; a BRZ send pays the fee out of the amount sent.
 
 On both rails the new lock's id is read from the `LockAdded` event in the transaction's own logs, since `lockID = ++lockCounter` is global (`getLockIdFromLogs`, `src/blockchain/buyerMethods.ts`) — the log is the receipt, not a server's word for it.
 

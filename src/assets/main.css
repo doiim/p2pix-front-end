@@ -27,6 +27,10 @@ a,
   @apply flex w-full md:max-w-lg flex-col justify-center items-center px-4 sm:px-8 py-4 sm:py-6 gap-4 rounded-lg border border-gray-500 backdrop-blur-md drop-shadow-lg shadow-lg mt-10;
 }
 
+.account-button {
+  @apply flex items-center justify-center gap-2 min-h-11 p-2.5 border-2 border-amber-300 rounded-lg bg-white text-sm font-semibold text-gray-900 hover:bg-amber-50 transition-colors;
+}
+
 input[type="number"] {
   appearance: textfield;
   -webkit-appearance: textfield;

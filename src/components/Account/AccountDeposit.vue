@@ -55,11 +55,7 @@ const copyAddress = async () => {
       >{{ address.slice(10, -8) }}<strong>{{ address.slice(-8) }}</strong>
     </span>
   </p>
-  <button
-    type="button"
-    class="min-h-11 p-2.5 border-2 border-amber-300 rounded-lg bg-white text-sm font-semibold text-gray-900 hover:bg-amber-50 transition-colors"
-    @click="copyAddress"
-  >
+  <button type="button" class="account-button" @click="copyAddress">
     {{ copied ? 'Copiado' : 'Copiar endereço' }}
   </button>
   <div class="flex flex-col gap-2">

@@ -9,6 +9,7 @@ import { TokenEnum } from '@/model/NetworkEnum';
 import type { AccountBalance } from '@/model/AccountBalance';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 import AccountDeposit from './AccountDeposit.vue';
+import AccountSend from './AccountSend.vue';
 
 const user = useUser();
 const passkeyAccount = usePasskeyAccount();
@@ -17,16 +18,19 @@ const assets = ref<AccountBalance[]>([]);
 const balances = computed(() =>
   assets.value.filter((asset) => asset.amount > 0n),
 );
-const view = ref<'balances' | 'deposit'>('balances');
+const view = ref<'balances' | 'deposit' | 'send'>('balances');
+const reloads = ref(0);
 
 watch(
-  [user.walletAddress, user.network],
-  async ([address, network], _, onCleanup) => {
+  [user.walletAddress, user.network, reloads],
+  async ([address, network], previous, onCleanup) => {
     // Drop the result if the account or network changed while reading.
     let stale = false;
     onCleanup(() => (stale = true));
-    assets.value = [];
-    view.value = 'balances';
+    if (address !== previous?.[0] || network !== previous?.[1]) {
+      assets.value = [];
+      view.value = 'balances';
+    }
     if (!address) return;
     const read = await getTokenBalances(
       getPublicClient(),
@@ -75,7 +79,7 @@ const reais = (value: number) =>
 
 <template>
   <div
-    v-if="balances.length"
+    v-if="balances.length || view !== 'balances'"
     class="main-container lg:max-w-90!"
     :class="{ 'max-lg:order-first': view !== 'balances' }"
   >
@@ -85,6 +89,12 @@ const reais = (value: number) =>
         :address="user.walletAddress.value"
         :assets="assets"
         @back="view = 'balances'"
+      />
+      <AccountSend
+        v-else-if="view === 'send'"
+        :balances="balances"
+        @sent="reloads++"
+        @close="view = 'balances'"
       />
       <template v-else>
         <div v-if="total !== null" class="flex flex-col">
@@ -100,6 +110,9 @@ const reais = (value: number) =>
             @click="view = 'deposit'"
           >
             Depositar
+          </button>
+          <button type="button" class="account-button" @click="view = 'send'">
+            Enviar
           </button>
         </div>
         <ul class="flex flex-col gap-3 pt-4 border-t border-gray-200">
@@ -130,10 +143,3 @@ const reais = (value: number) =>
     </div>
   </div>
 </template>
-
-<style scoped>
-@reference "tailwindcss";
-.account-button {
-  @apply flex items-center justify-center gap-2 min-h-11 p-2.5 border-2 border-amber-300 rounded-lg bg-white text-sm font-semibold text-gray-900 hover:bg-amber-50 transition-colors;
-}
-</style>

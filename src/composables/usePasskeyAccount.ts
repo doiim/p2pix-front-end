@@ -8,7 +8,7 @@ import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem';
 import { isAaAvailable } from '@/blockchain/aa/aaContext';
 import { getActiveAaContext } from '@/blockchain/aa/operations';
 import { getAaOwnerKind, readPasskeySession } from '@/blockchain/aa/session';
-import type { AaCall } from '@/blockchain/aa/types';
+import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import {
   prepareErc20PaymasterQuote,
   sendPreparedErc20UserOperation,
@@ -41,6 +41,17 @@ const tokenTransfer = (
     args: [recipient, amount],
   }),
 });
+
+// `null` sends the network's native coin.
+const transferCall = (
+  context: AaContext,
+  token: TokenEnum | null,
+  recipient: Address,
+  amount: bigint,
+): AaCall =>
+  token
+    ? tokenTransfer(context.network.tokens[token].address, recipient, amount)
+    : { to: recipient, value: amount, data: '0x' };
 
 export function usePasskeyAccount() {
   const user = useUser();
@@ -168,6 +179,54 @@ export function usePasskeyAccount() {
     }
   };
 
+  // Gas is paid in BRZ through the ERC-20 paymaster, never sponsored. Like
+  // the sweep, quote a probe transfer first: the cost depends on the call's
+  // shape, not its amount.
+  const quoteTransferFee = async (
+    token: TokenEnum | null,
+    recipient: Address,
+  ): Promise<bigint> => {
+    const context = await getAaClient();
+    const probe = await prepareErc20PaymasterQuote(context, [
+      transferCall(context, token, recipient, 1n),
+    ]);
+    return (
+      probe.costInToken +
+      (probe.costInToken * FEE_HEADROOM_BPS) / BPS_DENOMINATOR
+    );
+  };
+
+  // A BRZ transfer pays the fee out of the amount sent; any other asset
+  // pays it from the BRZ balance.
+  const sendTransfer = async (
+    token: TokenEnum | null,
+    recipient: Address,
+    amount: bigint,
+    feeReserve: bigint,
+  ): Promise<Hex> => {
+    const context = await getAaClient();
+    const sent = token === TokenEnum.BRZ ? amount - feeReserve : amount;
+    const quote = await prepareErc20PaymasterQuote(context, [
+      transferCall(context, token, recipient, sent),
+    ]);
+    if (quote.costInToken > feeReserve) {
+      throw new Error(
+        'A taxa da rede mudou. Atualize os saldos e tente novamente.',
+      );
+    }
+    return sendPreparedErc20UserOperation(context, quote);
+  };
+
+  const waitForTransfer = async (userOpHash: Hex): Promise<Hex> => {
+    const context = await getAaClient();
+    const { success, receipt } =
+      await context.erc20Client.waitForUserOperationReceipt({
+        hash: userOpHash,
+      });
+    if (!success) throw new Error(`Falha no envio: ${userOpHash}`);
+    return receipt.transactionHash;
+  };
+
   return {
     busy,
     error,
@@ -178,5 +237,8 @@ export function usePasskeyAccount() {
     isReady,
     sweep,
     refreshBalances,
+    quoteTransferFee,
+    sendTransfer,
+    waitForTransfer,
   };
 }
