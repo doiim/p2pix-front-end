@@ -182,11 +182,15 @@ export const listAllTransactionByWalletAddress = async (
   // Process lock released events
   if (data.data?.lockReleaseds) {
     for (const release of data.data.lockReleaseds) {
+      // The release event has no amount; take it from the buyer's own lock.
+      const lock = data.data.lockAddeds?.find(
+        (added: { lockID: string }) => added.lockID === release.lockId,
+      );
       transactions.push({
         token: undefined, // Subgraph doesn't provide token in this event, we could enhance this later
         blockNumber: parseInt(release.blockNumber),
         blockTimestamp: parseInt(release.blockTimestamp),
-        amount: -1, // Amount not available in this event
+        amount: lock ? parseFloat(formatEther(BigInt(lock.amount))) : -1,
         seller: '',
         buyer: release.buyer,
         event: 'LockReleased',
