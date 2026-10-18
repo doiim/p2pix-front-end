@@ -71,17 +71,36 @@ jobs:
           SOURCE: dist/
           TARGET: ${{ env.DEPLOY_TARGET }}
 
+      - name: Setup Kubo
+        continue-on-error: true
+        env:
+          KUBO_VERSION: v0.43.1
+          # SHA-256 of the kubo_v0.43.1_linux-amd64.tar.gz release asset. A
+          # version bump updates both values together; the hash is the trust
+          # root, so it lives in this diff and not in an API answer.
+          KUBO_SHA256: 3f2bf974ab2a3ec6d997fac7d8cb46f59983a7cddd0b55ef998e6ce379155fb2
+        run: |
+          curl -fsSL -o kubo.tar.gz "https://github.com/ipfs/kubo/releases/download/${KUBO_VERSION}/kubo_${KUBO_VERSION}_linux-amd64.tar.gz"
+          echo "$KUBO_SHA256  kubo.tar.gz" | sha256sum --check
+          tar -xzf kubo.tar.gz
+          echo "$PWD/kubo" >> "$GITHUB_PATH"
+          rm kubo.tar.gz
+
       - name: Deploy to IPFS
-        uses: ipshipyard/ipfs-deploy-action@v2
         id: ipfs
         continue-on-error: true
-        with:
-          path-to-deploy: dist
-          set-github-status: false
-          set-pr-comment: false
-          upload-car-artifact: false
-          kubo-api-url: /dns/${{ secrets.KUBO_HOST }}/tcp/443/https
-          kubo-api-auth: ${{ secrets.KUBO_API_AUTH }}
+        env:
+          KUBO_API_URL: /dns/${{ secrets.KUBO_HOST }}/tcp/443/https
+          KUBO_API_AUTH: ${{ secrets.KUBO_API_AUTH }}
+        run: |
+          # Guarded: a second init against an existing repo exits 1.
+          [ -e "${IPFS_PATH:-$HOME/.ipfs}/config" ] || ipfs init
+          # IPIP-0499: same CIDs as the kubo v0.42.0 pipeline produced.
+          ipfs config profile apply unixfs-v1-2025
+          CID=$(ipfs add -Q -r dist)
+          ipfs dag export "$CID" > build.car
+          ipfs dag import build.car --api "$KUBO_API_URL" --api-auth "$KUBO_API_AUTH"
+          echo "cid=$CID" >> "$GITHUB_OUTPUT"
 
       - name: Pin at Pinata
         if: steps.ipfs.outcome == 'success'
@@ -90,10 +109,25 @@ jobs:
           IPFS_CID: ${{ steps.ipfs.outputs.cid }}
         run: |
           VERSION=$(jq -r .version package.json)
-          curl -sS -X POST https://api.pinata.cloud/pinning/pinByHash \
+          response=$(curl -sS -w "\n%{http_code}" -X POST https://uploads.pinata.cloud/v3/files \
             -H "Authorization: Bearer $PINATA_JWT" \
-            -H "Content-Type: application/json" \
-            -d "{\"hash\":\"$IPFS_CID\",\"pinataMetadata\":{\"name\":\"p2pix_${VERSION}\"}}"
+            -F "network=public" \
+            -F "file=@build.car" \
+            -F "name=p2pix_${VERSION}" \
+            -F "car=true")
+          status=${response##*$'\n'}
+          body=${response%$'\n'*}
+          if [ "$status" != 200 ]; then
+            echo "Pinata upload failed (HTTP $status): $body"
+            exit 1
+          fi
+          # The pin is only real if Pinata reports the root CID we computed.
+          pinned=$(jq -r .data.cid <<<"$body")
+          if [ "$pinned" != "$IPFS_CID" ]; then
+            echo "Pinata pinned $pinned, expected $IPFS_CID"
+            exit 1
+          fi
+          echo "Pinned $pinned at Pinata as p2pix_${VERSION}"
 
       - name: Update IPNS pointer
         if: steps.ipfs.outcome == 'success' && gitea.ref == 'refs/heads/main'

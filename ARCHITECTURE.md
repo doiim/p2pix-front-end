@@ -87,15 +87,14 @@ Reads are split by concern so that no single party is silently authoritative:
 One workflow, `.gitea/workflows/ci.yml` (`CI & Deploy`), builds every branch and tag push, PRs and manual dispatches. Build mode follows the audience: PR previews, `main` and tags build production (`VITE_APP_ENV=production`, mainnet config); other branch pushes build development (testnet config). It installs, lints, checks formatting, runs the test step, generates the ABIs, builds, then deploys from hosted CI runners — team-run infrastructure, a deviation (`SECURITY.md`, walkaway requirements):
 
 - **Self-hosted server.** `dist/` is rsynced over SSH into a directory named after the ref. Development builds are served at `*.demo.p2pix.co`.
-- **IPFS.** `dist/` is added to our kubo node (`ipshipyard/ipfs-deploy-action`) and pinned at Pinata by hash. The **hash is the anchor**; gateways are interchangeable.
-- **IPNS.** An IPNS name, anchored by the `_dnslink.p2pix.co` TXT record and resolvable as `ipns://p2pix.co`, is republished to the new CID on `main` only. The DNS record is a trust anchor — a deviation; ENS and a `.onion` mirror are tracked in `SECURITY.md`.
+- **IPFS.** `dist/` is merkleized in CI, SHA-256 and CID profile pinned in the workflow; the resulting CAR is uploaded to a remote pinning service, which pins the root CID.
+- **IPNS.** An IPNS name, anchored by the `_dnslink.p2pix.co` TXT record is resolvable as `ipns://p2pix.co`.
 
 ### 6. Build & verification
 
 - **Release metadata is compiled in.** `vite.config.ts` reads the git tags, notes and HEAD at build time and inlines them as `import.meta.env.APP_VERSION` / `APP_RELEASES`. The version is `package.json` `version`, plus `+<short sha>` when HEAD is off the tag of that name; without git, for example from a source tarball, the bare version is emitted.
 - **CID per tag is a manual step.** After a release the maintainer records its CID with `git notes --ref=ipfs add` (README "Versioning"); CI fetches the notes and the maintainer writes them. Notes rather than tag messages, so history stays clean and a wrong CID is fixable with `add -f`.
 - **Versions view.** `src/views/VersionsView.vue` lists the tags compiled into the bundle and links the ones carrying an IPFS note to `ipfs://<CID>`; the list is self-reported.
-- **What a user can verify:** for a tagged release loaded by CID, that the CID equals `git notes --ref=ipfs show <tag>`. Source inputs are pinned (`bun.lock`, an exact Vite pin in `package.json`, the submodule gitlink); rebuilding a tag to its CID is the reproducible-build open gap in `SECURITY.md` — until it is closed, verification reaches the source, not the bytes.
 
 ### 7. zkPix (in development)
 

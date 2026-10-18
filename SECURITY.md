@@ -50,6 +50,12 @@ P2Pix is self-custodial for signing, but releasing an escrow relies on third-par
 - **What it sees or can block:** fiat transits P2Pix's BB Pay account for the settlement window before BB settles it to the seller's registered account — a custody deviation, not self-custody. Releasing escrowed funds is gated on a P2Pix-signed attestation — the single trusted signer we have not yet removed. If it is unavailable trades halt.
 - **Escape path:** none today (an open gap — see Design-baseline compliance). Two routes end release's dependence on the P2Pix oracle: a **Bacen-issued attestation** — the primary plan, tracked as an open upstream request at [bacen/pix-api#61](https://github.com/bacen/pix-api/issues/61) — or **zkPix** (zkTLS), the fallback.
 
+### Pinata (release pinning)
+
+- **What it is:** a second pin of every release, uploaded from CI over HTTPS as a CAR (`uploads.pinata.cloud`, `car=true`) — the same bytes our kubo node holds.
+- **What it sees or can block:** the full build bytes and CI's IP; it can refuse or drop the pin. Availability only, never content: the CID is computed in CI with a pinned kubo and checked against the CID Pinata reports back, so a wrong pin fails the deploy instead of shipping.
+- **Escape path:** the CAR is a plain file — pin it at any other service or self-hosted node. Our kubo node and `ipfs://<CID>` remain authoritative.
+
 ## Design-baseline compliance
 
 ✅ met · ⚠️ partial or unverified · ❌ open gap. Ratings follow the shipped behavior in [`ARCHITECTURE.md`](./ARCHITECTURE.md) and the entries above; they are updated on every release, and a ⚠️ stays ⚠️ until `ARCHITECTURE.md` substantiates the item.
