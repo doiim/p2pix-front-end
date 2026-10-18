@@ -29,6 +29,12 @@ const {
 
 // html references
 const tokenDropdownRef = ref<any>(null);
+const tokenQuery = ref('');
+const shownTokens = computed(() =>
+  Object.values(TokenEnum).filter((token) =>
+    token.toLowerCase().includes(tokenQuery.value.trim().toLowerCase()),
+  ),
+);
 
 // Reactive state
 const tokenValue = ref<number>(0);
@@ -238,6 +244,25 @@ const handleSubmit = async (e: Event): Promise<void> => {
   <div class="page">
     <form class="main-container" @submit="handleSubmit">
       <div class="backdrop-blur -z-10 w-full h-full"></div>
+      <div
+        role="group"
+        aria-label="Tipo de oferta"
+        class="grid grid-cols-2 gap-2 w-full"
+      >
+        <button
+          type="button"
+          aria-pressed="true"
+          class="min-h-11 rounded-lg bg-white font-semibold text-gray-900"
+        >
+          Comprar
+        </button>
+        <RouterLink
+          :to="{ name: 'seller' }"
+          class="flex items-center justify-center min-h-11 rounded-lg border border-gray-500 font-semibold text-white! hover:bg-white/10!"
+        >
+          Vender
+        </RouterLink>
+      </div>
       <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg">
         <div class="flex justify-between sm:w-full items-center">
           <input
@@ -253,9 +278,12 @@ const handleSubmit = async (e: Event): Promise<void> => {
             step=".01"
             required
           />
-          <div class="relative overflow-visible ml-auto sm:ml-0">
+          <div
+            ref="tokenDropdownRef"
+            class="relative overflow-visible ml-auto sm:ml-0"
+          >
             <button
-              ref="tokenDropdownRef"
+              type="button"
               class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
               @click="openTokenSelection()"
             >
@@ -283,8 +311,21 @@ const handleSubmit = async (e: Event): Promise<void> => {
                 <div
                   class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
                 >
+                  <input
+                    v-model="tokenQuery"
+                    type="search"
+                    aria-label="Buscar token"
+                    placeholder="Buscar token"
+                    class="w-full px-4 py-3 border-b border-gray-300 text-sm outline-none"
+                  />
+                  <p
+                    v-if="!shownTokens.length"
+                    class="px-4 py-3 text-sm text-gray-500"
+                  >
+                    Nenhum token encontrado
+                  </p>
                   <div
-                    v-for="token in TokenEnum"
+                    v-for="token in shownTokens"
                     :key="token"
                     class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
                     @click="handleSelectedToken(token)"
