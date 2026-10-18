@@ -15,7 +15,7 @@ import { getNetworksLiquidity } from '@/blockchain/events';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
-import AccountBalances from '@/components/Account/AccountBalances.vue';
+import AccountPanel from '@/components/Account/AccountPanel.vue';
 import AccountTransactions from '@/components/Account/AccountTransactions.vue';
 import type { Address, Hex } from 'viem';
 
@@ -184,7 +184,7 @@ onMounted(async () => {
           <SearchComponent @token-buy="confirmBuyClick" />
           <AccountTransactions />
         </div>
-        <AccountBalances />
+        <AccountPanel />
       </div>
     </div>
     <CustomAlert
