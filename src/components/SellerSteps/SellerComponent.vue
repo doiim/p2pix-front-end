@@ -94,24 +94,11 @@ const handleSelectedToken = (token: TokenEnum): void => {
 
 <template>
   <div class="page w-full">
-    <div class="text-container">
-      <span
-        class="text font-extrabold sm:text-5xl text-3xl sm:max-w-[29rem] max-w-[20rem]"
-      >
-        Venda cripto e receba em Pix
-      </span>
-      <span
-        class="text font-medium sm:text-base text-xs sm:max-w-[28rem] max-w-[30rem] sm:tracking-normal tracking-wide"
-      >
-        Digite sua oferta, informe seus dados de identificação e bancários,
-        aprove os tokens e confirme o envio da oferta para a rede.
-      </span>
-    </div>
-
     <form ref="formRef" @submit="handleSubmit" class="main-container">
+      <slot />
       <!-- Offer input -->
       <div
-        class="flex justify-between items-center w-full bg-white sm:px-10 px-6 py-5 rounded-lg gap-4"
+        class="flex justify-between items-center w-full bg-white sm:px-10 px-5 py-5 rounded-lg gap-4"
       >
         <input
           type="number"
@@ -183,7 +170,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
         </div>
       </div>
       <!-- CPF or CNPJ input -->
-      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
+      <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-4 rounded-lg">
         <input
           type="text"
           v-model="identification"
@@ -196,7 +183,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
         />
       </div>
       <!-- Bank selection -->
-      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
+      <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-4 rounded-lg">
         <div class="relative">
           <input
             type="text"
@@ -229,7 +216,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
         }}</span>
       </div>
       <!-- Account and Branch inputs -->
-      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
+      <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-4 rounded-lg">
         <div class="flex gap-4">
           <div class="flex-1">
             <input
@@ -254,7 +241,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
         </div>
       </div>
       <!-- Account Type Selection -->
-      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
+      <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-4 rounded-lg">
         <div class="flex gap-4">
           <div class="flex-1">
             <select
@@ -277,14 +264,18 @@ const handleSelectedToken = (token: TokenEnum): void => {
           v-if="accountType === '2'"
           type="text"
           v-model="savingsVariation"
-          class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
+          class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full bg-white sm:px-10 px-5 py-4 rounded-lg"
           :class="{ 'text-xl font-medium': savingsVariation }"
           placeholder="Variação da poupança"
           required
         />
       </Transition>
       <!-- Action buttons -->
-      <CustomButton v-if="walletAddress" type="submit" text="Aprovar tokens" />
+      <CustomButton
+        v-if="walletAddress"
+        type="submit"
+        text="Enviar para a rede"
+      />
       <CustomButton
         v-else
         text="Conectar carteira"
@@ -307,15 +298,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
 }
 
 .page {
-  @apply flex flex-col items-center justify-center w-full mt-16;
-}
-
-.text-container {
-  @apply flex flex-col items-center justify-center gap-4;
-}
-
-.text {
-  @apply text-white text-center;
+  @apply flex flex-col items-center justify-center w-full;
 }
 
 input[type='number'] {

@@ -217,12 +217,7 @@ const copyHash = async () => {
     </div>
     <dl v-if="fee !== null" class="flex flex-col gap-1 text-sm text-gray-900">
       <div class="flex justify-between gap-2">
-        <dt>
-          Taxa de rede
-          <span class="block text-xs text-gray-500">
-            {{ feeFromAmount ? 'descontada do valor enviado' : 'paga em BRZ' }}
-          </span>
-        </dt>
+        <dt>Taxa de rede</dt>
         <dd>~ {{ feeText }}</dd>
       </div>
       <div

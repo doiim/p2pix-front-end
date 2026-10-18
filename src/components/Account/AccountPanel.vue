@@ -81,7 +81,7 @@ const reais = (value: number) =>
   <div
     v-if="balances.length || view !== 'balances'"
     class="main-container lg:max-w-90!"
-    :class="{ 'max-lg:order-first': view !== 'balances' }"
+    :class="view === 'balances' ? 'max-lg:mt-4!' : 'max-lg:order-first'"
   >
     <div class="w-full flex flex-col gap-4 bg-white rounded-lg p-5">
       <AccountDeposit

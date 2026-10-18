@@ -6,7 +6,6 @@ import {
 import HomeView from '@/views/HomeView.vue';
 import FaqView from '@/views/FaqView.vue';
 import ManageBidsView from '@/views/ManageBidsView.vue';
-import SellerView from '@/views/SellerView.vue';
 import ExploreView from '@/views/ExploreView.vue';
 import VersionsView from '@/views/VersionsView.vue';
 import SweepView from '@/views/SweepView.vue';
@@ -31,7 +30,7 @@ const router = createRouter({
     {
       path: '/seller',
       name: 'seller',
-      component: SellerView,
+      component: HomeView,
     },
     {
       path: '/manage_bids',

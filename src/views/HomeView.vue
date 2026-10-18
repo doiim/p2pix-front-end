@@ -17,16 +17,25 @@ import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import AccountPanel from '@/components/Account/AccountPanel.vue';
 import AccountTransactions from '@/components/Account/AccountTransactions.vue';
+import SellerComponent from '@/components/SellerSteps/SellerComponent.vue';
+import { approveTokens, addDeposit } from '@/blockchain/sellerMethods';
+import type { Participant } from '@/utils/bbPay';
+import { useRoute, useRouter } from 'vue-router';
 import type { Address, Hex } from 'viem';
 
 enum Step {
   Search,
   Buy,
   List,
+  Sell,
 }
 
 const user = useUser();
-user.setSellerView(false);
+const router = useRouter();
+// "/seller" is this page in sell mode; switching modes changes the route,
+// which remounts the view.
+const selling = useRoute().name === 'seller';
+user.setSellerView(selling);
 
 // States
 const { loadingLock, walletAddress, network } = user;
@@ -39,6 +48,7 @@ const loadingRelease = ref<boolean>(false);
 const showModal = ref<boolean>(false);
 const showBuyAlert = ref<boolean>(false);
 const showLockRecoveryAlert = ref<boolean>(false);
+const showSellAlert = ref<boolean>(false);
 const paramLockID = window.history.state?.lockID;
 
 const confirmBuyClick = async (
@@ -82,6 +92,17 @@ const confirmBuyClick = async (
 
     user.setLoadingLock(false);
   }
+};
+
+// On the smart-account rail approveTokens only records the offer: the
+// approval is batched into the deposit's UserOperation.
+const confirmSellClick = async (participant: Participant) => {
+  flowStep.value = Step.Sell;
+  await approveTokens(participant)
+    .then(() => addDeposit())
+    .then(() => (showSellAlert.value = true))
+    .catch(console.error);
+  flowStep.value = Step.Search;
 };
 
 const releaseTransaction = async (params: {
@@ -163,17 +184,22 @@ onMounted(async () => {
 
 <template>
   <div>
-    <div v-if="flowStep == Step.Search" class="mt-16">
+    <div v-if="flowStep == Step.Search" class="mt-10 sm:mt-16">
       <div class="flex flex-col items-center gap-4 text-white text-center">
         <span
           class="font-extrabold sm:text-5xl text-3xl sm:max-w-[29rem] max-w-[20rem]"
         >
-          Adquira cripto com apenas um Pix</span
+          {{
+            selling
+              ? 'Venda cripto e receba em Pix'
+              : 'Adquira cripto com apenas um Pix'
+          }}</span
         >
-        <span class="font-medium sm:text-base text-sm max-w-[28rem]"
-          >Digite um valor, confira a oferta, conecte sua carteira e receba os
-          tokens após realizar o Pix</span
-        >
+        <span class="font-medium sm:text-base text-sm max-w-[28rem]">{{
+          selling
+            ? 'Digite um valor, escolha o token e envie sua oferta para a rede'
+            : 'Digite um valor, confira a oferta, conecte sua carteira e receba os tokens após realizar o Pix'
+        }}</span>
       </div>
       <!-- Reversed so the balances sit left of the buy card on wide screens
            and below it, after the transactions, when the row wraps. -->
@@ -181,7 +207,36 @@ onMounted(async () => {
         class="flex flex-row-reverse flex-wrap justify-center items-start gap-x-6"
       >
         <div class="flex flex-col items-center w-full md:max-w-lg">
-          <SearchComponent @token-buy="confirmBuyClick" />
+          <component
+            :is="selling ? SellerComponent : SearchComponent"
+            @token-buy="confirmBuyClick"
+            @approve-tokens="confirmSellClick"
+          >
+            <div
+              role="group"
+              aria-label="Tipo de oferta"
+              class="grid grid-cols-2 gap-2 w-full"
+            >
+              <button
+                v-for="option in [
+                  { route: 'home', label: 'Comprar', sell: false },
+                  { route: 'seller', label: 'Vender', sell: true },
+                ]"
+                :key="option.route"
+                type="button"
+                :aria-pressed="option.sell === selling"
+                class="min-h-11 rounded-lg border font-semibold"
+                :class="
+                  option.sell === selling
+                    ? 'bg-white border-white text-gray-900'
+                    : 'border-gray-500 text-white'
+                "
+                @click="router.push({ name: option.route })"
+              >
+                {{ option.label }}
+              </button>
+            </div>
+          </component>
           <AccountTransactions />
         </div>
         <AccountPanel />
@@ -191,6 +246,15 @@ onMounted(async () => {
       v-if="showLockRecoveryAlert"
       :type="'lockPending'"
       @close-alert="showLockRecoveryAlert = false"
+    />
+    <CustomAlert
+      v-if="flowStep == Step.Search && showSellAlert"
+      :type="'sell'"
+      @close-alert="showSellAlert = false"
+    />
+    <LoadingComponent
+      v-if="flowStep == Step.Sell"
+      :message="'A transação está sendo enviada para a rede.'"
     />
     <CustomAlert
       v-if="flowStep == Step.Search && showModal"

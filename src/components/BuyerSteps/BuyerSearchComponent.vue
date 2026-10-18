@@ -243,27 +243,8 @@ const handleSubmit = async (e: Event): Promise<void> => {
 <template>
   <div class="page">
     <form class="main-container" @submit="handleSubmit">
-      <div class="backdrop-blur -z-10 w-full h-full"></div>
-      <div
-        role="group"
-        aria-label="Tipo de oferta"
-        class="grid grid-cols-2 gap-2 w-full"
-      >
-        <button
-          type="button"
-          aria-pressed="true"
-          class="min-h-11 rounded-lg bg-white font-semibold text-gray-900"
-        >
-          Comprar
-        </button>
-        <RouterLink
-          :to="{ name: 'seller' }"
-          class="flex items-center justify-center min-h-11 rounded-lg border border-gray-500 font-semibold text-white! hover:bg-white/10!"
-        >
-          Vender
-        </RouterLink>
-      </div>
-      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg">
+      <slot />
+      <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-5 rounded-lg">
         <div class="flex justify-between sm:w-full items-center">
           <input
             type="number"
@@ -412,7 +393,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
         </div>
       </div>
 
-      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
+      <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-4 rounded-lg">
         <input
           type="text"
           v-model="identification"
