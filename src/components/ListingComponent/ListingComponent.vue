@@ -32,7 +32,7 @@ const showInitialItems = (): void => {
 
 const openEtherscanUrl = (transactionHash: string): void => {
   const networkUrl = user.network.value.blockExplorers?.default.url;
-  const url = `https://${networkUrl}/tx/${transactionHash}`;
+  const url = `${networkUrl}/tx/${transactionHash}`;
   window.open(url, '_blank');
 };
 
