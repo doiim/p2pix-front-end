@@ -196,8 +196,6 @@ export function usePasskeyAccount() {
     );
   };
 
-  // A BRZ transfer pays the fee out of the amount sent; any other asset
-  // pays it from the BRZ balance.
   const sendTransfer = async (
     token: TokenEnum | null,
     recipient: Address,
@@ -205,26 +203,22 @@ export function usePasskeyAccount() {
     feeReserve: bigint,
   ): Promise<Hex> => {
     const context = await getAaClient();
-    const sent = token === TokenEnum.BRZ ? amount - feeReserve : amount;
     const quote = await prepareErc20PaymasterQuote(context, [
-      transferCall(context, token, recipient, sent),
+      transferCall(context, token, recipient, amount),
     ]);
     if (quote.costInToken > feeReserve) {
-      throw new Error(
-        'A taxa da rede mudou. Atualize os saldos e tente novamente.',
-      );
+      throw new Error('A taxa da rede mudou desde a cotação.');
     }
     return sendPreparedErc20UserOperation(context, quote);
   };
 
   const waitForTransfer = async (userOpHash: Hex): Promise<Hex> => {
     const context = await getAaClient();
-    const { success, receipt } =
-      await context.erc20Client.waitForUserOperationReceipt({
-        hash: userOpHash,
-      });
-    if (!success) throw new Error(`Falha no envio: ${userOpHash}`);
-    return receipt.transactionHash;
+    const receipt = await context.erc20Client.waitForUserOperationReceipt({
+      hash: userOpHash,
+    });
+    if (!receipt.success) throw new Error(`Falha no envio: ${userOpHash}`);
+    return receipt.receipt.transactionHash;
   };
 
   return {

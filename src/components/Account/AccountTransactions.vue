@@ -5,6 +5,7 @@ import { listAllTransactionByWalletAddress } from '@/blockchain/wallet';
 import type { WalletTransaction } from '@/model/WalletTransaction';
 import { LockStatus } from '@/model/LockStatus';
 import { getTokenImage } from '@/utils/imagesPath';
+import ChevronDown from '@/assets/chevronDown.svg';
 
 const EVENTS: Record<string, { title: string; sign: string }> = {
   LockReleased: { title: 'Comprado com Pix', sign: '+' },
@@ -26,7 +27,11 @@ watch(
     transactions.value = [];
     if (!address) return;
     const list = await listAllTransactionByWalletAddress(address);
-    if (!stale) transactions.value = list;
+    // A completed purchase already shows as its release.
+    if (!stale)
+      transactions.value = list.filter(
+        (transaction) => transaction.lockStatus !== LockStatus.Released,
+      );
   },
   { immediate: true },
 );
@@ -34,98 +39,101 @@ watch(
 const date = (transaction: WalletTransaction) =>
   new Date((transaction.blockTimestamp ?? 0) * 1000);
 
-const month = (transaction: WalletTransaction) => {
-  const label = date(transaction).toLocaleDateString('pt-BR', {
+const month = (transaction: WalletTransaction) =>
+  date(transaction).toLocaleDateString('pt-BR', {
     month: 'long',
     year: 'numeric',
   });
-  return label.charAt(0).toUpperCase() + label.slice(1);
-};
 </script>
 
 <template>
-  <div v-if="transactions.length" class="main-container">
-    <section
-      class="w-full flex flex-col px-4 sm:px-6 pt-4 pb-2 rounded-lg bg-white"
-    >
-      <h3 class="text-base font-bold text-gray-900">Histórico</h3>
-      <ul>
-        <li
-          v-for="(transaction, index) in transactions"
-          :key="transaction.transactionHash + transaction.event"
-          class="border-b border-gray-100 last:border-b-0"
+  <section
+    v-if="transactions.length"
+    class="w-full flex flex-col px-4 sm:px-6 pt-4 pb-2 rounded-lg bg-white"
+  >
+    <h3 class="text-base font-bold text-gray-900">Histórico</h3>
+    <ul>
+      <li
+        v-for="(transaction, index) in transactions"
+        :key="transaction.transactionHash + transaction.event"
+        class="border-b border-gray-100 last:border-b-0"
+      >
+        <span
+          v-if="
+            index === 0 || month(transactions[index - 1]) !== month(transaction)
+          "
+          class="block mt-2 text-xs font-semibold text-gray-600 first-letter:uppercase"
         >
-          <span
-            v-if="
-              index === 0 ||
-              month(transactions[index - 1]) !== month(transaction)
-            "
-            class="block mt-2 text-xs font-semibold text-gray-600"
-          >
-            {{ month(transaction) }}
-          </span>
-          <button
-            type="button"
-            :aria-expanded="openIndex === index"
-            class="flex items-center gap-3 w-full min-h-15 py-2.5 rounded-lg text-left text-gray-900 hover:bg-gray-100 transition-colors"
-            @click="openIndex = openIndex === index ? -1 : index"
-          >
-            <img
-              :src="getTokenImage(user.selectedToken.value)"
-              alt=""
-              class="w-8 h-8 rounded-full"
-            />
-            <span class="flex flex-col flex-1 min-w-0">
-              <span class="text-sm font-semibold truncate">
-                {{ EVENTS[transaction.event]?.title ?? transaction.event }}
-              </span>
-              <span class="text-xs text-gray-500">
-                {{
-                  date(transaction).toLocaleString('pt-BR', {
+          {{ month(transaction) }}
+        </span>
+        <button
+          type="button"
+          :aria-expanded="openIndex === index"
+          class="flex items-center gap-3 w-full min-h-15 py-2.5 rounded-lg text-left text-gray-900 hover:bg-gray-100 transition-colors"
+          @click="openIndex = openIndex === index ? -1 : index"
+        >
+          <img
+            :src="getTokenImage(user.selectedToken.value)"
+            alt=""
+            class="w-8 h-8 rounded-full"
+          />
+          <span class="flex flex-col flex-1 min-w-0">
+            <span class="text-sm font-semibold truncate">
+              {{ EVENTS[transaction.event]?.title ?? transaction.event }}
+            </span>
+            <span class="text-xs text-gray-500">
+              {{
+                date(transaction)
+                  .toLocaleString('pt-BR', {
                     day: '2-digit',
                     month: '2-digit',
                     hour: '2-digit',
                     minute: '2-digit',
                   })
-                }}
-              </span>
-            </span>
-            <span
-              v-if="transaction.amount >= 0"
-              class="text-sm font-semibold whitespace-nowrap"
-            >
-              {{ EVENTS[transaction.event]?.sign }}
-              {{
-                transaction.amount.toLocaleString('pt-BR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 2,
-                })
+                  .replace(', ', ' · ')
               }}
-              {{ user.selectedToken.value }}
             </span>
-          </button>
-          <div v-if="openIndex === index" class="flex gap-4 pl-11 pb-3 text-sm">
-            <a
-              :href="`${user.network.value.blockExplorers?.default.url}/tx/${transaction.transactionHash}`"
-              target="_blank"
-              rel="noopener noreferrer"
-              class="font-medium text-indigo-800 underline"
-            >
-              Ver no {{ user.network.value.blockExplorers?.default.name }}
-            </a>
-            <RouterLink
-              v-if="transaction.lockStatus === LockStatus.Active"
-              :to="{
-                path: `/${transaction.transactionID}`,
-                state: { lockID: transaction.transactionID },
-              }"
-              class="font-medium text-indigo-800 underline"
-            >
-              Continuar compra
-            </RouterLink>
-          </div>
-        </li>
-      </ul>
-    </section>
-  </div>
+          </span>
+          <span
+            v-if="transaction.amount >= 0"
+            class="text-sm font-semibold whitespace-nowrap"
+          >
+            {{ EVENTS[transaction.event]?.sign }}
+            {{
+              transaction.amount.toLocaleString('pt-BR', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2,
+              })
+            }}
+            {{ user.selectedToken.value }}
+          </span>
+          <ChevronDown
+            aria-hidden="true"
+            class="shrink-0 text-gray-500 transition-transform"
+            :class="{ 'rotate-180': openIndex === index }"
+          />
+        </button>
+        <div v-if="openIndex === index" class="flex gap-4 pl-11 pb-3 text-sm">
+          <a
+            :href="`${user.network.value.blockExplorers?.default.url}/tx/${transaction.transactionHash}`"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="font-medium text-indigo-800 underline"
+          >
+            Ver no {{ user.network.value.blockExplorers?.default.name }}
+          </a>
+          <RouterLink
+            v-if="transaction.lockStatus === LockStatus.Active"
+            :to="{
+              path: `/${transaction.transactionID}`,
+              state: { lockID: transaction.transactionID },
+            }"
+            class="font-medium text-indigo-800 underline"
+          >
+            Continuar compra
+          </RouterLink>
+        </div>
+      </li>
+    </ul>
+  </section>
 </template>

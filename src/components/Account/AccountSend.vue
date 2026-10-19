@@ -31,12 +31,14 @@ const fee = ref<bigint | null>(null);
 const error = ref('');
 const txHash = ref<Hex>();
 const copied = ref(false);
+// Bumped after a failed attempt so the fee is quoted again before a retry.
+const requotes = ref(0);
 
 const short = (value: string) => `${value.slice(0, 10)}…${value.slice(-8)}`;
 const display = (value: bigint | null, decimals: number, symbol: string) =>
   value === null
     ? ''
-    : `${Number(formatUnits(value, decimals)).toLocaleString('pt-BR', { maximumFractionDigits: 6 })} ${symbol}`;
+    : `${Number(formatUnits(value, decimals)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${symbol}`;
 const format = (value: bigint | null) =>
   display(value, asset.value.decimals, asset.value.symbol);
 // The paymaster charges the fee in BRZ, which the app treats as 18 decimals.
@@ -48,6 +50,8 @@ const amount = computed(() => {
   const pattern = new RegExp(`^\\d+(\\.\\d{1,${maxDecimals.value}})?$`);
   return pattern.test(text) ? parseUnits(text, asset.value.decimals) : null;
 });
+// A BRZ send pays the fee out of the amount; any other asset pays it from the
+// BRZ balance.
 const feeFromAmount = computed(() => asset.value.token === TokenEnum.BRZ);
 const received = computed(() =>
   amount.value === null || fee.value === null
@@ -79,12 +83,13 @@ const canConfirm = computed(
     fee.value !== null,
 );
 
-watch([asset, recipient], async ([selected], _, onCleanup) => {
+watch([asset, recipient, requotes], async ([selected], previous, onCleanup) => {
   // Drop the quote if the token or the destination changed while quoting.
   let stale = false;
   onCleanup(() => (stale = true));
   fee.value = null;
-  error.value = '';
+  // A retry's re-quote keeps the failed attempt's message on screen.
+  if (requotes.value === previous?.[2]) error.value = '';
   if (!recipientValid.value) return;
   try {
     const quoted = await passkeyAccount.quoteTransferFee(
@@ -97,7 +102,7 @@ watch([asset, recipient], async ([selected], _, onCleanup) => {
     console.error(cause);
     error.value =
       cause instanceof InsufficientFeeTokenBalanceError
-        ? 'O saldo em BRZ não cobre a taxa da rede. Compre ou envie BRZ para sua conta e atualize os saldos.'
+        ? 'O saldo em BRZ não cobre a taxa da rede. Compre ou envie BRZ para sua conta e abra o envio de novo.'
         : 'Não foi possível calcular a taxa da rede.';
   }
 });
@@ -117,13 +122,14 @@ const paste = async () => {
 };
 
 const confirm = async () => {
-  if (!amount.value || fee.value === null) return;
+  if (!received.value || fee.value === null) return;
   step.value = 'signing';
+  error.value = '';
   try {
     const userOpHash = await passkeyAccount.sendTransfer(
       asset.value.token,
       getAddress(recipient.value),
-      amount.value,
+      received.value,
       fee.value,
     );
     step.value = 'sending';
@@ -132,14 +138,23 @@ const confirm = async () => {
     emit('sent');
   } catch (cause) {
     console.error(cause);
+    // Once broadcast the transfer may still land: never offer the filled
+    // form again, or a retry could pay twice.
+    if (step.value === 'sending') {
+      error.value =
+        'Não foi possível confirmar o envio, mas ele ainda pode ser concluído. Confira seus saldos antes de enviar de novo.';
+      return;
+    }
     step.value = 'form';
-    error.value = cause instanceof Error ? cause.message : 'Falha no envio';
+    requotes.value++;
+    error.value = 'O envio não foi concluído. Confira a taxa e tente de novo.';
   }
 };
 
 const copyHash = async () => {
   await navigator.clipboard.writeText(txHash.value ?? '');
   copied.value = true;
+  setTimeout(() => (copied.value = false), 1800);
 };
 </script>
 
@@ -321,17 +336,32 @@ const copyHash = async () => {
         <span class="font-mono">{{ short(recipient) }}</span>
       </p>
     </div>
-    <span
-      aria-hidden="true"
-      class="self-center w-8 h-8 border-2 border-gray-900 border-t-transparent rounded-full animate-spin motion-reduce:animate-none"
-    />
-    <p class="text-sm text-gray-600">
-      {{
-        step === 'signing'
-          ? 'Assine com sua passkey ou na sua carteira quando o navegador pedir.'
-          : 'A transação está sendo enviada para a rede'
-      }}
-    </p>
+    <template v-if="error">
+      <p role="alert" class="text-sm text-red-700">{{ error }}</p>
+      <button
+        type="button"
+        class="account-button"
+        @click="
+          emit('sent');
+          emit('close');
+        "
+      >
+        Fechar
+      </button>
+    </template>
+    <template v-else>
+      <span
+        aria-hidden="true"
+        class="self-center w-8 h-8 border-2 border-gray-900 border-t-transparent rounded-full animate-spin motion-reduce:animate-none"
+      />
+      <p class="text-sm text-gray-600">
+        {{
+          step === 'signing'
+            ? 'Assine com sua passkey ou na sua carteira quando o navegador pedir.'
+            : 'A transação está sendo enviada para a rede'
+        }}
+      </p>
+    </template>
   </template>
 </template>
 

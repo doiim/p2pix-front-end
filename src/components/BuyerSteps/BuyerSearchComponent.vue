@@ -29,19 +29,12 @@ const {
 
 // html references
 const tokenDropdownRef = ref<any>(null);
-const tokenQuery = ref('');
-const shownTokens = computed(() =>
-  Object.values(TokenEnum).filter((token) =>
-    token.toLowerCase().includes(tokenQuery.value.trim().toLowerCase()),
-  ),
-);
 
 // Reactive state
 const tokenValue = ref<number>(0);
 const enableConfirmButton = ref<boolean>(false);
 const hasLiquidity = ref<boolean>(true);
 const validDecimals = ref<boolean>(true);
-const identification = ref<string>('');
 const selectedDeposits = ref<ValidDeposit[]>();
 const reputationLimit = ref<number | null>(null);
 const exceedsReputationLimit = ref<boolean>(false);
@@ -292,21 +285,8 @@ const handleSubmit = async (e: Event): Promise<void> => {
                 <div
                   class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
                 >
-                  <input
-                    v-model="tokenQuery"
-                    type="search"
-                    aria-label="Buscar token"
-                    placeholder="Buscar token"
-                    class="w-full px-4 py-3 border-b border-gray-300 text-sm outline-none"
-                  />
-                  <p
-                    v-if="!shownTokens.length"
-                    class="px-4 py-3 text-sm text-gray-500"
-                  >
-                    Nenhum token encontrado
-                  </p>
                   <div
-                    v-for="token in shownTokens"
+                    v-for="token in TokenEnum"
                     :key="token"
                     class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
                     @click="handleSelectedToken(token)"
@@ -393,18 +373,6 @@ const handleSubmit = async (e: Event): Promise<void> => {
         </div>
       </div>
 
-      <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-4 rounded-lg">
-        <input
-          type="text"
-          v-model="identification"
-          maxlength="14"
-          :pattern="'^\\d{11}$|^\\d{14}$'"
-          class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full"
-          placeholder="Digite seu CPF ou CNPJ (somente números)"
-          required
-        />
-      </div>
-
       <!-- Action buttons -->
       <CustomButton
         v-if="walletAddress"
@@ -417,6 +385,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
         text="Conectar carteira"
         @buttonClicked="connectAccount()"
       />
+      <slot name="footer" />
     </form>
   </div>
 </template>

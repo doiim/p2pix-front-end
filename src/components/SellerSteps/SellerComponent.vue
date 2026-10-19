@@ -98,12 +98,12 @@ const handleSelectedToken = (token: TokenEnum): void => {
       <slot />
       <!-- Offer input -->
       <div
-        class="flex justify-between items-center w-full bg-white sm:px-10 px-5 py-5 rounded-lg gap-4"
+        class="flex flex-wrap justify-between items-center w-full bg-white sm:px-10 px-5 py-5 rounded-lg gap-x-4"
       >
         <input
           type="number"
           v-model="offer"
-          class="border-none outline-none text-gray-900 sm:w-fit w-3/4 flex-grow"
+          class="border-none outline-none text-gray-900 sm:w-fit w-0 flex-grow"
           :class="{
             '!font-medium': offer !== undefined && offer !== '',
             'text-xl': offer !== undefined && offer !== '',
@@ -111,12 +111,13 @@ const handleSelectedToken = (token: TokenEnum): void => {
           min="0.01"
           max="999999999.99"
           pattern="\d+(\.\d{0,2})?"
-          placeholder="Digite sua oferta (mínimo R$0,01)"
+          placeholder="0"
           step=".01"
           required
         />
         <div class="relative overflow-visible">
           <button
+            type="button"
             ref="tokenDropdownRef"
             class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
             @click="openTokenSelection()"
@@ -168,6 +169,10 @@ const handleSelectedToken = (token: TokenEnum): void => {
             </div>
           </transition>
         </div>
+        <div class="custom-divide py-2 mb-2"></div>
+        <p class="text-gray-500 text-sm">
+          ~ R$ {{ Number(offer || 0).toFixed(2) }}
+        </p>
       </div>
       <!-- CPF or CNPJ input -->
       <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-4 rounded-lg">
@@ -178,7 +183,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
           :pattern="'^\\d{11}$|^\\d{14}$'"
           class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full"
           :class="{ 'text-xl font-medium': identification }"
-          placeholder="Digite seu CPF ou CNPJ (somente números)"
+          placeholder="CPF ou CNPJ (somente números)"
           required
         />
       </div>
@@ -281,6 +286,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
         text="Conectar carteira"
         @buttonClicked="connectAccount()"
       />
+      <slot name="footer" />
     </form>
   </div>
 </template>

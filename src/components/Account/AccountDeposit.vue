@@ -20,6 +20,7 @@ QRCode.toDataURL(props.address, { margin: 1, width: 240 }).then(
 const copyAddress = async () => {
   await navigator.clipboard.writeText(props.address);
   copied.value = true;
+  setTimeout(() => (copied.value = false), 1800);
 };
 </script>
 

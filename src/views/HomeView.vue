@@ -49,6 +49,7 @@ const showModal = ref<boolean>(false);
 const showBuyAlert = ref<boolean>(false);
 const showLockRecoveryAlert = ref<boolean>(false);
 const showSellAlert = ref<boolean>(false);
+const sales = ref(0);
 const paramLockID = window.history.state?.lockID;
 
 const confirmBuyClick = async (
@@ -94,13 +95,14 @@ const confirmBuyClick = async (
   }
 };
 
-// On the smart-account rail approveTokens only records the offer: the
-// approval is batched into the deposit's UserOperation.
 const confirmSellClick = async (participant: Participant) => {
   flowStep.value = Step.Sell;
   await approveTokens(participant)
-    .then(() => addDeposit())
-    .then(() => (showSellAlert.value = true))
+    .then(() => addDeposit(participant))
+    .then(() => {
+      showSellAlert.value = true;
+      sales.value++;
+    })
     .catch(console.error);
   flowStep.value = Step.Search;
 };
@@ -184,7 +186,14 @@ onMounted(async () => {
 
 <template>
   <div>
-    <div v-if="flowStep == Step.Search" class="mt-10 sm:mt-16">
+    <!-- Hidden, not unmounted, while selling: a failed sale keeps the filled
+         form, and a completed one remounts it empty with fresh balances. -->
+    <div
+      v-if="flowStep == Step.Search || flowStep == Step.Sell"
+      v-show="flowStep == Step.Search"
+      :key="sales"
+      class="mt-10 sm:mt-16"
+    >
       <div class="flex flex-col items-center gap-4 text-white text-center">
         <span
           class="font-extrabold sm:text-5xl text-3xl sm:max-w-[29rem] max-w-[20rem]"
@@ -236,8 +245,8 @@ onMounted(async () => {
                 {{ option.label }}
               </button>
             </div>
+            <template #footer><AccountTransactions /></template>
           </component>
-          <AccountTransactions />
         </div>
         <AccountPanel />
       </div>

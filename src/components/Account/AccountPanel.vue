@@ -20,6 +20,12 @@ const balances = computed(() =>
 );
 const view = ref<'balances' | 'deposit' | 'send'>('balances');
 const reloads = ref(0);
+const root = ref<HTMLElement>();
+
+// On phones a flow moves the panel above the buy card: bring it into view.
+watch(view, () => root.value?.scrollIntoView({ block: 'nearest' }), {
+  flush: 'post',
+});
 
 watch(
   [user.walletAddress, user.network, reloads],
@@ -80,6 +86,7 @@ const reais = (value: number) =>
 <template>
   <div
     v-if="balances.length || view !== 'balances'"
+    ref="root"
     class="main-container lg:max-w-90!"
     :class="view === 'balances' ? 'max-lg:mt-4!' : 'max-lg:order-first'"
   >
@@ -130,6 +137,7 @@ const reais = (value: number) =>
                   maximumFractionDigits: 6,
                 })
               }}
+              {{ balance.symbol }}
               <span
                 v-if="isBrl(balance)"
                 class="text-xs font-normal text-gray-500"

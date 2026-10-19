@@ -45,12 +45,11 @@ const approveCall = (amount: bigint): AaCall => ({
 
 /**
  * On the smart-account rail the approval is batched into the deposit's own
- * UserOperation, so this only records the offer and confirms the account can
- * cover it. The EOA path still needs its own approval transaction.
+ * UserOperation, so there is nothing to do here. The EOA path still needs its
+ * own approval transaction.
  */
 const approveTokens = async (participant: Participant): Promise<boolean> => {
   const user = useUser();
-  user.setSeller(participant);
 
   const offer = parseEther(participant.offer.toString());
   const aa = await getActiveAaContext();
@@ -80,16 +79,15 @@ const approveTokens = async (participant: Participant): Promise<boolean> => {
   return true;
 };
 
-const addDeposit = async (): Promise<unknown> => {
+const addDeposit = async (participant: Participant): Promise<unknown> => {
   const { address, abi, client } = await getContract();
   const user = useUser();
   const aa = await getActiveAaContext();
 
-  const offer = parseEther(user.seller.value.offer.toString());
+  const offer = parseEther(participant.offer.toString());
   const token = getSellerToken();
 
-  const sellerId = await createParticipant(user.seller.value);
-  user.setSellerId(sellerId.id);
+  const sellerId = await createParticipant(participant);
   if (!sellerId.id) {
     throw new Error('Failed to create participant');
   }

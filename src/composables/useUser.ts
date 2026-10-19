@@ -1,6 +1,5 @@
 import { ref } from 'vue';
 import type { ValidDeposit } from '@/model/ValidDeposit';
-import type { Participant } from '../utils/bbPay';
 import type { Address } from 'viem';
 import { DEFAULT_NETWORK, Networks } from '@/config/networks';
 import { TokenEnum, NetworkConfig } from '@/model/NetworkEnum';
@@ -14,8 +13,6 @@ const sellerView = ref(false);
 const depositsValidList = ref<ValidDeposit[]>([]);
 const loadingWalletTransactions = ref(false);
 const loadingNetworkLiquidity = ref(false);
-const seller = ref<Participant>({} as Participant);
-const sellerId = ref('');
 
 export function useUser() {
   // Actions become regular functions
@@ -62,14 +59,6 @@ export function useUser() {
     loadingNetworkLiquidity.value = isLoading;
   };
 
-  const setSeller = (newSeller: Participant) => {
-    seller.value = newSeller;
-  };
-
-  const setSellerId = (id: string) => {
-    sellerId.value = id;
-  };
-
   return {
     // State
     walletAddress,
@@ -81,8 +70,6 @@ export function useUser() {
     depositsValidList,
     loadingWalletTransactions,
     loadingNetworkLiquidity,
-    seller,
-    sellerId,
 
     // Actions
     setWalletAddress,
@@ -95,7 +82,5 @@ export function useUser() {
     setDepositsValidList,
     setLoadingWalletTransactions,
     setLoadingNetworkLiquidity,
-    setSeller,
-    setSellerId,
   };
 }
