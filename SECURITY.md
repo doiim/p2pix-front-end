@@ -30,7 +30,7 @@ P2Pix is self-custodial for signing, but releasing an escrow relies on third-par
 
 - **What it is:** email/social login lowers onboarding friction; the smart account is owned by a Reown-managed key.
 - **What it sees or can block:** Reown, not you, controls the login key.
-- **Escape path:** `/account` sends the smart account's ETH or any listed token to any address; the key itself cannot be exported.
+- **Escape path:** `/account` sends the smart account's ETH or any listed token to any address (after the first, sponsored, operation it needs a fee-token balance, and no network sets one yet); the key itself cannot be exported.
 
 ### Alchemy RPC + The Graph (reads)
 

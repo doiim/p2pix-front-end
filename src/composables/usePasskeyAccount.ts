@@ -8,12 +8,9 @@ import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem';
 import { isAaAvailable } from '@/blockchain/aa/aaContext';
 import {
   getActiveAaContext,
+  quotePaidRail,
   sendAaOperation,
 } from '@/blockchain/aa/operations';
-import {
-  InsufficientFeeTokenBalanceError,
-  prepareErc20PaymasterQuote,
-} from '@/blockchain/aa/paymasters/erc20';
 import { getAaOwnerKind, readPasskeySession } from '@/blockchain/aa/session';
 import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
@@ -208,22 +205,17 @@ export function usePasskeyAccount() {
   /**
    * The fee a send pays in the network's fee token: a quote for a 1-unit probe
    * plus 20% headroom, as the cost depends on the call's shape, not its
-   * amount. 0 when the send is sponsored: no fee token is set, or the account
-   * holds too little of it.
+   * amount. 0 when the send goes through the sponsorship policy.
    */
   const quoteFee = async (
     token: TokenEnum | undefined,
     to: Address,
   ): Promise<bigint> => {
     const context = await getActiveAaContext();
-    if (!context?.network.aa?.feeToken) return 0n;
-    const probe = await prepareErc20PaymasterQuote(context, [
-      transferCall(context, token, to, 1n),
-    ]).catch((cause) => {
-      if (cause instanceof InsufficientFeeTokenBalanceError) return null;
-      throw cause;
-    });
-    return probe ? (probe.costInToken * 12n) / 10n : 0n;
+    const quote =
+      context &&
+      (await quotePaidRail(context, [transferCall(context, token, to, 1n)]));
+    return quote ? (quote.costInToken * 12n) / 10n : 0n;
   };
 
   /** Forget everything tied to the previous chain/session. */

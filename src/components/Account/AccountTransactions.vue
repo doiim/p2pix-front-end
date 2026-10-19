@@ -98,10 +98,7 @@ const month = (transaction: WalletTransaction) =>
               }}
             </span>
           </span>
-          <span
-            v-if="transaction.amount >= 0"
-            class="text-sm font-semibold whitespace-nowrap"
-          >
+          <span class="text-sm font-semibold whitespace-nowrap">
             {{ EVENTS[transaction.event]?.sign }}
             {{
               transaction.amount.toLocaleString('pt-BR', {

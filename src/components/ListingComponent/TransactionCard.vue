@@ -83,10 +83,7 @@ const handleExplorerClick = () => {
         <span class="text-xs sm:text-sm leading-5 font-medium text-gray-600">
           {{ eventName }}
         </span>
-        <span
-          v-if="transaction.amount >= 0"
-          class="text-xl sm:text-xl leading-7 font-semibold text-gray-900"
-        >
+        <span class="text-xl sm:text-xl leading-7 font-semibold text-gray-900">
           {{ transaction.amount }} {{ transaction.token }}
         </span>
         <span

@@ -8,6 +8,7 @@ import { getPublicClient } from '@/blockchain/provider';
 import { listTokens } from '@/config/networks';
 import type { AccountBalance } from '@/model/AccountBalance';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
+import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import AccountDeposit from './AccountDeposit.vue';
 import AccountSend from './AccountSend.vue';
 
@@ -47,7 +48,6 @@ watch(
     const native = network.nativeCurrency;
     assets.value = [
       {
-        token: null,
         symbol: native.symbol,
         image: getNetworkImage(
           native.symbol === 'ETH' ? 'ethereum' : network.name,
@@ -135,12 +135,7 @@ const reais = (value: number | null) =>
             <img :src="balance.image" alt="" class="w-6 h-6" />
             <span class="flex-1">{{ balance.symbol }}</span>
             <span class="flex flex-col items-end">
-              {{
-                amountOf(balance).toLocaleString('pt-BR', {
-                  minimumFractionDigits: 2,
-                  maximumFractionDigits: 6,
-                })
-              }}
+              {{ formatTokenAmount(balance.amount, balance.decimals, 6) }}
               {{ balance.symbol }}
               <span
                 v-if="reaisOf(balance) !== null"

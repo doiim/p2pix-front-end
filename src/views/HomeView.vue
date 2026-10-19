@@ -15,12 +15,11 @@ import { getNetworksLiquidity } from '@/blockchain/events';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
-import { getPrices } from '@/utils/bbPay';
+import { getPrices, type Participant } from '@/utils/bbPay';
 import AccountPanel from '@/components/Account/AccountPanel.vue';
 import AccountTransactions from '@/components/Account/AccountTransactions.vue';
 import SellerComponent from '@/components/SellerSteps/SellerComponent.vue';
 import { approveTokens, addDeposit } from '@/blockchain/sellerMethods';
-import type { Participant } from '@/utils/bbPay';
 import { useRoute, useRouter } from 'vue-router';
 import type { Address, Hex } from 'viem';
 

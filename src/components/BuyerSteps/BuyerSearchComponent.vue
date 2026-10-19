@@ -338,7 +338,11 @@ const handleSubmit = async (e: Event): Promise<void> => {
         <div class="custom-divide py-2 mb-2"></div>
         <div class="flex justify-between" v-if="!loadingNetworkLiquidity">
           <p class="text-gray-500 font-normal text-sm w-auto">
-            {{ reais === null ? '' : `~ R$ ${reais.toFixed(2)}` }}
+            {{
+              reais === null
+                ? ''
+                : `~ ${reais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
+            }}
           </p>
           <div class="flex gap-2">
             <img

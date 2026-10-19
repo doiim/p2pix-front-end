@@ -176,7 +176,11 @@ const handleSelectedToken = (token: TokenEnum): void => {
         </div>
         <div class="custom-divide py-2 mb-2"></div>
         <p class="text-gray-500 text-sm">
-          {{ reais === null ? '' : `~ R$ ${reais.toFixed(2)}` }}
+          {{
+            reais === null
+              ? ''
+              : `~ ${reais.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`
+          }}
         </p>
       </div>
       <!-- CPF or CNPJ input -->

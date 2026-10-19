@@ -1,13 +1,13 @@
-import { erc20Abi, type Address, type PublicClient } from 'viem';
+import { erc20Abi, parseUnits, type Address, type PublicClient } from 'viem';
 import type { UserOperationReceipt } from 'viem/account-abstraction';
 
 import { useUser } from '@/composables/useUser';
-import { MIN_FEE_BALANCE_WEI_DEFAULT } from '@/config/aa';
 import {
   assertErc20PaymasterTokenSupported,
   InsufficientFeeTokenBalanceError,
   prepareErc20PaymasterQuote,
   sendPreparedErc20UserOperation,
+  type PreparedErc20Quote,
 } from './paymasters/erc20';
 import { ensureReownEoaAccount, getReownEip155Address } from '@/config/appkit';
 import {
@@ -109,10 +109,11 @@ const sendSponsored = async (
 };
 
 /**
- * Send one or more calls as a single UserOperation. An account holding enough
- * of the fee token pays through Pimlico's ERC-20 paymaster; an account without
- * it uses the sponsorship policy, so a buyer with an empty balance can still
- * be released and a seller can still make their first deposit.
+ * The paid-rail quote for one or more calls, or null when they go through the
+ * sponsorship policy instead. An account holding enough of the fee token pays
+ * through Pimlico's ERC-20 paymaster; an account without it is sponsored, so a
+ * buyer with an empty balance can still be released and a seller can still
+ * make their first deposit.
  *
  * `feeTokenOutflow` is the amount of fee token this batch will move out of
  * the smart account once it runs. It cannot be inferred from the batch
@@ -120,22 +121,21 @@ const sendSponsored = async (
  * `transferFrom` executed inside P2Pix by `deposit`, not as a top-level
  * call. The caller knows what its batch will actually move.
  */
-export const sendAaOperation = async (
+export const quotePaidRail = async (
   aa: AaContext,
   calls: readonly AaCall[],
   feeTokenOutflow: bigint = 0n,
-): Promise<UserOperationReceipt> => {
+): Promise<PreparedErc20Quote | null> => {
   const configuredFeeToken = aa.network.aa?.feeToken;
-  const feeTokenAddress =
-    configuredFeeToken && aa.network.tokens[configuredFeeToken]?.address;
-  if (!feeTokenAddress) return sendSponsored(aa, calls);
+  const feeToken = configuredFeeToken && aa.network.tokens[configuredFeeToken];
+  if (!feeToken) return null;
 
   const publicClient = aa.account.client as PublicClient;
 
   // Pimlico always charges in the configured paymaster token, which is not
   // necessarily the token being moved, so the fee gate must read that balance.
   const feeTokenBalance = await publicClient.readContract({
-    address: feeTokenAddress,
+    address: feeToken.address,
     abi: erc20Abi,
     functionName: 'balanceOf',
     args: [aa.account.address],
@@ -149,11 +149,11 @@ export const sendAaOperation = async (
   const effectiveFeeTokenBalance = feeTokenBalance - feeTokenOutflow;
 
   const minFeeBalance =
-    aa.network.aa?.minFeeBalance ?? MIN_FEE_BALANCE_WEI_DEFAULT;
+    aa.network.aa?.minFeeBalance ?? parseUnits('0.1', feeToken.decimals);
   if (effectiveFeeTokenBalance < minFeeBalance) {
     // Sponsored path stays free of paymaster round-trips: an account with no
     // fee token is exactly the one that cannot afford an extra failure mode.
-    return sendSponsored(aa, calls);
+    return null;
   }
 
   // The fee token comes from `AaConfig.feeToken`, unset today because Pimlico's
@@ -174,12 +174,11 @@ export const sendAaOperation = async (
       'ERC-20 paymaster assertion failed; skipping paid rail and falling back to sponsorship.',
       cause,
     );
-    return sendSponsored(aa, calls);
+    return null;
   }
 
-  let quote;
   try {
-    quote = await prepareErc20PaymasterQuote(
+    return await prepareErc20PaymasterQuote(
       aa,
       calls,
       effectiveFeeTokenBalance,
@@ -189,11 +188,21 @@ export const sendAaOperation = async (
     // minFeeBalance is a floor, not the real cost of this operation, so a
     // balance above it can still fall short of the quote. Sponsorship is
     // still open, and on a release the PIX has already been paid.
-    return sendSponsored(aa, calls);
+    return null;
   }
+};
 
+/** Send one or more calls as a single UserOperation, paid or sponsored as
+ * `quotePaidRail` decides. */
+export const sendAaOperation = async (
+  aa: AaContext,
+  calls: readonly AaCall[],
+  feeTokenOutflow: bigint = 0n,
+): Promise<UserOperationReceipt> => {
+  const quote = await quotePaidRail(aa, calls, feeTokenOutflow);
+  if (!quote) return sendSponsored(aa, calls);
   const hash = await sendPreparedErc20UserOperation(aa, quote);
-  // Set whenever `feeToken` is, which the short-circuit above guarantees.
+  // Set whenever `feeToken` is, which quotePaidRail guarantees.
   if (!aa.erc20Client) throw new Error('ERC-20 paymaster client unavailable');
   return aa.erc20Client.waitForUserOperationReceipt({ hash });
 };

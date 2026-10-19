@@ -153,7 +153,6 @@ const getUnreleasedLockById = async (
   lockID: bigint,
 ): Promise<UnreleasedLock> => {
   const { address, abi, client } = await getContract();
-  const user = useUser();
 
   const { amount, token, seller } = toLock(
     await client.readContract({
@@ -164,7 +163,7 @@ const getUnreleasedLockById = async (
     }),
   );
 
-  const listed = findToken(user.network.value, token);
+  const listed = findToken(useUser().network.value, token);
   if (!listed) {
     throw new Error(`O token ${token} da reserva não está listado nesta rede`);
   }

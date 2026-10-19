@@ -13,6 +13,7 @@ import { useUser } from '@/composables/useUser';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { TokenEnum } from '@/model/NetworkEnum';
 import type { AccountBalance } from '@/model/AccountBalance';
+import { formatTokenAmount } from '@/utils/formatTokenAmount';
 
 const props = defineProps<{ balances: AccountBalance[] }>();
 const emit = defineEmits<{ close: []; sent: [] }>();
@@ -33,9 +34,7 @@ const copied = ref(false);
 
 const short = (value: string) => `${value.slice(0, 10)}…${value.slice(-8)}`;
 const display = (value: bigint | null, decimals: number, symbol: string) =>
-  value === null
-    ? ''
-    : `${Number(formatUnits(value, decimals)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${symbol}`;
+  value === null ? '' : `${formatTokenAmount(value, decimals, 6)} ${symbol}`;
 const format = (value: bigint | null) =>
   display(value, asset.value.decimals, asset.value.symbol);
 const feeToken = computed(() => user.network.value.aa?.feeToken);
@@ -96,7 +95,7 @@ watch([asset, recipient], async ([selected], _, onCleanup) => {
   if (!recipientValid.value) return;
   try {
     const quoted = await passkeyAccount.quoteFee(
-      selected.token ?? undefined,
+      selected.token,
       getAddress(recipient.value),
     );
     if (!stale) fee.value = quoted;
@@ -125,7 +124,7 @@ const confirm = async () => {
   if (!received.value) return;
   step.value = 'sending';
   const result = await passkeyAccount.send({
-    token: asset.value.token ?? undefined,
+    token: asset.value.token,
     amount: received.value,
     to: getAddress(recipient.value),
   });

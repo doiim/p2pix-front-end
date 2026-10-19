@@ -19,9 +19,8 @@ export type AaConfig = {
    */
   bundlerUrl?: string;
   /**
-   * Minimum fee token balance (in wei) to attempt paymaster fees. Below this,
-   * use sponsored UserOps. Assumes an 18-decimal fee token. Falls back to
-   * `MIN_FEE_BALANCE_WEI_DEFAULT`.
+   * Minimum fee token balance, in the token's base units, to attempt paymaster
+   * fees. Below this, use sponsored UserOps. Defaults to 0.1 fee token.
    */
   minFeeBalance?: bigint;
   /**
@@ -42,13 +41,6 @@ const PROD_RP_ID = 'p2pix.co';
  */
 export const rpId =
   import.meta.env.VITE_APP_ENV === 'production' ? PROD_RP_ID : DEMO_RP_ID;
-
-/**
- * Default minimum fee token balance (in wei) to attempt paymaster fees, used
- * when a chain's `AaConfig.minFeeBalance` is unset. Assumes an 18-decimal fee
- * token; override per chain if a network's fee token differs.
- */
-export const MIN_FEE_BALANCE_WEI_DEFAULT = 100000000000000000n; // 0.1 fee token (18 decimals)
 
 const env = (key: string): string | undefined =>
   (import.meta.env[key] as string | undefined)?.trim() || undefined;
