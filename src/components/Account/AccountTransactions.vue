@@ -12,6 +12,8 @@ const EVENTS: Record<string, { title: string; sign: string }> = {
   LockAdded: { title: 'Compra iniciada', sign: '' },
   DepositAdded: { title: 'Oferta criada', sign: '−' },
   DepositWithdrawn: { title: 'Oferta retirada', sign: '+' },
+  Sent: { title: 'Enviado', sign: '−' },
+  Received: { title: 'Recebido', sign: '+' },
 };
 
 const user = useUser();
@@ -57,7 +59,7 @@ const month = (transaction: WalletTransaction) =>
     <ul>
       <li
         v-for="(transaction, index) in transactions"
-        :key="transaction.transactionHash + transaction.event"
+        :key="index"
         class="border-b border-gray-100 last:border-b-0"
       >
         <span
@@ -75,7 +77,7 @@ const month = (transaction: WalletTransaction) =>
           @click="openIndex = openIndex === index ? -1 : index"
         >
           <img
-            :src="getTokenImage(user.selectedToken.value)"
+            :src="getTokenImage(transaction.token)"
             alt=""
             class="w-8 h-8 rounded-full"
           />
@@ -104,10 +106,10 @@ const month = (transaction: WalletTransaction) =>
             {{
               transaction.amount.toLocaleString('pt-BR', {
                 minimumFractionDigits: 2,
-                maximumFractionDigits: 2,
+                maximumFractionDigits: 6,
               })
             }}
-            {{ user.selectedToken.value }}
+            {{ transaction.token }}
           </span>
           <ChevronDown
             aria-hidden="true"

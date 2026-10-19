@@ -25,19 +25,15 @@ export type PreparedErc20Quote = {
   userOperation: UserOperation<'0.7'>;
 };
 
-/** Pimlico's ERC-20 fee token is the very token the P2Pix deployment trades. */
+/** Pimlico charges every fee in BRZ, whatever token the operation moves. */
 const paidTokenFor = (context: AaContext): Address =>
   context.network.tokens[TokenEnum.BRZ].address;
 
-/** Verify the configured token against Pimlico before creating a PIX lock. */
+/** Verify the configured fee token against Pimlico before a paid operation. */
 export const assertErc20PaymasterTokenSupported = async (
   context: AaContext,
-  applicationToken: Address,
 ): Promise<Address> => {
   const token = paidTokenFor(context);
-  if (token.toLowerCase() !== applicationToken.toLowerCase()) {
-    throw new Error('P2Pix token differs from the configured paymaster token');
-  }
   const quotes = await context.pimlicoClient.getTokenQuotes({
     chain: context.network,
     tokens: [token],

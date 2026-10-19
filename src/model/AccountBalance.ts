@@ -1,8 +1,8 @@
-import type { TokenEnum } from './NetworkEnum';
+import type { Address } from 'viem';
 
 export type AccountBalance = {
   /** `null` is the network's native coin. */
-  token: TokenEnum | null;
+  address: Address | null;
   symbol: string;
   image: string;
   amount: bigint;

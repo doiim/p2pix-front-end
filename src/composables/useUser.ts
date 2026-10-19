@@ -13,6 +13,9 @@ const sellerView = ref(false);
 const depositsValidList = ref<ValidDeposit[]>([]);
 const loadingWalletTransactions = ref(false);
 const loadingNetworkLiquidity = ref(false);
+// R$ per whole unit, by symbol. BRZ is worth R$ 1 until the backend says
+// otherwise.
+const prices = ref<Partial<Record<string, number>>>({ [TokenEnum.BRZ]: 1 });
 
 export function useUser() {
   // Actions become regular functions
@@ -59,6 +62,10 @@ export function useUser() {
     loadingNetworkLiquidity.value = isLoading;
   };
 
+  const setPrices = (fetched: Record<string, number>) => {
+    prices.value = { ...prices.value, ...fetched };
+  };
+
   return {
     // State
     walletAddress,
@@ -70,6 +77,7 @@ export function useUser() {
     depositsValidList,
     loadingWalletTransactions,
     loadingNetworkLiquidity,
+    prices,
 
     // Actions
     setWalletAddress,
@@ -82,5 +90,6 @@ export function useUser() {
     setDepositsValidList,
     setLoadingWalletTransactions,
     setLoadingNetworkLiquidity,
+    setPrices,
   };
 }

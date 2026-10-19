@@ -16,6 +16,8 @@ interface ParticipantWithID extends Participant {
 export interface Offer {
   amount: number;
   sellerId: string;
+  chainID: number;
+  lockID: string;
 }
 
 // Specs for BB Pay Sandbox
@@ -61,9 +63,36 @@ export const createSolicitation = async (offer: Offer) => {
     body: JSON.stringify({
       amount: offer.amount,
       pixTarget: offer.sellerId.split('-').pop(),
+      // `amount` is in tokens; the backend prices any token but BRZ from the
+      // lock itself.
+      chainID: offer.chainID,
+      lockID: offer.lockID,
     }),
   });
   return response.json();
+};
+
+/**
+ * R$ per whole unit, keyed by token symbol. Display only: no signed or paid
+ * amount is ever derived from these.
+ */
+export const getPrices = async (): Promise<Record<string, number>> => {
+  const response = await fetch(`${API_URL}/prices`);
+  if (!response.ok) {
+    throw new Error(`Error fetching prices: ${response.statusText}`);
+  }
+  const data: unknown = await response.json();
+  if (typeof data !== 'object' || data === null) {
+    throw new Error('Prices response is not an object');
+  }
+  return Object.fromEntries(
+    Object.entries(data).filter(
+      (entry): entry is [string, number] =>
+        typeof entry[1] === 'number' &&
+        Number.isFinite(entry[1]) &&
+        entry[1] > 0,
+    ),
+  );
 };
 
 export const getSolicitation = async (

@@ -55,6 +55,11 @@ const handleBankSelect = (bank: Bank) => {
   showBankList.value = false;
 };
 
+const reais = computed(() => {
+  const price = user.prices.value[selectedToken.value];
+  return price === undefined ? null : Number(offer.value) * price;
+});
+
 // Emits
 const emit = defineEmits(['approveTokens']);
 
@@ -170,7 +175,9 @@ const handleSelectedToken = (token: TokenEnum): void => {
           </transition>
         </div>
         <div class="custom-divide py-2 mb-2"></div>
-        <p class="text-gray-500 text-sm">~ R$ {{ Number(offer).toFixed(2) }}</p>
+        <p class="text-gray-500 text-sm">
+          {{ reais === null ? '' : `~ R$ ${reais.toFixed(2)}` }}
+        </p>
       </div>
       <!-- CPF or CNPJ input -->
       <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-4 rounded-lg">

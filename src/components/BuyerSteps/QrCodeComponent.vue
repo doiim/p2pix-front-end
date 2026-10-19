@@ -6,6 +6,7 @@ import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import { createSolicitation, getSolicitation, type Offer } from '@/utils/bbPay';
 import { getParticipantID } from '@/blockchain/events';
 import { getUnreleasedLockById } from '@/blockchain/events';
+import { useUser } from '@/composables/useUser';
 import QRCode from 'qrcode';
 
 // Props
@@ -115,6 +116,8 @@ onMounted(async () => {
     const offer: Offer = {
       amount,
       sellerId: participantId,
+      chainID: useUser().network.value.id,
+      lockID: props.lockID,
     };
 
     const response = await createSolicitation(offer);

@@ -8,13 +8,14 @@ import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem';
 import { isAaAvailable } from '@/blockchain/aa/aaContext';
 import { getActiveAaContext } from '@/blockchain/aa/operations';
 import { getAaOwnerKind, readPasskeySession } from '@/blockchain/aa/session';
-import type { AaCall, AaContext } from '@/blockchain/aa/types';
+import type { AaCall } from '@/blockchain/aa/types';
 import {
   prepareErc20PaymasterQuote,
   sendPreparedErc20UserOperation,
 } from '@/blockchain/aa/paymasters/erc20';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { useUser } from '@/composables/useUser';
+import { listTokens } from '@/config/networks';
 import { TokenEnum } from '@/model/NetworkEnum';
 
 type SweepResult = {
@@ -44,13 +45,12 @@ const tokenTransfer = (
 
 // `null` sends the network's native coin.
 const transferCall = (
-  context: AaContext,
-  token: TokenEnum | null,
+  token: Address | null,
   recipient: Address,
   amount: bigint,
 ): AaCall =>
   token
-    ? tokenTransfer(context.network.tokens[token].address, recipient, amount)
+    ? tokenTransfer(token, recipient, amount)
     : { to: recipient, value: amount, data: '0x' };
 
 export function usePasskeyAccount() {
@@ -92,7 +92,7 @@ export function usePasskeyAccount() {
     const result = await getTokenBalances(
       getPublicClient(),
       context.account.address,
-      [paymasterToken],
+      listTokens(context.network).map((token) => token.address),
     );
     return { context, paymasterToken, result };
   };
@@ -114,7 +114,9 @@ export function usePasskeyAccount() {
     lastUserOpHash.value = null;
     try {
       const { context, paymasterToken, result } = await readBalances();
-      const tokenBalance = result.tokens[0];
+      const tokenBalance = result.tokens.find(
+        (token) => token.address.toLowerCase() === paymasterToken.toLowerCase(),
+      );
       if (!tokenBalance || tokenBalance.balance === 0n) {
         throw new Error(
           'É necessário saldo em BRZ para pagar o gás da varredura',
@@ -125,6 +127,13 @@ export function usePasskeyAccount() {
         result.eth > 0n
           ? [{ to: recipient, value: result.eth, data: '0x' }]
           : [];
+      // Every other listed token goes out whole: only BRZ pays the fee.
+      const others = result.tokens.filter(
+        (token) => token !== tokenBalance && token.balance > 0n,
+      );
+      const otherCalls = others.map((token) =>
+        tokenTransfer(token.address, recipient, token.balance),
+      );
 
       // Probe with a non-zero amount so the transfer has the same gas shape as
       // the real call: only zero-vs-non-zero changes the recipient's SSTORE
@@ -136,6 +145,7 @@ export function usePasskeyAccount() {
       const probeAmount = (tokenBalance.balance * 9n) / 10n;
       const probe = await prepareErc20PaymasterQuote(context, [
         tokenTransfer(paymasterToken, recipient, probeAmount),
+        ...otherCalls,
         ...nativeCall,
       ]);
       const feeReserve =
@@ -148,6 +158,7 @@ export function usePasskeyAccount() {
       const transferAmount = tokenBalance.balance - feeReserve;
       const quote = await prepareErc20PaymasterQuote(context, [
         tokenTransfer(paymasterToken, recipient, transferAmount),
+        ...otherCalls,
         ...nativeCall,
       ]);
       if (quote.costInToken > feeReserve) {
@@ -168,7 +179,7 @@ export function usePasskeyAccount() {
         userOpHash,
         swept: {
           eth: result.eth,
-          tokens: [{ ...tokenBalance, balance: transferAmount }],
+          tokens: [{ ...tokenBalance, balance: transferAmount }, ...others],
         },
       };
     } catch (cause) {
@@ -183,12 +194,12 @@ export function usePasskeyAccount() {
   // the sweep, quote a probe transfer first: the cost depends on the call's
   // shape, not its amount.
   const quoteTransferFee = async (
-    token: TokenEnum | null,
+    token: Address | null,
     recipient: Address,
   ): Promise<bigint> => {
     const context = await getAaClient();
     const probe = await prepareErc20PaymasterQuote(context, [
-      transferCall(context, token, recipient, 1n),
+      transferCall(token, recipient, 1n),
     ]);
     return (
       probe.costInToken +
@@ -197,14 +208,14 @@ export function usePasskeyAccount() {
   };
 
   const sendTransfer = async (
-    token: TokenEnum | null,
+    token: Address | null,
     recipient: Address,
     amount: bigint,
     feeReserve: bigint,
   ): Promise<Hex> => {
     const context = await getAaClient();
     const quote = await prepareErc20PaymasterQuote(context, [
-      transferCall(context, token, recipient, amount),
+      transferCall(token, recipient, amount),
     ]);
     if (quote.costInToken > feeReserve) {
       throw new Error('A taxa da rede mudou desde a cotação.');

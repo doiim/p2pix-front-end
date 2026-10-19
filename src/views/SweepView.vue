@@ -6,6 +6,8 @@ import CustomButton from '@/components/ui/CustomButton.vue';
 import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import router from '@/router/index';
 import { isAddress, zeroAddress } from 'viem';
+import { useUser } from '@/composables/useUser';
+import { findToken } from '@/config/networks';
 
 const passkey = usePasskeyAccount();
 const {
@@ -139,8 +141,11 @@ const handleSweep = async () => {
               <p class="text-sm font-semibold mb-2 text-white">Saldos</p>
               <div class="text-sm text-gray-300">
                 <p>ETH: {{ ethBalance.toString() }}</p>
-                <p v-if="balances[0]">
-                  BRZ: {{ balances[0].balance.toString() }}
+                <p v-for="balance in balances" :key="balance.address">
+                  {{
+                    findToken(useUser().network.value, balance.address)?.symbol
+                  }}:
+                  {{ balance.balance.toString() }}
                 </p>
               </div>
             </div>

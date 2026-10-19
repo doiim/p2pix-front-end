@@ -15,6 +15,7 @@ import { getNetworksLiquidity } from '@/blockchain/events';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
+import { getPrices } from '@/utils/bbPay';
 import AccountPanel from '@/components/Account/AccountPanel.vue';
 import AccountTransactions from '@/components/Account/AccountTransactions.vue';
 import SellerComponent from '@/components/SellerSteps/SellerComponent.vue';
@@ -142,6 +143,7 @@ const checkForUnreleasedLocks = async (): Promise<void> => {
   const lock = await checkUnreleasedLock(walletAddress.value);
   if (lock) {
     lockID.value = String(lock.lockID);
+    user.setSelectedToken(lock.token);
     tokenAmount.value = lock.amount;
     sellerAddress.value = lock.sellerAddress;
     showModal.value = true;
@@ -155,6 +157,7 @@ if (paramLockID) {
   const lockToRedirect = await getUnreleasedLockById(paramLockID);
   if (lockToRedirect) {
     lockID.value = String(lockToRedirect.lockID);
+    user.setSelectedToken(lockToRedirect.token);
     tokenAmount.value = lockToRedirect.amount;
     sellerAddress.value = lockToRedirect.sellerAddress;
     flowStep.value = Step.Buy;
@@ -178,6 +181,7 @@ if (paramLockID) {
 }
 
 onMounted(async () => {
+  getPrices().then(user.setPrices).catch(console.error);
   await getNetworksLiquidity();
   if (walletAddress.value && !paramLockID) await checkForUnreleasedLocks();
   window.history.state.lockID = '';

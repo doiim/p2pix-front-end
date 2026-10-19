@@ -76,9 +76,8 @@ showInitialItems();
     />
 
     <TransactionCard
-      v-for="item in itemsToShow"
-      :key="item.blockNumber"
-      :selected-token="user.selectedToken.value"
+      v-for="(item, index) in itemsToShow"
+      :key="index"
       :transaction="item"
       :network="user.network.value"
       @open-explorer="openEtherscanUrl"

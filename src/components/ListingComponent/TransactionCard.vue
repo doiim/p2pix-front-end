@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import type { WalletTransaction } from '@/model/WalletTransaction';
-import { TokenEnum } from '@/model/NetworkEnum';
 import { computed } from 'vue';
 import StatusBadge, { type StatusType } from '../ui/StatusBadge.vue';
 import type { NetworkConfig } from '@/model/NetworkEnum';
@@ -8,7 +7,6 @@ import type { NetworkConfig } from '@/model/NetworkEnum';
 const props = defineProps<{
   transaction: WalletTransaction;
   network: NetworkConfig;
-  selectedToken: TokenEnum;
 }>();
 
 const emit = defineEmits<{
@@ -23,6 +21,8 @@ const eventName = computed(() => {
     LockAdded: 'Reserva',
     LockReleased: 'Compra',
     DepositWithdrawn: 'Saque',
+    Sent: 'Enviado',
+    Received: 'Recebido',
   };
 
   return possibleEventName[props.transaction.event] || 'Desconhecido';
@@ -87,7 +87,7 @@ const handleExplorerClick = () => {
           v-if="transaction.amount >= 0"
           class="text-xl sm:text-xl leading-7 font-semibold text-gray-900"
         >
-          {{ transaction.amount }} {{ selectedToken }}
+          {{ transaction.amount }} {{ transaction.token }}
         </span>
         <span
           v-if="formattedDate"

@@ -1,7 +1,7 @@
 import { getContract, getPublicClient, getWalletClient } from './provider';
 import {
   encodeFunctionData,
-  parseEther,
+  parseUnits,
   toHex,
   ChainContract,
   erc20Abi,
@@ -12,21 +12,27 @@ import type { Participant } from '@/utils/bbPay';
 import type { Abi, Address } from 'viem';
 import { getActiveAaContext, sendAaOperation } from './aa/operations';
 import type { AaCall } from './aa/types';
-import { TokenEnum } from '@/model/NetworkEnum';
+import { TokenEnum, type TokenConfig } from '@/model/NetworkEnum';
 
 const getP2PixAddress = (): Address => {
   const user = useUser();
   return (user.network.value.contracts?.p2pix as ChainContract).address;
 };
 
-const getSellerToken = (): Address => {
+const getSellerToken = (): TokenConfig => {
   const user = useUser();
-  return user.network.value.tokens[user.selectedToken.value].address;
+  const token = user.network.value.tokens[user.selectedToken.value];
+  if (!token) {
+    throw new Error(
+      `${user.selectedToken.value} is not listed on this network`,
+    );
+  }
+  return token;
 };
 
 const readAllowance = async (owner: Address): Promise<bigint> => {
   return getPublicClient().readContract({
-    address: getSellerToken(),
+    address: getSellerToken().address,
     abi: erc20Abi,
     functionName: 'allowance',
     args: [owner, getP2PixAddress()],
@@ -34,7 +40,7 @@ const readAllowance = async (owner: Address): Promise<bigint> => {
 };
 
 const approveCall = (amount: bigint): AaCall => ({
-  to: getSellerToken(),
+  to: getSellerToken().address,
   value: 0n,
   data: encodeFunctionData({
     abi: erc20Abi,
@@ -51,7 +57,10 @@ const approveCall = (amount: bigint): AaCall => ({
 const approveTokens = async (participant: Participant): Promise<boolean> => {
   const user = useUser();
 
-  const offer = parseEther(participant.offer.toString());
+  const offer = parseUnits(
+    participant.offer.toString(),
+    getSellerToken().decimals,
+  );
   const aa = await getActiveAaContext();
   if (aa) return true;
 
@@ -66,7 +75,7 @@ const approveTokens = async (participant: Participant): Promise<boolean> => {
 
   if ((await readAllowance(account)) < offer) {
     const hash = await walletClient.writeContract({
-      address: getSellerToken(),
+      address: getSellerToken().address,
       abi: erc20Abi,
       functionName: 'approve',
       args: [getP2PixAddress(), offer],
@@ -84,8 +93,8 @@ const addDeposit = async (participant: Participant): Promise<unknown> => {
   const user = useUser();
   const aa = await getActiveAaContext();
 
-  const offer = parseEther(participant.offer.toString());
   const token = getSellerToken();
+  const offer = parseUnits(participant.offer.toString(), token.decimals);
 
   const sellerId = await createParticipant(participant);
   if (!sellerId.id) {
@@ -95,7 +104,7 @@ const addDeposit = async (participant: Participant): Promise<unknown> => {
   const depositArgs = [
     user.network.value.id + '-' + sellerId.id,
     toHex('', { size: 32 }),
-    token,
+    token.address,
     offer,
     true,
   ] as const;
@@ -125,8 +134,10 @@ const addDeposit = async (participant: Participant): Promise<unknown> => {
     // told about it.
     const feeTokenAddress = user.network.value.tokens[TokenEnum.BRZ].address;
     const feeTokenOutflow =
-      token.toLowerCase() === feeTokenAddress.toLowerCase() ? offer : 0n;
-    const aaReceipt = await sendAaOperation(aa, calls, token, feeTokenOutflow);
+      token.address.toLowerCase() === feeTokenAddress.toLowerCase()
+        ? offer
+        : 0n;
+    const aaReceipt = await sendAaOperation(aa, calls, feeTokenOutflow);
     if (!aaReceipt.success) {
       throw new Error(
         `AA deposit failed: ${aaReceipt.receipt.transactionHash}`,

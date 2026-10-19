@@ -51,7 +51,8 @@ const handleInputEvent = (event: any): void => {
 
 const callWithdraw = () => {
   if (enableConfirmButton.value && withdrawAmount.value) {
-    emit('withdraw', withdrawAmount.value);
+    // A number input's v-model holds a number, and parseUnits needs a string.
+    emit('withdraw', String(withdrawAmount.value));
     // Reset form after withdraw
     withdrawAmount.value = '';
     isCollapsibleOpen.value = false;

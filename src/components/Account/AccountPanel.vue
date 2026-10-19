@@ -5,7 +5,7 @@ import { getTokenBalances } from '@doiim/passkeys/smart-account';
 import { useUser } from '@/composables/useUser';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { getPublicClient } from '@/blockchain/provider';
-import { TokenEnum } from '@/model/NetworkEnum';
+import { listTokens } from '@/config/networks';
 import type { AccountBalance } from '@/model/AccountBalance';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 import AccountDeposit from './AccountDeposit.vue';
@@ -13,7 +13,6 @@ import AccountSend from './AccountSend.vue';
 
 const user = useUser();
 const passkeyAccount = usePasskeyAccount();
-const tokens = Object.values(TokenEnum);
 const assets = ref<AccountBalance[]>([]);
 const balances = computed(() =>
   assets.value.filter((asset) => asset.amount > 0n),
@@ -38,16 +37,17 @@ watch(
       view.value = 'balances';
     }
     if (!address) return;
+    const tokens = listTokens(network);
     const read = await getTokenBalances(
       getPublicClient(),
       address,
-      tokens.map((token) => network.tokens[token].address),
+      tokens.map((token) => token.address),
     );
     if (stale) return;
     const native = network.nativeCurrency;
     assets.value = [
       {
-        token: null,
+        address: null,
         symbol: native.symbol,
         image: getNetworkImage(
           native.symbol === 'ETH' ? 'ethereum' : network.name,
@@ -56,9 +56,9 @@ watch(
         decimals: native.decimals,
       },
       ...read.tokens.map((balance, index) => ({
-        token: tokens[index],
-        symbol: tokens[index],
-        image: getTokenImage(tokens[index]),
+        address: tokens[index].address,
+        symbol: tokens[index].symbol,
+        image: getTokenImage(tokens[index].symbol),
         amount: balance.balance,
         decimals: balance.decimals,
       })),
@@ -70,17 +70,21 @@ watch(
 const amountOf = (balance: AccountBalance) =>
   Number(formatUnits(balance.amount, balance.decimals));
 
-// BRZ is worth its face value in reais; the other assets have no price
-// source yet, so the total only shows when every balance is in BRZ.
-const isBrl = (balance: AccountBalance) => balance.token === TokenEnum.BRZ;
-const total = computed(() =>
-  balances.value.every(isBrl)
-    ? balances.value.reduce((sum, balance) => sum + amountOf(balance), 0)
-    : null,
-);
+// An asset the backend gives no price for shows no R$ value, and then the
+// total is hidden too.
+const reaisOf = (balance: AccountBalance) => {
+  const price = user.prices.value[balance.symbol];
+  return price === undefined ? null : amountOf(balance) * price;
+};
+const total = computed(() => {
+  const values = balances.value.map(reaisOf);
+  return values.every((value): value is number => value !== null)
+    ? values.reduce((sum, value) => sum + value, 0)
+    : null;
+});
 
-const reais = (value: number) =>
-  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+const reais = (value: number | null) =>
+  value?.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 </script>
 
 <template>
@@ -139,10 +143,10 @@ const reais = (value: number) =>
               }}
               {{ balance.symbol }}
               <span
-                v-if="isBrl(balance)"
+                v-if="reaisOf(balance) !== null"
                 class="text-xs font-normal text-gray-500"
               >
-                ~ {{ reais(amountOf(balance)) }}
+                ~ {{ reais(reaisOf(balance)) }}
               </span>
             </span>
           </li>

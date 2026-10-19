@@ -47,7 +47,7 @@ const exceedsReputationLimit = ref<boolean>(false);
 
 import ChevronDown from '@/assets/chevronDown.svg';
 import { useWalletModal } from '@/config/appkit';
-import { getParticipantID } from '@/blockchain/events';
+import { getNetworksLiquidity, getParticipantID } from '@/blockchain/events';
 
 // Emits
 const emit = defineEmits(['tokenBuy']);
@@ -182,16 +182,21 @@ onClickOutside(tokenDropdownRef, () => {
 const handleSelectedToken = (token: TokenEnum): void => {
   user.setSelectedToken(token);
   selectTokenToggle.value = false;
+  getNetworksLiquidity().catch(console.error);
 };
 
 // Verify if there is a valid deposit to buy
 const verifyLiquidity = (): void => {
   enableConfirmButton.value = false;
   if (!walletAddress.value) return;
+  // The list can still hold the previous token's offers while it reloads.
   const selDeposits = verifyNetworkLiquidity(
     tokenValue.value,
     walletAddress.value,
-    depositsValidList.value,
+    depositsValidList.value.filter(
+      (deposit) =>
+        deposit.token === deposit.network.tokens[selectedToken.value]?.address,
+    ),
   );
   selectedDeposits.value = selDeposits;
   hasLiquidity.value = !!selDeposits.find((d) => d.network === network.value);
@@ -212,13 +217,13 @@ const enableOrDisableConfirmButton = (): void => {
   enableConfirmButton.value = true;
 };
 
-watch(network, (): void => {
-  verifyLiquidity();
-  enableOrDisableConfirmButton();
-});
+watch([network, walletAddress, selectedToken, depositsValidList], () =>
+  verifyLiquidity(),
+);
 
-watch(walletAddress, (): void => {
-  verifyLiquidity();
+const reais = computed(() => {
+  const price = user.prices.value[selectedToken.value];
+  return price === undefined ? null : tokenValue.value * price;
 });
 
 const availableNetworks = computed(() => {
@@ -334,7 +339,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
         <div class="custom-divide py-2 mb-2"></div>
         <div class="flex justify-between" v-if="!loadingNetworkLiquidity">
           <p class="text-gray-500 font-normal text-sm w-auto">
-            ~ R$ {{ tokenValue.toFixed(2) }}
+            {{ reais === null ? '' : `~ R$ ${reais.toFixed(2)}` }}
           </p>
           <div class="flex gap-2">
             <img

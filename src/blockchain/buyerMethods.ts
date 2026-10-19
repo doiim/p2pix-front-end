@@ -2,12 +2,15 @@ import { getContract } from './provider';
 import { p2PixAbi } from './abi';
 import { getActiveAaContext, sendAaOperation } from './aa/operations';
 import type { AaCall } from './aa/types';
+import { useUser } from '@/composables/useUser';
+import { findToken } from '@/config/networks';
+import type { TokenEnum } from '@/model/NetworkEnum';
 import {
   type Abi,
   type ContractFunctionReturnType,
   decodeEventLog,
   encodeFunctionData,
-  parseEther,
+  parseUnits,
   type Address,
   type Hex,
   type Log,
@@ -100,7 +103,9 @@ export const addLock = async (
   amount: number,
 ): Promise<bigint> => {
   const { address, abi, wallet, client, account } = await getContract();
-  const parsedAmount = parseEther(amount.toString());
+  const token = findToken(useUser().network.value, tokenAddress);
+  if (!token) throw new Error(`Token ${tokenAddress} is not listed`);
+  const parsedAmount = parseUnits(amount.toString(), token.decimals);
   const aa = await getActiveAaContext();
 
   if (aa) {
@@ -113,7 +118,7 @@ export const addLock = async (
       }),
       value: 0n,
     };
-    const aaReceipt = await sendAaOperation(aa, [call], tokenAddress);
+    const aaReceipt = await sendAaOperation(aa, [call]);
     if (!aaReceipt.success) {
       throw new Error(`AA lock failed: ${aaReceipt.receipt.transactionHash}`);
     }
@@ -158,10 +163,12 @@ export const addLock = async (
 
 export const withdrawDeposit = async (
   amount: string,
-  token: Address,
+  symbol: TokenEnum,
 ): Promise<boolean> => {
   const { address, abi, wallet, client, account } = await getContract();
-  const parsedAmount = parseEther(amount);
+  const token = useUser().network.value.tokens[symbol];
+  if (!token) throw new Error(`${symbol} is not listed on this network`);
+  const parsedAmount = parseUnits(amount, token.decimals);
   const aa = await getActiveAaContext();
 
   if (aa) {
@@ -170,11 +177,11 @@ export const withdrawDeposit = async (
       data: encodeFunctionData({
         abi: abi as Abi,
         functionName: 'withdraw',
-        args: [token, parsedAmount, []],
+        args: [token.address, parsedAmount, []],
       }),
       value: 0n,
     };
-    const aaReceipt = await sendAaOperation(aa, [call], token);
+    const aaReceipt = await sendAaOperation(aa, [call]);
     return aaReceipt.success;
   }
 
@@ -185,7 +192,7 @@ export const withdrawDeposit = async (
     address,
     abi,
     functionName: 'withdraw',
-    args: [token, parsedAmount, []],
+    args: [token.address, parsedAmount, []],
     account,
   });
   const hash = await wallet.writeContract(request);
@@ -208,8 +215,10 @@ export const releaseLock = async (
       functionName: 'mapLocks',
       args: [lockID],
     });
-    const { token: lockToken, buyerAddress } = toLock(lock);
-    if (buyerAddress.toLowerCase() !== aa.account.address.toLowerCase()) {
+    if (
+      toLock(lock).buyerAddress.toLowerCase() !==
+      aa.account.address.toLowerCase()
+    ) {
       throw new Error('Active smart account is not the buyer of this lock');
     }
 
@@ -222,7 +231,7 @@ export const releaseLock = async (
       }),
       value: 0n,
     };
-    const aaReceipt = await sendAaOperation(aa, [call], lockToken);
+    const aaReceipt = await sendAaOperation(aa, [call]);
     if (!aaReceipt.success) {
       throw new Error(
         `AA release failed: ${aaReceipt.receipt.transactionHash}`,

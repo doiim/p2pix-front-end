@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { formatUnits } from 'viem';
+import { useUser } from '@/composables/useUser';
+import { findToken } from '@/config/networks';
 
 interface Transaction {
   id: string;
@@ -52,9 +55,12 @@ const formatAddress = (address: string) => {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
-const formatAmount = (amount: string, decimals: number = 18): string => {
-  const num = parseFloat(amount) / Math.pow(10, decimals);
-  return num.toString();
+// Rows in a token this network does not list show no amount.
+const formatAmount = (transaction: Transaction): string => {
+  const token = findToken(useUser().network.value, transaction.token);
+  return token
+    ? `${formatUnits(BigInt(transaction.amount), token.decimals)} ${token.symbol}`
+    : '';
 };
 
 const getExplorerUrl = (txHash: string) => {
@@ -177,7 +183,7 @@ const copyToClipboard = async (address: string, key: string) => {
             </td>
             <td class="py-4 px-4">
               <div class="text-sm font-semibold text-emerald-600">
-                {{ formatAmount(transaction.amount, 18) }} BRZ
+                {{ formatAmount(transaction) }}
               </div>
             </td>
             <td class="py-4 px-4">
@@ -267,9 +273,9 @@ const copyToClipboard = async (address: string, key: string) => {
           </div>
           <div class="text-sm">
             <span class="text-gray-600">Valor: </span>
-            <span class="font-semibold text-emerald-600"
-              >{{ formatAmount(transaction.amount, 18) }} BRZ</span
-            >
+            <span class="font-semibold text-emerald-600">{{
+              formatAmount(transaction)
+            }}</span>
           </div>
           <div class="text-sm">
             <span class="text-gray-600">Bloco: </span>

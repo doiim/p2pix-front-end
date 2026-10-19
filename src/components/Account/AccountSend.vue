@@ -22,7 +22,7 @@ const user = useUser();
 const passkeyAccount = usePasskeyAccount();
 const step = ref<'form' | 'signing' | 'sending' | 'done'>('form');
 const asset = ref(
-  props.balances.find((balance) => balance.token === TokenEnum.BRZ) ??
+  props.balances.find((balance) => balance.symbol === TokenEnum.BRZ) ??
     props.balances[0],
 );
 const amountInput = ref('');
@@ -41,16 +41,18 @@ const display = (value: bigint | null, decimals: number, symbol: string) =>
     : `${Number(formatUnits(value, decimals)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${symbol}`;
 const format = (value: bigint | null) =>
   display(value, asset.value.decimals, asset.value.symbol);
-// The paymaster charges the fee in BRZ, which the app treats as 18 decimals.
-const feeText = computed(() => display(fee.value, 18, TokenEnum.BRZ));
+// The paymaster charges the fee in BRZ.
+const feeText = computed(() =>
+  display(fee.value, user.network.value.tokens.BRZ.decimals, TokenEnum.BRZ),
+);
 
-const maxDecimals = computed(() => (asset.value.token ? 2 : 6));
+const maxDecimals = computed(() => Math.min(asset.value.decimals, 6));
 const amount = computed(() => {
   const text = amountInput.value.trim().replace(',', '.');
   const pattern = new RegExp(`^\\d+(\\.\\d{1,${maxDecimals.value}})?$`);
   return pattern.test(text) ? parseUnits(text, asset.value.decimals) : null;
 });
-const feeFromAmount = computed(() => asset.value.token === TokenEnum.BRZ);
+const feeFromAmount = computed(() => asset.value.symbol === TokenEnum.BRZ);
 const received = computed(() =>
   amount.value === null || fee.value === null
     ? null
@@ -91,7 +93,7 @@ watch([asset, recipient, requotes], async ([selected], previous, onCleanup) => {
   if (!recipientValid.value) return;
   try {
     const quoted = await passkeyAccount.quoteTransferFee(
-      selected.token,
+      selected.address,
       getAddress(recipient.value),
     );
     if (!stale) fee.value = quoted;
@@ -125,7 +127,7 @@ const confirm = async () => {
   error.value = '';
   try {
     const userOpHash = await passkeyAccount.sendTransfer(
-      asset.value.token,
+      asset.value.address,
       getAddress(recipient.value),
       received.value,
       fee.value,

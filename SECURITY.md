@@ -47,7 +47,7 @@ P2Pix is self-custodial for signing, but releasing an escrow relies on third-par
 ### P2Pix oracle + BB Pay
 
 - **What it is:** bridges off-chain Pix settlement to onchain release.
-- **What it sees or can block:** fiat transits P2Pix's BB Pay account for the settlement window before BB settles it to the seller's registered account — a custody deviation, not self-custody. Releasing escrowed funds is gated on a P2Pix-signed attestation — the single trusted signer we have not yet removed. If it is unavailable trades halt.
+- **What it sees or can block:** fiat transits P2Pix's BB Pay account for the settlement window before BB settles it to the seller's registered account — a custody deviation, not self-custody. Releasing escrowed funds is gated on a P2Pix-signed attestation — the single trusted signer we have not yet removed. If it is unavailable trades halt. It also sets the R$ price of every token but BRZ: the Pix it charges for a lock and the quotes it serves on `/prices`, which it receives on every home visit. The attestation binds `pixTarget` and amount but not the token, so before a second token is listed on a network the contract or the oracle must bind the token or the lock id.
 - **Escape path:** none today (an open gap — see Design-baseline compliance). Two routes end release's dependence on the P2Pix oracle: a **Bacen-issued attestation** — the primary plan, tracked as an open upstream request at [bacen/pix-api#61](https://github.com/bacen/pix-api/issues/61) — or **zkPix** (zkTLS), the fallback.
 
 ## Design-baseline compliance

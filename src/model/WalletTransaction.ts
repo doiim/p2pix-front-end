@@ -1,8 +1,8 @@
 import type { LockStatus } from '@/model/LockStatus';
-import type { Address } from 'viem';
+import type { TokenEnum } from '@/model/NetworkEnum';
 
 export type WalletTransaction = {
-  token?: Address;
+  token: TokenEnum;
   blockNumber: number;
   blockTimestamp?: number;
   amount: number;

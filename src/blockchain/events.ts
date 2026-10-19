@@ -1,12 +1,12 @@
 import { useUser } from '@/composables/useUser';
-import { formatEther, toHex, stringToHex } from 'viem';
+import { formatUnits, toHex, stringToHex } from 'viem';
 import type { PublicClient, Address } from 'viem';
-import { Networks } from '@/config/networks';
+import { Networks, findToken } from '@/config/networks';
 import { getContract } from './provider';
 import { toLock } from './buyerMethods';
 import { p2PixAbi } from './abi';
 import type { ValidDeposit } from '@/model/ValidDeposit';
-import type { NetworkConfig } from '@/model/NetworkEnum';
+import type { NetworkConfig, TokenConfig } from '@/model/NetworkEnum';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
 import { ChainContract } from 'viem';
 
@@ -17,11 +17,8 @@ const getNetworksLiquidity = async (): Promise<void> => {
   const depositLists: ValidDeposit[][] = [];
 
   for (const network of Networks) {
-    const deposits = await getValidDeposits(
-      user.network.value.tokens[user.selectedToken.value].address,
-      network,
-    );
-    if (deposits) depositLists.push(deposits);
+    const token = network.tokens[user.selectedToken.value];
+    if (token) depositLists.push(await getValidDeposits(token, network));
   }
 
   const allDeposits = depositLists.flat();
@@ -59,7 +56,7 @@ const getParticipantID = async (
 };
 
 const getValidDeposits = async (
-  token: Address,
+  token: TokenConfig,
   network: NetworkConfig,
   contractInfo?: { client: PublicClient; address: Address },
 ): Promise<ValidDeposit[]> => {
@@ -75,7 +72,7 @@ const getValidDeposits = async (
   const body = {
     query: `
       {
-        depositAddeds(where: { token: "${token}" }) {
+        depositAddeds(where: { token: "${token.address}" }) {
           seller
           amount
           blockTimestamp
@@ -121,7 +118,7 @@ const getValidDeposits = async (
     address: (network.contracts?.p2pix as ChainContract).address,
     abi,
     functionName: 'getBalance',
-    args: [seller, token],
+    args: [seller, token.address],
   }));
 
   const balanceResults = await client.multicall({
@@ -134,14 +131,16 @@ const getValidDeposits = async (
 
     if (!mappedBalance.error && mappedBalance.result) {
       const validDeposit: ValidDeposit = {
-        token,
+        token: token.address,
         blockNumber: 0,
-        remaining: Number(formatEther(mappedBalance.result as bigint)),
+        remaining: Number(
+          formatUnits(mappedBalance.result as bigint, token.decimals),
+        ),
         seller,
         network,
         participantID: '',
       };
-      depositList[seller + token] = validDeposit;
+      depositList[seller + token.address] = validDeposit;
     }
   });
   return Object.values(depositList);
@@ -151,6 +150,7 @@ const getUnreleasedLockById = async (
   lockID: bigint,
 ): Promise<UnreleasedLock> => {
   const { address, abi, client } = await getContract();
+  const user = useUser();
 
   const { amount, token, seller } = toLock(
     await client.readContract({
@@ -161,9 +161,13 @@ const getUnreleasedLockById = async (
     }),
   );
 
+  const listed = findToken(user.network.value, token);
+  if (!listed) throw new Error(`Lock token ${token} is not listed`);
+
   return {
     lockID,
-    amount: Number(formatEther(amount)),
+    amount: Number(formatUnits(amount, listed.decimals)),
+    token: listed.symbol,
     tokenAddress: token,
     sellerAddress: seller,
   };

@@ -100,6 +100,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           buyer
           lockID
           seller
+          token
           amount
           blockNumber
           blockTimestamp
@@ -109,6 +110,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           id
           buyer
           lockId
+          token
           amount
           blockNumber
           blockTimestamp
@@ -165,6 +167,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           buyer
           lockID
           seller
+          token
           amount
           blockNumber
           blockTimestamp
@@ -174,6 +177,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           id
           buyer
           lockId
+          token
           amount
           blockNumber
           blockTimestamp
@@ -318,7 +322,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           seller: undefined, // Release doesn't have seller info
           buyer: release.buyer,
           amount: release.amount,
-          token: 'BRZ', // Default token
+          token: release.token,
           timestamp: formatTimestamp(release.blockTimestamp),
         });
       });
@@ -335,7 +339,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           seller: undefined, // Return doesn't have seller info
           buyer: returnTx.buyer,
           amount: '0', // Return doesn't have amount
-          token: 'BRZ', // Default token
+          token: '', // Nor token
           timestamp: formatTimestamp(returnTx.blockTimestamp),
         });
       });

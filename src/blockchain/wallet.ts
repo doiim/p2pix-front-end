@@ -1,4 +1,4 @@
-import { formatEther, type Address } from 'viem';
+import { formatEther, formatUnits, type Address } from 'viem';
 import { useUser } from '@/composables/useUser';
 import { getEffectiveWalletAddress } from './aa/operations';
 
@@ -11,6 +11,8 @@ import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { WalletTransaction } from '@/model/WalletTransaction';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
 import { LockStatus } from '@/model/LockStatus';
+import type { TokenEnum } from '@/model/NetworkEnum';
+import { findToken } from '@/config/networks';
 
 // Addresses today come from viem/wagmi and are well-formed hex, but the
 // GraphQL builders below interpolate them straight into a quoted literal, so
@@ -51,13 +53,15 @@ export const listValidDepositTransactionsByWalletAddress = async (
   walletAddress: Address,
 ): Promise<ValidDeposit[]> => {
   const user = useUser();
-  const walletDeposits = await getValidDeposits(
-    user.network.value.tokens[user.selectedToken.value].address,
-    user.network.value,
-  );
+  const token = user.network.value.tokens[user.selectedToken.value];
+  if (!token) return [];
+  const walletDeposits = await getValidDeposits(token, user.network.value);
   if (walletDeposits) {
     return walletDeposits
-      .filter((deposit) => deposit.seller == walletAddress)
+      .filter(
+        (deposit) =>
+          deposit.seller.toLowerCase() === walletAddress.toLowerCase(),
+      )
       .sort((a: ValidDeposit, b: ValidDeposit) => {
         return b.blockNumber - a.blockNumber;
       });
@@ -105,6 +109,7 @@ export const listAllTransactionByWalletAddress = async (
           buyer
           lockID
           seller
+          token
           amount
           blockTimestamp
           blockNumber
@@ -113,12 +118,28 @@ export const listAllTransactionByWalletAddress = async (
         lockReleaseds(where: {buyer: "${escapedAddress}"}) {
           buyer
           lockId
+          token
+          amount
           blockTimestamp
           blockNumber
           transactionHash
         }
         depositWithdrawns(where: {seller: "${escapedAddress}"}) {
           seller
+          token
+          amount
+          blockTimestamp
+          blockNumber
+          transactionHash
+        }
+        Sent: transfers(where: {from: "${escapedAddress}", amount_gt: "0"}, orderBy: blockNumber, orderDirection: desc) {
+          token
+          amount
+          blockTimestamp
+          blockNumber
+          transactionHash
+        }
+        Received: transfers(where: {to: "${escapedAddress}", amount_gt: "0"}, orderBy: blockNumber, orderDirection: desc) {
           token
           amount
           blockTimestamp
@@ -140,15 +161,26 @@ export const listAllTransactionByWalletAddress = async (
   const data = await response.json();
   // Convert all transactions to common WalletTransaction format
   const transactions: WalletTransaction[] = [];
+  // Rows in a token this network does not list are skipped.
+  const asset = (token: string, amount: string) => {
+    const listed = findToken(network, token);
+    return (
+      listed && {
+        token: listed.symbol,
+        amount: Number(formatUnits(BigInt(amount), listed.decimals)),
+      }
+    );
+  };
 
   // Process deposit added events
   if (data.data?.depositAddeds) {
     for (const deposit of data.data.depositAddeds) {
+      const value = asset(deposit.token, deposit.amount);
+      if (!value) continue;
       transactions.push({
-        token: deposit.token,
+        ...value,
         blockNumber: parseInt(deposit.blockNumber),
         blockTimestamp: parseInt(deposit.blockTimestamp),
-        amount: parseFloat(formatEther(BigInt(deposit.amount))),
         seller: deposit.seller,
         buyer: '',
         event: 'DepositAdded',
@@ -161,14 +193,15 @@ export const listAllTransactionByWalletAddress = async (
   // Process lock added events
   if (data.data?.lockAddeds) {
     for (const lock of data.data.lockAddeds) {
+      const value = asset(lock.token, lock.amount);
+      if (!value) continue;
       // Get lock status from the contract
       const lockStatus = await getLockStatus(BigInt(lock.lockID));
 
       transactions.push({
-        token: lock.token,
+        ...value,
         blockNumber: parseInt(lock.blockNumber),
         blockTimestamp: parseInt(lock.blockTimestamp),
-        amount: parseFloat(formatEther(BigInt(lock.amount))),
         seller: lock.seller,
         buyer: lock.buyer,
         event: 'LockAdded',
@@ -182,15 +215,12 @@ export const listAllTransactionByWalletAddress = async (
   // Process lock released events
   if (data.data?.lockReleaseds) {
     for (const release of data.data.lockReleaseds) {
-      // The release event has no amount; take it from the buyer's own lock.
-      const lock = data.data.lockAddeds?.find(
-        (added: { lockID: string }) => added.lockID === release.lockId,
-      );
+      const value = asset(release.token, release.amount);
+      if (!value) continue;
       transactions.push({
-        token: undefined, // Subgraph doesn't provide token in this event, we could enhance this later
+        ...value,
         blockNumber: parseInt(release.blockNumber),
         blockTimestamp: parseInt(release.blockTimestamp),
-        amount: lock ? parseFloat(formatEther(BigInt(lock.amount))) : -1,
         seller: '',
         buyer: release.buyer,
         event: 'LockReleased',
@@ -204,16 +234,35 @@ export const listAllTransactionByWalletAddress = async (
   // Process deposit withdrawn events
   if (data.data?.depositWithdrawns) {
     for (const withdrawal of data.data.depositWithdrawns) {
+      const value = asset(withdrawal.token, withdrawal.amount);
+      if (!value) continue;
       transactions.push({
-        token: withdrawal.token,
+        ...value,
         blockNumber: parseInt(withdrawal.blockNumber),
         blockTimestamp: parseInt(withdrawal.blockTimestamp),
-        amount: parseFloat(formatEther(BigInt(withdrawal.amount))),
         seller: withdrawal.seller,
         buyer: '',
         event: 'DepositWithdrawn',
         lockStatus: undefined,
         transactionHash: withdrawal.transactionHash,
+      });
+    }
+  }
+
+  // A transfer made by a P2Pix operation already shows as its event.
+  const p2pixHashes = new Set(transactions.map((row) => row.transactionHash));
+  for (const event of ['Sent', 'Received'] as const) {
+    for (const transfer of data.data?.[event] ?? []) {
+      const value = asset(transfer.token, transfer.amount);
+      if (!value || p2pixHashes.has(transfer.transactionHash)) continue;
+      transactions.push({
+        ...value,
+        blockNumber: parseInt(transfer.blockNumber),
+        blockTimestamp: parseInt(transfer.blockTimestamp),
+        seller: '',
+        buyer: '',
+        event,
+        transactionHash: transfer.transactionHash,
       });
     }
   }
@@ -284,7 +333,10 @@ export const checkUnreleasedLock = async (
 
 export const getActiveLockAmount = async (
   walletAddress: Address,
+  symbol: TokenEnum,
 ): Promise<number> => {
+  const token = useUser().network.value.tokens[symbol];
+  if (!token) return 0;
   const { address, abi, client } = await getContract(true);
   const lockIds = await fetchLockIds('seller', walletAddress);
   if (!lockIds.length) return 0;
@@ -307,8 +359,9 @@ export const getActiveLockAmount = async (
 
   return mapLocksResults.reduce((total, lock, index) => {
     if (status[index] === LockStatus.Active && lock.status === 'success') {
-      const { amount } = toLock(lock.result);
-      return total + Number(formatEther(amount));
+      const { amount, token: lockToken } = toLock(lock.result);
+      if (lockToken.toLowerCase() === token.address.toLowerCase())
+        return total + Number(formatUnits(amount, token.decimals));
     }
     return total;
   }, 0);

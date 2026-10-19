@@ -115,9 +115,6 @@ const sendSponsored = async (
  * it uses the sponsorship policy, so a buyer with an empty balance can still
  * be released and a seller can still make their first deposit.
  *
- * `feeToken` is the token the operation itself moves, checked against the
- * configured paymaster token before the paid path is used.
- *
  * `feeTokenOutflow` is the amount of fee token this batch will move out of
  * the smart account once it runs. It cannot be inferred from the batch
  * itself: the seller deposit, for example, transfers the fee token via a
@@ -127,7 +124,6 @@ const sendSponsored = async (
 export const sendAaOperation = async (
   aa: AaContext,
   calls: readonly AaCall[],
-  feeToken: Address,
   feeTokenOutflow: bigint = 0n,
 ): Promise<UserOperationReceipt> => {
   const publicClient = aa.account.client as PublicClient;
@@ -164,7 +160,7 @@ export const sendAaOperation = async (
   // misconfiguration that breaks the paid rail while sponsorship quietly
   // absorbs every call and drains the budget.
   try {
-    await assertErc20PaymasterTokenSupported(aa, feeToken);
+    await assertErc20PaymasterTokenSupported(aa);
   } catch (cause) {
     console.error(
       'ERC-20 paymaster assertion failed; skipping paid rail and falling back to sponsorship.',

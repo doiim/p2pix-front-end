@@ -30,10 +30,7 @@ const callWithdraw = async (amount: string) => {
     loadingWithdraw.value = true;
     let withdraw;
     try {
-      withdraw = await withdrawDeposit(
-        amount,
-        network.value.tokens[selectedToken.value].address,
-      );
+      withdraw = await withdrawDeposit(amount, selectedToken.value);
     } catch {
       loadingWithdraw.value = false;
     }
@@ -60,7 +57,10 @@ const getWalletTransactions = async () => {
       walletAddress.value,
     );
 
-    activeLockAmount.value = await getActiveLockAmount(walletAddress.value);
+    activeLockAmount.value = await getActiveLockAmount(
+      walletAddress.value,
+      selectedToken.value,
+    );
 
     if (walletDeposits) {
       depositList.value = walletDeposits;
