@@ -10,7 +10,7 @@ import { useSendForm } from '@/composables/account/useSendForm';
 import { useUser } from '@/composables/useUser';
 import { useWalletDisconnect } from '@/config/appkit';
 import { resetAaAccountCache } from '@/blockchain/aa/operations';
-import { TokenEnum } from '@/model/NetworkEnum';
+import { listTokens } from '@/config/networks';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { getNetworkImage } from '@/utils/imagesPath';
 import CustomButton from '@/components/ui/CustomButton.vue';
@@ -52,17 +52,17 @@ const handleDisconnect = async () => {
       <div v-if="account.balancesLoaded.value">
         <p class="acct-label">Saldo da conta</p>
         <p
-          v-for="token in TokenEnum"
-          :key="token"
+          v-for="token in listTokens(user.network.value)"
+          :key="token.symbol"
           class="text-xl font-semibold text-gray-900"
         >
           {{
             formatTokenAmount(
-              account.balanceOf(token),
-              account.decimalsOf(token),
+              account.balanceOf(token.symbol),
+              account.decimalsOf(token.symbol),
             )
           }}
-          {{ token }}
+          {{ token.symbol }}
         </p>
         <p class="text-xs text-gray-400">
           {{ formatTokenAmount(account.balanceOf(), account.decimalsOf()) }}

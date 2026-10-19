@@ -10,6 +10,10 @@ import {
   getActiveAaContext,
   sendAaOperation,
 } from '@/blockchain/aa/operations';
+import {
+  InsufficientFeeTokenBalanceError,
+  prepareErc20PaymasterQuote,
+} from '@/blockchain/aa/paymasters/erc20';
 import { getAaOwnerKind, readPasskeySession } from '@/blockchain/aa/session';
 import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
@@ -57,6 +61,17 @@ const tokenAddress = (context: AaContext, token: TokenEnum): Address => {
   if (!listed) throw new Error(`${token} não está disponível nesta rede`);
   return listed.address;
 };
+
+/** Moves `amount` of `token` to `to`; no token means the native coin. */
+const transferCall = (
+  context: AaContext,
+  token: TokenEnum | undefined,
+  to: Address,
+  amount: bigint,
+): AaCall =>
+  token === undefined
+    ? { to, value: amount, data: '0x' }
+    : tokenTransfer(tokenAddress(context, token), to, amount);
 
 /** `funds` carries the whole read: the sent token and the native coin differ. */
 const assertSendFunds = (params: SendParams, funds: Balances): void => {
@@ -107,7 +122,7 @@ export function usePasskeyAccount() {
   const symbolOf = (token?: TokenEnum): string =>
     token ?? user.network.value.nativeCurrency.symbol;
   const decimalsOf = (token?: TokenEnum): number =>
-    (token && tokenRead(token)?.decimals) ??
+    (token && user.network.value.tokens[token]?.decimals) ??
     user.network.value.nativeCurrency.decimals;
   const balanceOf = (token?: TokenEnum): bigint =>
     token ? (tokenRead(token)?.balance ?? 0n) : ethBalance.value;
@@ -154,16 +169,9 @@ export function usePasskeyAccount() {
     try {
       const funds = await readBalances();
       const { context } = funds;
-      const calls: AaCall[] =
-        params.token === undefined
-          ? [{ to: params.to, value: params.amount, data: '0x' }]
-          : [
-              tokenTransfer(
-                tokenAddress(context, params.token),
-                params.to,
-                params.amount,
-              ),
-            ];
+      const calls = [
+        transferCall(context, params.token, params.to, params.amount),
+      ];
       assertSendFunds(params, funds);
 
       const feeToken = context.network.aa?.feeToken;
@@ -197,6 +205,27 @@ export function usePasskeyAccount() {
     }
   };
 
+  /**
+   * The fee a send pays in the network's fee token: a quote for a 1-unit probe
+   * plus 20% headroom, as the cost depends on the call's shape, not its
+   * amount. 0 when the send is sponsored: no fee token is set, or the account
+   * holds too little of it.
+   */
+  const quoteFee = async (
+    token: TokenEnum | undefined,
+    to: Address,
+  ): Promise<bigint> => {
+    const context = await getActiveAaContext();
+    if (!context?.network.aa?.feeToken) return 0n;
+    const probe = await prepareErc20PaymasterQuote(context, [
+      transferCall(context, token, to, 1n),
+    ]).catch((cause) => {
+      if (cause instanceof InsufficientFeeTokenBalanceError) return null;
+      throw cause;
+    });
+    return probe ? (probe.costInToken * 12n) / 10n : 0n;
+  };
+
   /** Forget everything tied to the previous chain/session. */
   const reset = (): void => {
     smartAccountAddress.value =
@@ -221,6 +250,7 @@ export function usePasskeyAccount() {
     decimalsOf,
     balanceOf,
     send,
+    quoteFee,
     refreshBalances,
     explorerTxUrl,
     reset,

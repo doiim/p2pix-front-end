@@ -24,7 +24,7 @@ const getSellerToken = (): TokenConfig => {
   const token = user.network.value.tokens[user.selectedToken.value];
   if (!token) {
     throw new Error(
-      `${user.selectedToken.value} is not listed on this network`,
+      `${user.selectedToken.value} não está disponível nesta rede`,
     );
   }
   return token;

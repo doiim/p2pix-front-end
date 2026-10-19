@@ -47,7 +47,7 @@ const exceedsReputationLimit = ref<boolean>(false);
 
 import ChevronDown from '@/assets/chevronDown.svg';
 import { useWalletModal } from '@/config/appkit';
-import { getNetworksLiquidity, getParticipantID } from '@/blockchain/events';
+import { getParticipantID } from '@/blockchain/events';
 
 // Emits
 const emit = defineEmits(['tokenBuy']);
@@ -182,7 +182,6 @@ onClickOutside(tokenDropdownRef, () => {
 const handleSelectedToken = (token: TokenEnum): void => {
   user.setSelectedToken(token);
   selectTokenToggle.value = false;
-  getNetworksLiquidity().catch(console.error);
 };
 
 // Verify if there is a valid deposit to buy

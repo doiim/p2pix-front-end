@@ -13,11 +13,17 @@ import { withdrawDeposit } from '@/blockchain/buyerMethods';
 import { getCurrentAccount } from '@/blockchain/provider';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { WalletTransaction } from '@/model/WalletTransaction';
+import { TokenEnum } from '@/model/NetworkEnum';
 
 import router from '@/router/index';
 
 const user = useUser();
 const { walletAddress, network, selectedToken } = user;
+// This page reads the selected token's offer; a token the network does not
+// list has none, so show BRZ's.
+if (!network.value.tokens[selectedToken.value]) {
+  user.setSelectedToken(TokenEnum.BRZ);
+}
 const loadingWithdraw = ref<boolean>(false);
 const showAlert = ref<boolean>(false);
 

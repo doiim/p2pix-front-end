@@ -104,7 +104,7 @@ export const addLock = async (
 ): Promise<bigint> => {
   const { address, abi, wallet, client, account } = await getContract();
   const token = findToken(useUser().network.value, tokenAddress);
-  if (!token) throw new Error(`Token ${tokenAddress} is not listed`);
+  if (!token) throw new Error(`O token ${tokenAddress} não está listado`);
   const parsedAmount = parseUnits(amount.toString(), token.decimals);
   const aa = await getActiveAaContext();
 
@@ -167,7 +167,7 @@ export const withdrawDeposit = async (
 ): Promise<boolean> => {
   const { address, abi, wallet, client, account } = await getContract();
   const token = useUser().network.value.tokens[symbol];
-  if (!token) throw new Error(`${symbol} is not listed on this network`);
+  if (!token) throw new Error(`${symbol} não está disponível nesta rede`);
   const parsedAmount = parseUnits(amount, token.decimals);
   const aa = await getActiveAaContext();
 

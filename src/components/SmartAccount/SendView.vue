@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useSendForm } from '@/composables/account/useSendForm';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
-import { TokenEnum } from '@/model/NetworkEnum';
+import { listTokens } from '@/config/networks';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 import { useUser } from '@/composables/useUser';
@@ -18,7 +18,10 @@ const form = useSendForm();
 
 // The configured ERC-20s, then the native coin (no token).
 const options = computed(() =>
-  [...Object.values(TokenEnum), undefined].map((token) => ({
+  [
+    ...listTokens(user.network.value).map((token) => token.symbol),
+    undefined,
+  ].map((token) => ({
     token,
     symbol: account.symbolOf(token),
     image: token

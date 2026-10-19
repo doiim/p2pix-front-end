@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import {
   formatUnits,
   getAddress,
@@ -26,28 +26,55 @@ const asset = ref(
 );
 const amountInput = ref('');
 const recipient = ref('');
+const fee = ref<bigint | null>(null);
+const error = ref('');
 const txHash = ref<Hex>();
 const copied = ref(false);
 
 const short = (value: string) => `${value.slice(0, 10)}…${value.slice(-8)}`;
-const format = (value: bigint | null) =>
+const display = (value: bigint | null, decimals: number, symbol: string) =>
   value === null
     ? ''
-    : `${Number(formatUnits(value, asset.value.decimals)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${asset.value.symbol}`;
+    : `${Number(formatUnits(value, decimals)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${symbol}`;
+const format = (value: bigint | null) =>
+  display(value, asset.value.decimals, asset.value.symbol);
+const feeToken = computed(() => user.network.value.aa?.feeToken);
+const feeText = computed(() =>
+  feeToken.value
+    ? display(
+        fee.value,
+        passkeyAccount.decimalsOf(feeToken.value),
+        feeToken.value,
+      )
+    : '',
+);
 
 const maxDecimals = computed(() => Math.min(asset.value.decimals, 6));
+// Only the comma separates decimals: in pt-BR "1.000" is one thousand.
 const amount = computed(() => {
-  const text = amountInput.value.trim().replace(',', '.');
-  const pattern = new RegExp(`^\\d+(\\.\\d{1,${maxDecimals.value}})?$`);
-  return pattern.test(text) ? parseUnits(text, asset.value.decimals) : null;
+  const text = amountInput.value.trim();
+  const pattern = new RegExp(`^\\d+(,\\d{1,${maxDecimals.value}})?$`);
+  return pattern.test(text)
+    ? parseUnits(text.replace(',', '.'), asset.value.decimals)
+    : null;
 });
+const feeFromAmount = computed(
+  () => !!asset.value.token && asset.value.token === feeToken.value,
+);
+const received = computed(() =>
+  amount.value === null || fee.value === null
+    ? null
+    : amount.value - (feeFromAmount.value ? fee.value : 0n),
+);
 
 const amountError = computed(() => {
   if (!amountInput.value) return '';
   if (!amount.value)
-    return `Informe um valor com até ${maxDecimals.value} casas decimais`;
+    return `Informe um valor com até ${maxDecimals.value} casas decimais, separadas por vírgula`;
   if (amount.value > asset.value.amount)
     return `Saldo insuficiente: você tem ${format(asset.value.amount)}`;
+  if (received.value !== null && received.value <= 0n)
+    return 'O valor precisa ser maior que a taxa de rede';
   return '';
 });
 const recipientValid = computed(
@@ -57,8 +84,28 @@ const recipientValid = computed(
     !isAddressEqual(recipient.value, user.walletAddress.value ?? zeroAddress),
 );
 const canConfirm = computed(
-  () => !!amount.value && !amountError.value && recipientValid.value,
+  () => !!received.value && !amountError.value && recipientValid.value,
 );
+
+watch([asset, recipient], async ([selected], _, onCleanup) => {
+  // Drop the quote if the token or the destination changed while quoting.
+  let stale = false;
+  onCleanup(() => (stale = true));
+  fee.value = null;
+  error.value = '';
+  if (!recipientValid.value) return;
+  try {
+    const quoted = await passkeyAccount.quoteFee(
+      selected.token ?? undefined,
+      getAddress(recipient.value),
+    );
+    if (!stale) fee.value = quoted;
+  } catch (cause) {
+    if (stale) return;
+    console.error(cause);
+    error.value = 'Não foi possível calcular a taxa da rede.';
+  }
+});
 
 const useMax = () => {
   const [whole, fraction = ''] = formatUnits(
@@ -75,11 +122,11 @@ const paste = async () => {
 };
 
 const confirm = async () => {
-  if (!amount.value) return;
+  if (!received.value) return;
   step.value = 'sending';
   const result = await passkeyAccount.send({
     token: asset.value.token ?? undefined,
-    amount: amount.value,
+    amount: received.value,
     to: getAddress(recipient.value),
   });
   // A failed send may still land, so the filled form is never offered again:
@@ -173,9 +220,23 @@ const copyHash = async () => {
         Informe um endereço de destino válido
       </p>
     </div>
+    <dl
+      v-if="received !== null"
+      class="flex flex-col gap-1 text-sm text-gray-900"
+    >
+      <div v-if="fee" class="flex justify-between gap-2">
+        <dt>Taxa de rede</dt>
+        <dd>~ {{ feeText }}</dd>
+      </div>
+      <div class="flex justify-between gap-2 font-semibold">
+        <dt>O destino recebe</dt>
+        <dd>{{ format(received) }}</dd>
+      </div>
+    </dl>
     <p class="text-xs text-gray-500">
       Envios apenas para a rede {{ user.network.value.name }}
     </p>
+    <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
     <div class="grid grid-cols-2 gap-2">
       <button
         type="button"
@@ -212,6 +273,10 @@ const copyHash = async () => {
     </div>
     <dl class="flex flex-col divide-y divide-gray-100 text-sm text-gray-900">
       <div class="flex justify-between gap-2 py-2">
+        <dt class="text-gray-600">O destino recebeu</dt>
+        <dd>{{ format(received) }}</dd>
+      </div>
+      <div class="flex justify-between gap-2 py-2">
         <dt class="text-gray-600">Rede</dt>
         <dd>{{ user.network.value.name }}</dd>
       </div>
@@ -230,6 +295,10 @@ const copyHash = async () => {
         </dd>
       </div>
     </dl>
+    <p v-if="fee" class="p-3 rounded-lg bg-gray-100 text-sm text-gray-600">
+      Taxa de rede de ~ {{ feeText }}
+      {{ feeFromAmount ? 'descontada do valor enviado.' : 'paga à parte.' }}
+    </p>
     <a
       :href="`${user.network.value.blockExplorers?.default.url}/tx/${txHash}`"
       target="_blank"

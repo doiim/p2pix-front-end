@@ -97,6 +97,13 @@ const confirmBuyClick = async (
 };
 
 const confirmSellClick = async (participant: Participant) => {
+  if (!user.network.value.tokens[user.selectedToken.value]) {
+    user.showToast(
+      'error',
+      `${user.selectedToken.value} ainda não está disponível nesta rede`,
+    );
+    return;
+  }
   flowStep.value = Step.Sell;
   await approveTokens(participant)
     .then(() => addDeposit(participant))
@@ -104,9 +111,15 @@ const confirmSellClick = async (participant: Participant) => {
       showSellAlert.value = true;
       sales.value++;
     })
-    .catch(console.error);
+    .catch((cause) => {
+      console.error(cause);
+      user.showToast('error', 'Não foi possível enviar a oferta para a rede.');
+    });
   flowStep.value = Step.Search;
 };
+
+// A lock being resumed can switch the token too, not just the picker.
+watch(user.selectedToken, () => getNetworksLiquidity().catch(console.error));
 
 const releaseTransaction = async (params: {
   pixTimestamp: Hex;

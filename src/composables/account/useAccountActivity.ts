@@ -61,8 +61,8 @@ export function useAccountActivity() {
   const items = ref<ActivityItem[]>([]);
   const loading = ref(false);
 
-  /** Subgraph rows always move a configured ERC-20: deposits name it by
-   * address; lock/release/return carry none, so they read as the selected one. */
+  /** Subgraph rows name their ERC-20 by address; a return carries none, so
+   * it reads as the selected one. */
   const tokenAt = (address: string | undefined): TokenEnum =>
     findToken(user.network.value, address)?.symbol ?? user.selectedToken.value;
 

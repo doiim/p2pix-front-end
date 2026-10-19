@@ -12,14 +12,17 @@ import { ChainContract } from 'viem';
 
 const getNetworksLiquidity = async (): Promise<void> => {
   const user = useUser();
+  const symbol = user.selectedToken.value;
   user.setLoadingNetworkLiquidity(true);
 
   const depositLists: ValidDeposit[][] = [];
 
   for (const network of Networks) {
-    const token = network.tokens[user.selectedToken.value];
+    const token = network.tokens[symbol];
     if (token) depositLists.push(await getValidDeposits(token, network));
   }
+  // A token switch while reading started a newer read, which owns the list.
+  if (symbol !== user.selectedToken.value) return;
 
   const allDeposits = depositLists.flat();
   user.setDepositsValidList(allDeposits);
@@ -162,7 +165,9 @@ const getUnreleasedLockById = async (
   );
 
   const listed = findToken(user.network.value, token);
-  if (!listed) throw new Error(`Lock token ${token} is not listed`);
+  if (!listed) {
+    throw new Error(`O token ${token} da reserva não está listado nesta rede`);
+  }
 
   return {
     lockID,

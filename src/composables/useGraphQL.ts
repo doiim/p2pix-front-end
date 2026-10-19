@@ -10,8 +10,7 @@ export interface Transaction {
   seller?: string;
   buyer?: string | null;
   amount: string;
-  /** ERC-20 address; absent on lock, release and return events,
-   * which do not carry one. */
+  /** ERC-20 address; absent on return events, which do not carry one. */
   token?: string;
   blockNumber: string;
   transactionHash: string;

@@ -11,7 +11,7 @@ import { getCurrentAccount } from '@/blockchain/provider';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { useUser } from '@/composables/useUser';
-import type { TokenEnum } from '@/model/NetworkEnum';
+import { TokenEnum } from '@/model/NetworkEnum';
 
 const CTA_LABELS = {
   ADD_AMOUNT: 'Adicionar valor',
@@ -32,15 +32,22 @@ const parseAmount = (input: string, decimals: number): bigint | null => {
   return parseUnits(text, decimals);
 };
 
+// The token selected across the app, or BRZ when this network does not list it.
+const defaultToken = (): TokenEnum => {
+  const user = useUser();
+  return user.network.value.tokens[user.selectedToken.value]
+    ? user.selectedToken.value
+    : TokenEnum.BRZ;
+};
+
 // Module-level draft: the send and preview screens are separate components on
-// the same stack and must see the same values. No token means the native coin,
-// so the draft starts on the token selected across the app.
-const token = ref<TokenEnum | undefined>(useUser().selectedToken.value);
+// the same stack and must see the same values. No token means the native coin.
+const token = ref<TokenEnum | undefined>(defaultToken());
 const amountInput = ref('');
 const receiver = ref('');
 export function useSendForm() {
   const account = usePasskeyAccount();
-  const { showToast, selectedToken } = useUser();
+  const { showToast } = useUser();
 
   const self = computed(() =>
     [account.smartAccountAddress.value, getCurrentAccount().address]
@@ -97,7 +104,7 @@ export function useSendForm() {
   };
 
   const reset = (): void => {
-    token.value = selectedToken.value;
+    token.value = defaultToken();
     amountInput.value = '';
     receiver.value = '';
   };
