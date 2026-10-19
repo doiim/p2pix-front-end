@@ -29,6 +29,12 @@ const {
 
 // html references
 const tokenDropdownRef = ref<any>(null);
+const tokenQuery = ref('');
+const shownTokens = computed(() =>
+  Object.values(TokenEnum).filter((token) =>
+    token.toLowerCase().includes(tokenQuery.value.trim().toLowerCase()),
+  ),
+);
 
 // Reactive state
 const tokenValue = ref<number>(0);
@@ -285,8 +291,22 @@ const handleSubmit = async (e: Event): Promise<void> => {
                 <div
                   class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
                 >
+                  <input
+                    v-model="tokenQuery"
+                    type="search"
+                    aria-label="Buscar token"
+                    placeholder="Buscar token"
+                    class="w-full px-4 py-3 border-b border-gray-300 text-sm outline-none"
+                    @keydown.enter.prevent
+                  />
+                  <p
+                    v-if="!shownTokens.length"
+                    class="px-4 py-3 text-sm text-gray-500"
+                  >
+                    Nenhum token encontrado
+                  </p>
                   <div
-                    v-for="token in TokenEnum"
+                    v-for="token in shownTokens"
                     :key="token"
                     class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
                     @click="handleSelectedToken(token)"
