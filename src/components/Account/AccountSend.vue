@@ -50,8 +50,6 @@ const amount = computed(() => {
   const pattern = new RegExp(`^\\d+(\\.\\d{1,${maxDecimals.value}})?$`);
   return pattern.test(text) ? parseUnits(text, asset.value.decimals) : null;
 });
-// A BRZ send pays the fee out of the amount; any other asset pays it from the
-// BRZ balance.
 const feeFromAmount = computed(() => asset.value.token === TokenEnum.BRZ);
 const received = computed(() =>
   amount.value === null || fee.value === null
@@ -89,7 +87,7 @@ watch([asset, recipient, requotes], async ([selected], previous, onCleanup) => {
   onCleanup(() => (stale = true));
   fee.value = null;
   // A retry's re-quote keeps the failed attempt's message on screen.
-  if (requotes.value === previous?.[2]) error.value = '';
+  if (requotes.value === previous[2]) error.value = '';
   if (!recipientValid.value) return;
   try {
     const quoted = await passkeyAccount.quoteTransferFee(
@@ -142,7 +140,7 @@ const confirm = async () => {
     // form again, or a retry could pay twice.
     if (step.value === 'sending') {
       error.value =
-        'Não foi possível confirmar o envio, mas ele ainda pode ser concluído. Confira seus saldos antes de enviar de novo.';
+        'Não foi possível confirmar o envio. Aguarde alguns minutos e recarregue a página antes de enviar de novo.';
       return;
     }
     step.value = 'form';
@@ -338,14 +336,7 @@ const copyHash = async () => {
     </div>
     <template v-if="error">
       <p role="alert" class="text-sm text-red-700">{{ error }}</p>
-      <button
-        type="button"
-        class="account-button"
-        @click="
-          emit('sent');
-          emit('close');
-        "
-      >
+      <button type="button" class="account-button" @click="emit('close')">
         Fechar
       </button>
     </template>

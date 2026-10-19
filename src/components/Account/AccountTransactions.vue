@@ -27,10 +27,12 @@ watch(
     transactions.value = [];
     if (!address) return;
     const list = await listAllTransactionByWalletAddress(address);
-    // A completed purchase already shows as its release.
+    // A purchase only gets its own row while it can still be continued.
     if (!stale)
       transactions.value = list.filter(
-        (transaction) => transaction.lockStatus !== LockStatus.Released,
+        (transaction) =>
+          transaction.event !== 'LockAdded' ||
+          transaction.lockStatus === LockStatus.Active,
       );
   },
   { immediate: true },

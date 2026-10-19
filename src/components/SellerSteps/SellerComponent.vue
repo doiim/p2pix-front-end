@@ -170,9 +170,7 @@ const handleSelectedToken = (token: TokenEnum): void => {
           </transition>
         </div>
         <div class="custom-divide py-2 mb-2"></div>
-        <p class="text-gray-500 text-sm">
-          ~ R$ {{ Number(offer || 0).toFixed(2) }}
-        </p>
+        <p class="text-gray-500 text-sm">~ R$ {{ Number(offer).toFixed(2) }}</p>
       </div>
       <!-- CPF or CNPJ input -->
       <div class="flex flex-col w-full bg-white sm:px-10 px-5 py-4 rounded-lg">
