@@ -117,7 +117,7 @@ watch(
 
 const formatWalletAddress = (): string => {
   const value = walletAddress.value;
-  if (!value) throw new Error('Wallet not connected');
+  if (!value) throw new Error('Carteira não conectada');
   const walletAddressLength = value.length;
   const initialText = value.substring(0, 5);
   const finalText = value.substring(
@@ -223,7 +223,7 @@ const walletMenuOptions: MenuOption[] = [
   },
   {
     label: 'Conta inteligente',
-    route: '/sweep',
+    route: '/account',
     showInDesktop: true,
     showInMobile: true,
   },

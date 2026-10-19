@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed, ref } from 'vue';
 import {
   formatUnits,
   getAddress,
@@ -11,7 +11,6 @@ import {
 } from 'viem';
 import { useUser } from '@/composables/useUser';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
-import { InsufficientFeeTokenBalanceError } from '@/blockchain/aa/paymasters/erc20';
 import { TokenEnum } from '@/model/NetworkEnum';
 import type { AccountBalance } from '@/model/AccountBalance';
 
@@ -20,31 +19,21 @@ const emit = defineEmits<{ close: []; sent: [] }>();
 
 const user = useUser();
 const passkeyAccount = usePasskeyAccount();
-const step = ref<'form' | 'signing' | 'sending' | 'done'>('form');
+const step = ref<'form' | 'sending' | 'done' | 'failed'>('form');
 const asset = ref(
-  props.balances.find((balance) => balance.symbol === TokenEnum.BRZ) ??
+  props.balances.find((balance) => balance.token === TokenEnum.BRZ) ??
     props.balances[0],
 );
 const amountInput = ref('');
 const recipient = ref('');
-const fee = ref<bigint | null>(null);
-const error = ref('');
 const txHash = ref<Hex>();
 const copied = ref(false);
-// Bumped after a failed attempt so the fee is quoted again before a retry.
-const requotes = ref(0);
 
 const short = (value: string) => `${value.slice(0, 10)}…${value.slice(-8)}`;
-const display = (value: bigint | null, decimals: number, symbol: string) =>
+const format = (value: bigint | null) =>
   value === null
     ? ''
-    : `${Number(formatUnits(value, decimals)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${symbol}`;
-const format = (value: bigint | null) =>
-  display(value, asset.value.decimals, asset.value.symbol);
-// The paymaster charges the fee in BRZ.
-const feeText = computed(() =>
-  display(fee.value, user.network.value.tokens.BRZ.decimals, TokenEnum.BRZ),
-);
+    : `${Number(formatUnits(value, asset.value.decimals)).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 6 })} ${asset.value.symbol}`;
 
 const maxDecimals = computed(() => Math.min(asset.value.decimals, 6));
 const amount = computed(() => {
@@ -52,12 +41,6 @@ const amount = computed(() => {
   const pattern = new RegExp(`^\\d+(\\.\\d{1,${maxDecimals.value}})?$`);
   return pattern.test(text) ? parseUnits(text, asset.value.decimals) : null;
 });
-const feeFromAmount = computed(() => asset.value.symbol === TokenEnum.BRZ);
-const received = computed(() =>
-  amount.value === null || fee.value === null
-    ? null
-    : amount.value - (feeFromAmount.value ? fee.value : 0n),
-);
 
 const amountError = computed(() => {
   if (!amountInput.value) return '';
@@ -65,8 +48,6 @@ const amountError = computed(() => {
     return `Informe um valor com até ${maxDecimals.value} casas decimais`;
   if (amount.value > asset.value.amount)
     return `Saldo insuficiente: você tem ${format(asset.value.amount)}`;
-  if (received.value !== null && received.value <= 0n)
-    return 'O valor precisa ser maior que a taxa de rede';
   return '';
 });
 const recipientValid = computed(
@@ -76,36 +57,8 @@ const recipientValid = computed(
     !isAddressEqual(recipient.value, user.walletAddress.value ?? zeroAddress),
 );
 const canConfirm = computed(
-  () =>
-    !!amount.value &&
-    !amountError.value &&
-    recipientValid.value &&
-    fee.value !== null,
+  () => !!amount.value && !amountError.value && recipientValid.value,
 );
-
-watch([asset, recipient, requotes], async ([selected], previous, onCleanup) => {
-  // Drop the quote if the token or the destination changed while quoting.
-  let stale = false;
-  onCleanup(() => (stale = true));
-  fee.value = null;
-  // A retry's re-quote keeps the failed attempt's message on screen.
-  if (requotes.value === previous[2]) error.value = '';
-  if (!recipientValid.value) return;
-  try {
-    const quoted = await passkeyAccount.quoteTransferFee(
-      selected.address,
-      getAddress(recipient.value),
-    );
-    if (!stale) fee.value = quoted;
-  } catch (cause) {
-    if (stale) return;
-    console.error(cause);
-    error.value =
-      cause instanceof InsufficientFeeTokenBalanceError
-        ? 'O saldo em BRZ não cobre a taxa da rede. Compre ou envie BRZ para sua conta e abra o envio de novo.'
-        : 'Não foi possível calcular a taxa da rede.';
-  }
-});
 
 const useMax = () => {
   const [whole, fraction = ''] = formatUnits(
@@ -122,33 +75,23 @@ const paste = async () => {
 };
 
 const confirm = async () => {
-  if (!received.value || fee.value === null) return;
-  step.value = 'signing';
-  error.value = '';
-  try {
-    const userOpHash = await passkeyAccount.sendTransfer(
-      asset.value.address,
-      getAddress(recipient.value),
-      received.value,
-      fee.value,
-    );
-    step.value = 'sending';
-    txHash.value = await passkeyAccount.waitForTransfer(userOpHash);
-    step.value = 'done';
-    emit('sent');
-  } catch (cause) {
-    console.error(cause);
-    // Once broadcast the transfer may still land: never offer the filled
-    // form again, or a retry could pay twice.
-    if (step.value === 'sending') {
-      error.value =
-        'Não foi possível confirmar o envio. Aguarde alguns minutos e recarregue a página antes de enviar de novo.';
-      return;
-    }
-    step.value = 'form';
-    requotes.value++;
-    error.value = 'O envio não foi concluído. Confira a taxa e tente de novo.';
+  if (!amount.value) return;
+  step.value = 'sending';
+  const result = await passkeyAccount.send({
+    token: asset.value.token ?? undefined,
+    amount: amount.value,
+    to: getAddress(recipient.value),
+  });
+  // A failed send may still land, so the filled form is never offered again:
+  // a retry could pay twice.
+  if (!result) {
+    console.error(passkeyAccount.error.value);
+    step.value = 'failed';
+    return;
   }
+  txHash.value = result.txHash;
+  step.value = 'done';
+  emit('sent');
 };
 
 const copyHash = async () => {
@@ -230,23 +173,9 @@ const copyHash = async () => {
         Informe um endereço de destino válido
       </p>
     </div>
-    <dl v-if="fee !== null" class="flex flex-col gap-1 text-sm text-gray-900">
-      <div class="flex justify-between gap-2">
-        <dt>Taxa de rede</dt>
-        <dd>~ {{ feeText }}</dd>
-      </div>
-      <div
-        v-if="received !== null && received > 0n"
-        class="flex justify-between gap-2 font-semibold"
-      >
-        <dt>O destino recebe</dt>
-        <dd>~ {{ format(received) }}</dd>
-      </div>
-    </dl>
     <p class="text-xs text-gray-500">
       Envios apenas para a rede {{ user.network.value.name }}
     </p>
-    <p v-if="error" role="alert" class="text-sm text-red-700">{{ error }}</p>
     <div class="grid grid-cols-2 gap-2">
       <button
         type="button"
@@ -283,10 +212,6 @@ const copyHash = async () => {
     </div>
     <dl class="flex flex-col divide-y divide-gray-100 text-sm text-gray-900">
       <div class="flex justify-between gap-2 py-2">
-        <dt class="text-gray-600">O destino recebeu</dt>
-        <dd>~ {{ format(received) }}</dd>
-      </div>
-      <div class="flex justify-between gap-2 py-2">
         <dt class="text-gray-600">Rede</dt>
         <dd>{{ user.network.value.name }}</dd>
       </div>
@@ -305,10 +230,6 @@ const copyHash = async () => {
         </dd>
       </div>
     </dl>
-    <p class="p-3 rounded-lg bg-gray-100 text-sm text-gray-600">
-      Taxa de rede de ~ {{ feeText }}
-      {{ feeFromAmount ? 'descontada do valor enviado.' : 'paga em BRZ.' }}
-    </p>
     <a
       :href="`${user.network.value.blockExplorers?.default.url}/tx/${txHash}`"
       target="_blank"
@@ -328,16 +249,17 @@ const copyHash = async () => {
 
   <template v-else>
     <div>
-      <h2 class="text-xl font-bold text-gray-900">
-        {{ step === 'signing' ? 'Confirme o envio' : 'Enviando' }}
-      </h2>
+      <h2 class="text-xl font-bold text-gray-900">Enviando</h2>
       <p class="text-sm text-gray-600">
         {{ format(amount) }} para
         <span class="font-mono">{{ short(recipient) }}</span>
       </p>
     </div>
-    <template v-if="error">
-      <p role="alert" class="text-sm text-red-700">{{ error }}</p>
+    <template v-if="step === 'failed'">
+      <p role="alert" class="text-sm text-red-700">
+        Não foi possível confirmar o envio. Aguarde alguns minutos e recarregue
+        a página antes de enviar de novo.
+      </p>
       <button type="button" class="account-button" @click="emit('close')">
         Fechar
       </button>
@@ -348,11 +270,8 @@ const copyHash = async () => {
         class="self-center w-8 h-8 border-2 border-gray-900 border-t-transparent rounded-full animate-spin motion-reduce:animate-none"
       />
       <p class="text-sm text-gray-600">
-        {{
-          step === 'signing'
-            ? 'Assine com sua passkey ou na sua carteira quando o navegador pedir.'
-            : 'A transação está sendo enviada para a rede'
-        }}
+        Assine com sua passkey ou na sua carteira quando o navegador pedir. Em
+        seguida a transação é enviada para a rede.
       </p>
     </template>
   </template>

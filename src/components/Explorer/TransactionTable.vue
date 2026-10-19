@@ -11,7 +11,7 @@ interface Transaction {
   seller?: string;
   buyer?: string | null;
   amount: string;
-  token: string;
+  token?: string;
   blockNumber: string;
   transactionHash: string;
 }

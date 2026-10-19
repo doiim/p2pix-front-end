@@ -10,7 +10,9 @@ export interface Transaction {
   seller?: string;
   buyer?: string | null;
   amount: string;
-  token: string;
+  /** ERC-20 address; absent on lock, release and return events,
+   * which do not carry one. */
+  token?: string;
   blockNumber: string;
   transactionHash: string;
 }
@@ -339,7 +341,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           seller: undefined, // Return doesn't have seller info
           buyer: returnTx.buyer,
           amount: '0', // Return doesn't have amount
-          token: '', // Nor token
+          token: undefined, // Subgraph doesn't provide token
           timestamp: formatTimestamp(returnTx.blockTimestamp),
         });
       });

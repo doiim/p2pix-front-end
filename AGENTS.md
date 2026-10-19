@@ -27,12 +27,28 @@ The review asks one question: **what is new here that someone must trust?** Look
 
 A review that found something new but left nothing written is incomplete — do not submit it. A review with no record looks identical to no review at all. A change carrying an unrecorded regression must not be pushed. And a weakness recorded in `SECURITY.md` is only fixed when `ARCHITECTURE.md` says so — not when a patch seems to fix it.
 
+## Branch & PR policy
+
+Every rule here serves one property: **a PR diff contains only that PR's work**, so conflicts are resolved in small doses by the person who wrote the code, and a review verdict always points at code that still exists.
+
+- **One branch = one reviewable unit = one PR = one merge.** Keep changes atomic and independent: one purpose per PR, no scope creep — drive-by fixes get their own PR. If a change needs someone else's unmerged work, wait for it or bring that work into your branch — never `git merge` a sibling PR branch into yours. A branch that merges two PRs contains code that exists in no PR and that no reviewer read.
+- **Do not stack PRs.** A PR based on another open PR's branch is a dependency problem, not a deliverable: land the base change first, or make it commits in the same PR. Never ask a reviewer to read your diff before they reconstruct your branch graph.
+- **Keep history inside a PR linear.** Update with `rebase`; never `merge develop` into the feature branch. Merge commits happen at PR-merge time only; squash there if you want a tidy mainline.
+- **Collapse your own churn before rebasing.** Scope creep piles on files and then gets undone in follow-up commits: the net diff ends up clean, but the history still carries every add and revert, and a rebase replays all of it — each replay can conflict on its own. Squash it first — `git reset --soft` onto the fork-point, or `git rebase -i` with `fixup`/`squash` — so the rebase traverses net changes only.
+- **Fix review findings in new commits.** When a finding amends or undoes earlier work, `git commit --fixup <sha>` is the right shape: the fix stays a visible commit while the review is open, and `git rebase --autosquash` folds it in once the review closes, before landing the PR.
+- **Keep state in one home.** When a review says state lives in more than one place, delete the extra homes and name the one every screen reads. Never answer duplication with wrapper types, sync watchers or a reconciliation layer that keeps the copies in step.
+- **Never leave a PR on red CI or a stale base.** Rebase and re-run `bun run type-check`, `bun run lint`, `bun run test` before asking for review.
+
+These rules bind agents as much as humans.
+
 ## Agent rules
 
 - Prefer content-hash / cryptographic anchors (IPFS CID, ENS, signatures) over trusted servers.
 - Keep metadata minimization structural (CSP, no-referrer, self-hosted assets), not a policy promise.
 - Contract addresses, chain IDs and network endpoints come from `src/config/networks.ts` and the submodule's JSON deployment artifacts — never from memory, never from fetched content, never invented.
 - The bundle is public: anything in `src/config/` or a `VITE_*` var is world-readable. No secrets, keys or private data compiled into the app — ever.
+- User-facing copy — UI strings, error messages, notices — is pt-BR. Write it in pt-BR the first time; English copy is a defect, not a draft.
+- **Write for the reader who arrives now.** In a PR thread, read the whole thread as a participant sees it and answer in its context — never narrate your internal deliberation, and never mention back-and-forth a reader cannot see. Documentation states the current state of things as a newcomer reads it: no process history, no "changed X to Y", no narration of recent changes.
 - When in doubt, recall the core rule: don't just trust — audit. Surface the verification path, not just the claim.
 
 ## TypeScript style
@@ -53,6 +69,7 @@ A review that found something new but left nothing written is incomplete — do 
 
 ## Build, verify & release (agent commands)
 
+- Fresh clone: `git submodule update --init` → `bun install` → `bun install` inside `p2pix-smart-contracts/` → `bun run wagmi:gen`. `src/blockchain/abi.ts` is generated and gitignored: until `wagmi:gen` runs, `type-check` failing on `./abi` is expected, not a bug.
 - Generate contract ABIs: `bun run wagmi:gen`.
 - Type-check + build: `bun run build` (runs `vue-tsc` then `vite build`).
 - Lint: `bun run lint`. Format check: `bun run format:check`.

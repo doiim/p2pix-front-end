@@ -76,9 +76,9 @@ export const listTokens = (network: NetworkConfig) =>
   });
 
 /** The listed token at `address`, which may come from untrusted data. */
-export const findToken = (network: NetworkConfig, address: string) =>
+export const findToken = (network: NetworkConfig, address?: string) =>
   listTokens(network).find(
-    (token) => token.address.toLowerCase() === address.toLowerCase(),
+    (token) => token.address.toLowerCase() === address?.toLowerCase(),
   );
 
 /** Network list handed to AppKit / the wagmi adapter (see config/appkit.ts).

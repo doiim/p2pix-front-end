@@ -4,6 +4,11 @@ import type { Address } from 'viem';
 import { DEFAULT_NETWORK, Networks } from '@/config/networks';
 import { TokenEnum, NetworkConfig } from '@/model/NetworkEnum';
 
+export type Toast = { type: 'success' | 'error'; message: string };
+
+/** How long a toast stays on screen — shared by every toast in the app. */
+const TOAST_MS = 3_000;
+
 const walletAddress = ref<Address | null>(null);
 const balance = ref('');
 const network = ref(DEFAULT_NETWORK);
@@ -16,6 +21,8 @@ const loadingNetworkLiquidity = ref(false);
 // R$ per whole unit, by symbol. BRZ is worth R$ 1 until the backend says
 // otherwise.
 const prices = ref<Partial<Record<string, number>>>({ [TokenEnum.BRZ]: 1 });
+const toast = ref<Toast | null>(null);
+let toastTimer: ReturnType<typeof setTimeout> | undefined;
 
 export function useUser() {
   // Actions become regular functions
@@ -66,6 +73,12 @@ export function useUser() {
     prices.value = { ...prices.value, ...fetched };
   };
 
+  const showToast = (type: Toast['type'], message: string): void => {
+    toast.value = { type, message };
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => (toast.value = null), TOAST_MS);
+  };
+
   return {
     // State
     walletAddress,
@@ -78,6 +91,7 @@ export function useUser() {
     loadingWalletTransactions,
     loadingNetworkLiquidity,
     prices,
+    toast,
 
     // Actions
     setWalletAddress,
@@ -91,5 +105,6 @@ export function useUser() {
     setLoadingWalletTransactions,
     setLoadingNetworkLiquidity,
     setPrices,
+    showToast,
   };
 }

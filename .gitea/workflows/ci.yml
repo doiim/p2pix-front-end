@@ -2,7 +2,8 @@ name: CI & Deploy
 
 env:
   BUILD_MODE: ${{ gitea.event_name != 'pull_request' && gitea.ref_type == 'branch' && gitea.ref_name != 'main' && 'development' || 'production' }}
-  RAW_TARGET: ${{ gitea.event.number && format('pr/{0}', gitea.event.number) || gitea.ref_name }}
+  TARGET_PREFIX: ${{ gitea.event.number && 'pr/' || gitea.ref_type == 'tag' && 'tag/' || 'branch/' }}
+  TARGET_NAME: ${{ gitea.event.number || gitea.ref_name }}
 
 on:
   push:
@@ -28,7 +29,7 @@ jobs:
         run: git fetch origin refs/notes/*:refs/notes/*
 
       - name: Deploy target slug
-        run: echo "DEPLOY_TARGET=$(printf '%s' "$RAW_TARGET" | tr -C '[:alnum:]-' '-')" >> "$GITHUB_ENV"
+        run: echo "DEPLOY_TARGET=$TARGET_PREFIX$(printf '%s' "$TARGET_NAME" | tr -C '[:alnum:]-' '-')" >> "$GITHUB_ENV"
 
       - uses: oven-sh/setup-bun@v2
 

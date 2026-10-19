@@ -12,7 +12,7 @@ import type { Participant } from '@/utils/bbPay';
 import type { Abi, Address } from 'viem';
 import { getActiveAaContext, sendAaOperation } from './aa/operations';
 import type { AaCall } from './aa/types';
-import { TokenEnum, type TokenConfig } from '@/model/NetworkEnum';
+import type { TokenConfig } from '@/model/NetworkEnum';
 
 const getP2PixAddress = (): Address => {
   const user = useUser();
@@ -132,9 +132,11 @@ const addDeposit = async (participant: Participant): Promise<unknown> => {
     // also the fee token Pimlico charges in, the batch will move that much
     // fee token out of the smart account, so the paymaster quote must be
     // told about it.
-    const feeTokenAddress = user.network.value.tokens[TokenEnum.BRZ].address;
+    const feeToken = user.network.value.aa?.feeToken;
     const feeTokenOutflow =
-      token.address.toLowerCase() === feeTokenAddress.toLowerCase()
+      feeToken &&
+      token.address.toLowerCase() ===
+        user.network.value.tokens[feeToken]?.address.toLowerCase()
         ? offer
         : 0n;
     const aaReceipt = await sendAaOperation(aa, calls, feeTokenOutflow);

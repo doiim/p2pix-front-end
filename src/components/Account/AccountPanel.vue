@@ -47,7 +47,7 @@ watch(
     const native = network.nativeCurrency;
     assets.value = [
       {
-        address: null,
+        token: null,
         symbol: native.symbol,
         image: getNetworkImage(
           native.symbol === 'ETH' ? 'ethereum' : network.name,
@@ -56,7 +56,7 @@ watch(
         decimals: native.decimals,
       },
       ...read.tokens.map((balance, index) => ({
-        address: tokens[index].address,
+        token: tokens[index].symbol,
         symbol: tokens[index].symbol,
         image: getTokenImage(tokens[index].symbol),
         amount: balance.balance,

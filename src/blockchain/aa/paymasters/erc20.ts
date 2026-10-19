@@ -2,7 +2,6 @@ import { erc20Abi, type Address, type Hex, type PublicClient } from 'viem';
 import { type UserOperation } from 'viem/account-abstraction';
 
 import type { AaCall, AaContext } from '../types';
-import { TokenEnum } from '@/model/NetworkEnum';
 
 /**
  * The account holds fee token, but not enough for this operation. Callers can
@@ -25,9 +24,15 @@ export type PreparedErc20Quote = {
   userOperation: UserOperation<'0.7'>;
 };
 
-/** Pimlico charges every fee in BRZ, whatever token the operation moves. */
-const paidTokenFor = (context: AaContext): Address =>
-  context.network.tokens[TokenEnum.BRZ].address;
+/** Pimlico's ERC-20 fee token is the one set in `AaConfig.feeToken`. */
+const paidTokenFor = (context: AaContext): Address => {
+  const feeToken = context.network.aa?.feeToken;
+  const token = feeToken && context.network.tokens[feeToken];
+  if (!token) {
+    throw new Error(`No ERC-20 fee token configured for ${context.network.id}`);
+  }
+  return token.address;
+};
 
 /** Verify the configured fee token against Pimlico before a paid operation. */
 export const assertErc20PaymasterTokenSupported = async (
@@ -65,6 +70,7 @@ export const prepareErc20PaymasterQuote = async (
   let cost: { costInToken: bigint };
   try {
     const erc20Client = context.erc20Client;
+    if (!erc20Client) throw new Error('ERC-20 paymaster client unavailable');
     const publicClient = context.account.client as PublicClient;
     const readBalance = async (): Promise<bigint> =>
       knownTokenBalance ??
