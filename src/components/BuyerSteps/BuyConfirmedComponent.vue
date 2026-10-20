@@ -6,7 +6,7 @@ import {
   getWalletClient,
 } from '@/blockchain/provider';
 import {
-  getActiveLockAmount,
+  getSellerLockState,
   listAllTransactionByWalletAddress,
   listValidDepositTransactionsByWalletAddress,
 } from '@/blockchain/wallet';
@@ -49,7 +49,9 @@ const getWalletTransactions = async () => {
       walletAddress.value,
     );
 
-    activeLockAmount.value = await getActiveLockAmount(walletAddress.value);
+    activeLockAmount.value = (
+      await getSellerLockState(walletAddress.value)
+    ).activeLockAmount;
 
     if (walletDeposits) {
       depositList.value = walletDeposits;

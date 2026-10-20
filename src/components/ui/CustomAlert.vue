@@ -11,17 +11,13 @@ if (props.type === 'sell') {
   alertPaddingLeft.value = '30%';
 } else if (props.type === 'buy') {
   alertPaddingLeft.value = '30%';
-} else if (props.type === 'withdraw') {
+} else if (props.type.startsWith('withdraw')) {
   alertPaddingLeft.value = '40%';
 } else if (props.type === 'redirect') {
   alertPaddingLeft.value = '35%';
 } else if (props.type === 'lockPending') {
   alertPaddingLeft.value = '30%';
-} else if (props.type === 'sweep') {
-  alertPaddingLeft.value = '35%';
-} else if (props.type === 'sweepEmpty') {
-  alertPaddingLeft.value = '35%';
-} else if (props.type === 'sweepError') {
+} else if (props.type.startsWith('sweep')) {
   alertPaddingLeft.value = '35%';
 }
 
@@ -43,6 +39,9 @@ switch (props.type) {
     break;
   case 'withdraw':
     alertText.value = 'Tudo certo! Saque realizado com sucesso!';
+    break;
+  case 'withdrawError':
+    alertText.value = 'Não foi possível realizar o saque!';
     break;
   case 'sweep':
     alertText.value =

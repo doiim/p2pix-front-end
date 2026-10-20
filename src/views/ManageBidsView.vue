@@ -21,10 +21,9 @@ import router from '@/router/index';
 const user = useUser();
 const { walletAddress, network, selectedToken } = user;
 const loadingWithdraw = ref<boolean>(false);
-const showAlert = ref<boolean>(false);
-const showSweepAlert = ref<boolean>(false);
-const showSweepEmptyAlert = ref<boolean>(false);
-const showSweepErrorAlert = ref<boolean>(false);
+const alertType = ref<
+  'withdraw' | 'withdrawError' | 'sweep' | 'sweepEmpty' | 'sweepError' | null
+>(null);
 const loadingSweep = ref<boolean>(false);
 
 const depositList = ref<ValidDeposit[]>([]);
@@ -33,35 +32,30 @@ const activeLockAmount = ref<number>(0);
 const expiredLockIds = ref<bigint[]>([]);
 
 const callWithdraw = async (amount: string) => {
-  if (amount) {
-    loadingWithdraw.value = true;
-    let withdraw;
-    try {
-      // `withdraw` runs `unlockExpired` on-chain, which reverts on any id
-      // that is no longer expired (released, or already swept by a third
-      // party). Re-read at send time so a stale page-load snapshot cannot
-      // brick the seller's own withdrawal.
-      const expiredLocks = walletAddress.value
-        ? ((await getExpiredLockIds(walletAddress.value)) ?? [])
-        : [];
-      withdraw = await withdrawDeposit(
-        amount,
-        network.value.tokens[selectedToken.value].address,
-        expiredLocks,
-      );
-    } catch {
-      loadingWithdraw.value = false;
-    }
+  if (!amount) return;
 
-    if (withdraw) {
-      console.log('Saque realizado!');
-      await getWalletTransactions();
-      showAlert.value = true;
-    } else {
-      console.log('Não foi possível realizar o saque!');
-    }
+  loadingWithdraw.value = true;
+  try {
+    // `withdraw` runs `unlockExpired` on-chain, which reverts on any id that is
+    // no longer expired. Re-reading at send time drops ids a stale page-load
+    // snapshot still holds; a third-party sweep landing between this read and
+    // the tx still reverts, and shows as a failed withdrawal.
+    const expiredLocks = walletAddress.value
+      ? ((await getExpiredLockIds(walletAddress.value)) ?? [])
+      : [];
+    const withdrawn = await withdrawDeposit(
+      amount,
+      network.value.tokens[selectedToken.value].address,
+      expiredLocks,
+    );
+    alertType.value = withdrawn ? 'withdraw' : 'withdrawError';
+  } catch (error) {
+    alertType.value = 'withdrawError';
+    console.error('Não foi possível realizar o saque!', error);
+  } finally {
     loadingWithdraw.value = false;
   }
+  await getWalletTransactions().catch(console.error);
 };
 
 const callSweepExpired = async () => {
@@ -75,46 +69,43 @@ const callSweepExpired = async () => {
       walletAddress.value,
       network.value.tokens[selectedToken.value].address,
     );
-    await getWalletTransactions();
-    if (swept > 0) {
-      showSweepAlert.value = true;
-    } else {
-      showSweepEmptyAlert.value = true;
-    }
+    alertType.value = swept > 0 ? 'sweep' : 'sweepEmpty';
   } catch (error) {
-    showSweepErrorAlert.value = true;
-    console.log('Não foi possível recuperar as reservas expiradas!', error);
+    alertType.value = 'sweepError';
+    console.error('Não foi possível recuperar as reservas expiradas!', error);
   } finally {
     loadingSweep.value = false;
   }
+  await getWalletTransactions().catch(console.error);
 };
 
 const getWalletTransactions = async () => {
   user.setLoadingWalletTransactions(true);
-  if (walletAddress.value) {
-    const walletDeposits = await listValidDepositTransactionsByWalletAddress(
-      walletAddress.value,
-    );
+  try {
+    if (walletAddress.value) {
+      const walletDeposits = await listValidDepositTransactionsByWalletAddress(
+        walletAddress.value,
+      );
 
-    const allUserTransactions = await listAllTransactionByWalletAddress(
-      walletAddress.value,
-    );
+      const allUserTransactions = await listAllTransactionByWalletAddress(
+        walletAddress.value,
+      );
 
-    // One subgraph + `getLocksStatus` read feeds both figures; fetching them
-    // separately (getActiveLockAmount then getExpiredLockIds) doubled it.
-    const { activeLockAmount: lockAmount, expiredLockIds: expiredIds } =
-      await getSellerLockState(walletAddress.value);
-    activeLockAmount.value = lockAmount;
-    expiredLockIds.value = expiredIds;
+      const { activeLockAmount: lockAmount, expiredLockIds: expiredIds } =
+        await getSellerLockState(walletAddress.value);
+      activeLockAmount.value = lockAmount;
+      expiredLockIds.value = expiredIds;
 
-    if (walletDeposits) {
-      depositList.value = walletDeposits;
+      if (walletDeposits) {
+        depositList.value = walletDeposits;
+      }
+      if (allUserTransactions) {
+        transactionsList.value = allUserTransactions;
+      }
     }
-    if (allUserTransactions) {
-      transactionsList.value = allUserTransactions;
-    }
+  } finally {
+    user.setLoadingWalletTransactions(false);
   }
-  user.setLoadingWalletTransactions(false);
 };
 
 onMounted(async () => {
@@ -139,24 +130,10 @@ watch(network, async () => {
 <template>
   <div>
     <CustomAlert
-      v-if="showAlert"
-      :type="'withdraw'"
-      @close-alert="showAlert = false"
-    />
-    <CustomAlert
-      v-if="showSweepAlert"
-      :type="'sweep'"
-      @close-alert="showSweepAlert = false"
-    />
-    <CustomAlert
-      v-if="showSweepEmptyAlert"
-      :type="'sweepEmpty'"
-      @close-alert="showSweepEmptyAlert = false"
-    />
-    <CustomAlert
-      v-if="showSweepErrorAlert"
-      :type="'sweepError'"
-      @close-alert="showSweepErrorAlert = false"
+      v-if="alertType"
+      :key="alertType"
+      :type="alertType"
+      @close-alert="alertType = null"
     />
     <div class="page">
       <div class="header" v-if="!loadingWithdraw && !walletAddress">

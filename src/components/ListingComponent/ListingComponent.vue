@@ -30,10 +30,6 @@ const callWithdraw = (amount: string) => {
   emit('depositWithdrawn', amount);
 };
 
-const callSweepExpired = () => {
-  emit('sweepExpired');
-};
-
 const showInitialItems = (): void => {
   itemsToShow.value = props.walletTransactions.slice(0, 3);
 };
@@ -82,7 +78,7 @@ showInitialItems();
       :selected-token="user.selectedToken.value"
       :expired-locks-count="props.expiredLocksCount"
       @withdraw="callWithdraw"
-      @sweep-expired="callSweepExpired"
+      @sweep-expired="emit('sweepExpired')"
     />
 
     <TransactionCard

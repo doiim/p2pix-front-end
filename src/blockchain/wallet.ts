@@ -75,7 +75,7 @@ export const listValidDepositTransactionsByWalletAddress = async (
   return [];
 };
 
-const getLockStatus = async (id: bigint): Promise<LockStatus> => {
+const readLockStatus = async (id: bigint): Promise<LockStatus> => {
   const { address, abi, client } = await getContract();
   // getLocksStatus returns [locks, status]; we only need status
   const [, status] = await client.readContract({
@@ -138,15 +138,20 @@ export const listAllTransactionByWalletAddress = async (
     `,
   };
 
-  const response = await fetch(network.subgraphUrls[0], {
+  // Same outage tolerance as the deposit list: an empty history instead of a
+  // rejected refresh.
+  const data = await fetch(network.subgraphUrls[0], {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(subgraphQuery),
-  });
-
-  const data = await response.json();
+  })
+    .then((response) => response.json())
+    .catch((error) => {
+      console.error('[wallet] could not read transactions', error);
+      return {};
+    });
   // Convert all transactions to common WalletTransaction format
   const transactions: WalletTransaction[] = [];
 
@@ -171,7 +176,7 @@ export const listAllTransactionByWalletAddress = async (
   if (data.data?.lockAddeds) {
     for (const lock of data.data.lockAddeds) {
       // Get lock status from the contract
-      const lockStatus = await getLockStatus(BigInt(lock.lockID));
+      const lockStatus = await readLockStatus(BigInt(lock.lockID));
 
       transactions.push({
         token: lock.token,
@@ -302,12 +307,10 @@ export const checkUnreleasedLock = async (
   }
 };
 
-export const getActiveLockAmount = async (
-  walletAddress: Address,
-): Promise<number> => {
-  const { activeLockAmount } = await getSellerLockState(walletAddress);
-  return activeLockAmount;
-};
+const expiredOf = (
+  sortedIDs: readonly bigint[],
+  status: readonly LockStatus[],
+): bigint[] => sortedIDs.filter((_, i) => status[i] === LockStatus.Expired);
 
 /** Undefined when the subgraph could not answer: expired locks are unknown. */
 export const getExpiredLockIds = async (
@@ -317,15 +320,10 @@ export const getExpiredLockIds = async (
   if (locks === undefined) return undefined;
   if (!locks) return [];
 
-  const { sortedIDs, status } = locks;
-  return sortedIDs.filter((_, i) => status[i] === LockStatus.Expired);
+  return expiredOf(locks.sortedIDs, locks.status);
 };
 
-/**
- * One subgraph + `getLocksStatus` read for both seller figures the manage view
- * shows. Fetching them through `getActiveLockAmount` and `getExpiredLockIds`
- * ran the same prologue twice per refresh (review), so the view calls this.
- */
+/** One subgraph + `getLocksStatus` read for both seller lock figures. */
 export const getSellerLockState = async (
   seller: Address,
 ): Promise<{ activeLockAmount: number; expiredLockIds: bigint[] }> => {
@@ -352,9 +350,7 @@ export const getSellerLockState = async (
 
   return {
     activeLockAmount,
-    expiredLockIds: sortedIDs.filter(
-      (_, i) => status[i] === LockStatus.Expired,
-    ),
+    expiredLockIds: expiredOf(sortedIDs, status),
   };
 };
 
