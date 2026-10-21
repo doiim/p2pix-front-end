@@ -116,7 +116,6 @@ const cancelWithdraw = () => {
           </span>
           <IconButton
             text="Recuperar"
-            :icon="withdrawIcon"
             variant="outline"
             size="md"
             :full-width="false"

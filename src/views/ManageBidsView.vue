@@ -115,15 +115,15 @@ onMounted(async () => {
     router.push({ name: 'home' });
     return;
   }
-  await getWalletTransactions();
+  await getWalletTransactions().catch(console.error);
 });
 
-watch(walletAddress, async () => {
-  await getWalletTransactions();
+watch(walletAddress, () => {
+  getWalletTransactions().catch(console.error);
 });
 
-watch(network, async () => {
-  await getWalletTransactions();
+watch(network, () => {
+  getWalletTransactions().catch(console.error);
 });
 </script>
 
