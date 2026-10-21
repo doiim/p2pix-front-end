@@ -1,4 +1,4 @@
-import { formatEther, type Address } from 'viem';
+import { formatEther, isAddressEqual, type Address } from 'viem';
 import { useUser } from '@/composables/useUser';
 import { getEffectiveWalletAddress } from './aa/operations';
 
@@ -55,7 +55,7 @@ export const listValidDepositTransactionsByWalletAddress = async (
   });
   if (walletDeposits) {
     return walletDeposits
-      .filter((deposit) => deposit.seller == walletAddress)
+      .filter((deposit) => isAddressEqual(deposit.seller, walletAddress))
       .sort((a: ValidDeposit, b: ValidDeposit) => {
         return b.blockNumber - a.blockNumber;
       });

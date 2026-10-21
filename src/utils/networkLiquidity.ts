@@ -1,5 +1,5 @@
 import type { ValidDeposit } from '@/model/ValidDeposit';
-import type { Address } from 'viem';
+import { isAddressEqual, type Address } from 'viem';
 
 const verifyNetworkLiquidity = (
   tokenValue: number,
@@ -12,7 +12,7 @@ const verifyNetworkLiquidity = (
       if (
         tokenValue! <= remaining &&
         tokenValue! != 0 &&
-        element.seller !== walletAddress
+        !isAddressEqual(element.seller, walletAddress)
       ) {
         return true;
       }
