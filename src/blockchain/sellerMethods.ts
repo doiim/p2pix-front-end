@@ -3,13 +3,14 @@ import {
   encodeFunctionData,
   parseEther,
   toHex,
+  zeroAddress,
   ChainContract,
   erc20Abi,
 } from 'viem';
 import { useUser } from '@/composables/useUser';
 import { createParticipant } from '@/utils/bbPay';
 import type { Participant } from '@/utils/bbPay';
-import type { Abi, Address } from 'viem';
+import type { Abi, Address, Hex } from 'viem';
 import { getActiveAaContext, sendAaOperation } from './aa/operations';
 import type { AaCall } from './aa/types';
 
@@ -160,4 +161,72 @@ const addDeposit = async (): Promise<unknown> => {
   return client.waitForTransactionReceipt({ hash });
 };
 
-export { approveTokens, addDeposit };
+/** The seller's allow-list root on the current network; zero for none. */
+const getAllowListRoot = async (seller: Address): Promise<Hex> => {
+  const { address, abi, client } = await getContract(true);
+  return client.readContract({
+    address,
+    abi,
+    functionName: 'sellerAllowList',
+    args: [seller],
+  });
+};
+
+/** Replaces the connected seller's allow-list root; zero turns it off. */
+const setAllowListRoot = async (root: Hex): Promise<void> => {
+  const { address, abi, client } = await getContract();
+  const user = useUser();
+  const aa = await getActiveAaContext();
+
+  if (aa) {
+    const call: AaCall = {
+      to: address,
+      value: 0n,
+      data: encodeFunctionData({
+        abi: abi as Abi,
+        functionName: 'setRoot',
+        args: [aa.account.address, root],
+      }),
+    };
+    // setRoot moves no token: pass the fee token itself so the paid rail's
+    // token check holds (unset means sponsored, which ignores it).
+    const feeToken = aa.network.aa?.feeToken;
+    const aaReceipt = await sendAaOperation(
+      aa,
+      [call],
+      feeToken ? aa.network.tokens[feeToken].address : zeroAddress,
+    );
+    if (!aaReceipt.success) {
+      throw new Error(
+        `Falha ao gravar a lista: ${aaReceipt.receipt.transactionHash}`,
+      );
+    }
+    return;
+  }
+
+  const walletClient = await getWalletClient();
+  if (!walletClient) throw new Error('Carteira não conectada');
+  const [account] = await walletClient.getAddresses();
+  if (!account) throw new Error('Conta indisponível');
+
+  const hash = await walletClient.writeContract({
+    address,
+    abi,
+    functionName: 'setRoot',
+    args: [account, root],
+    account,
+    chain: user.network.value,
+  });
+  const receipt = await client.waitForTransactionReceipt({ hash });
+  if (receipt.status !== 'success') {
+    throw new Error(`Falha ao gravar a lista: ${hash}`);
+  }
+};
+
+export {
+  approveTokens,
+  addDeposit,
+  getAllowListRoot,
+  getP2PixAddress,
+  setAllowListRoot,
+};

@@ -38,6 +38,12 @@ switch (props.type) {
   case 'withdraw':
     alertText.value = 'Tudo certo! Saque realizado com sucesso!';
     break;
+  case 'allowList':
+    alertText.value = 'Tudo certo! Sua lista foi gravada na rede.';
+    break;
+  case 'allowListOff':
+    alertText.value = 'Tudo certo! Sua lista foi desativada.';
+    break;
 }
 </script>
 <template>

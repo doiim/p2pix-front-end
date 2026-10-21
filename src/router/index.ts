@@ -10,6 +10,7 @@ import SellerView from '@/views/SellerView.vue';
 import ExploreView from '@/views/ExploreView.vue';
 import VersionsView from '@/views/VersionsView.vue';
 import SweepView from '@/views/SweepView.vue';
+import AllowListView from '@/views/AllowListView.vue';
 
 const router = createRouter({
   history:
@@ -57,6 +58,11 @@ const router = createRouter({
       path: '/account',
       name: 'account',
       component: SweepView,
+    },
+    {
+      path: '/allow_list',
+      name: 'allow list',
+      component: AllowListView,
     },
   ],
 });
