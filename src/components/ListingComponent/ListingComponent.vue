@@ -16,8 +16,9 @@ const props = withDefaults(
     walletTransactions: WalletTransaction[];
     activeLockAmount: number;
     expiredLocksCount?: number;
+    sweeping?: boolean;
   }>(),
-  { expiredLocksCount: 0 },
+  { expiredLocksCount: 0, sweeping: false },
 );
 
 const emit = defineEmits(['depositWithdrawn', 'sweepExpired']);
@@ -77,6 +78,7 @@ showInitialItems();
       :active-lock-amount="activeLockAmount"
       :selected-token="user.selectedToken.value"
       :expired-locks-count="props.expiredLocksCount"
+      :sweeping="props.sweeping"
       @withdraw="callWithdraw"
       @sweep-expired="emit('sweepExpired')"
     />

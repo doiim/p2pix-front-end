@@ -149,6 +149,7 @@ watch(network, () => {
           :wallet-transactions="transactionsList"
           :active-lock-amount="activeLockAmount"
           :expired-locks-count="expiredLockIds.length"
+          :sweeping="loadingSweep"
           @deposit-withdrawn="callWithdraw"
           @sweep-expired="callSweepExpired"
         ></ListingComponent>

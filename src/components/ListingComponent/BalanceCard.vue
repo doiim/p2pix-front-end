@@ -12,8 +12,9 @@ const props = withDefaults(
     activeLockAmount: number;
     selectedToken: string;
     expiredLocksCount?: number;
+    sweeping?: boolean;
   }>(),
-  { expiredLocksCount: 0 },
+  { expiredLocksCount: 0, sweeping: false },
 );
 
 const emit = defineEmits<{
@@ -115,10 +116,11 @@ const cancelWithdraw = () => {
             }}
           </span>
           <IconButton
-            text="Recuperar"
+            :text="sweeping ? 'Recuperando...' : 'Recuperar'"
             variant="outline"
             size="md"
             :full-width="false"
+            :disabled="sweeping"
             @click="emit('sweepExpired')"
           />
         </div>
