@@ -4,15 +4,13 @@ import { WagmiPlugin } from '@wagmi/vue';
 
 import App from './App.vue';
 import router from './router';
-import { setupAppKit } from './config/appkit';
+import { wagmiConfig } from './wallet/wagmi';
 
 import './assets/main.css';
 import './assets/transitions.css';
 
-const adapter = setupAppKit();
-
 const app = createApp(App);
-app.use(WagmiPlugin, { config: adapter.wagmiConfig });
+app.use(WagmiPlugin, { config: wagmiConfig });
 app.use(VueQueryPlugin, {
   queryClient: new QueryClient({
     defaultOptions: { queries: { refetchOnWindowFocus: false } },

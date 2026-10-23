@@ -7,7 +7,7 @@ import type { NetworkConfig } from '@/model/NetworkEnum';
 
 export type AaCall = { to: Address; data: Hex; value?: bigint };
 
-export type AaOwnerKind = 'passkey' | 'reown';
+export type AaOwnerKind = 'passkey' | 'social';
 
 export type AaContext = {
   account: SmartAccount;
@@ -17,13 +17,12 @@ export type AaContext = {
    * the network sets no `AaConfig.feeToken` (sponsorship only).
    */
   erc20Client?: SmartAccountClient;
-  ownerKind: AaOwnerKind;
   network: NetworkConfig;
   pimlicoClient: PimlicoClient;
 };
 
 export type AaRuntime = {
-  connectorId?: string;
+  ownerKind: AaOwnerKind;
   publicClient: PublicClient;
   walletClient?: WalletClient | null;
   network: NetworkConfig;

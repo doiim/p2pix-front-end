@@ -4,25 +4,18 @@ import { useUser } from '@/composables/useUser';
 import { onClickOutside } from '@vueuse/core';
 import { getNetworkImage } from '@/utils/imagesPath';
 import { Networks, DEFAULT_NETWORK } from '@/config/networks';
-import { ConnectionController } from '@doiim/reown-appkit-controllers';
-import {
-  useWalletAccount,
-  useWalletDisconnect,
-  useWalletModal,
-  useWalletNetwork,
-} from '@/config/appkit';
+import { useConnection, useDisconnect, useSwitchChain } from '@wagmi/vue';
+import { useConnectModal } from '@/wallet/useConnectModal';
 
 import ChevronDown from '@/assets/chevronDown.svg';
 import TwitterIcon from '@/assets/twitterIcon.svg';
 import LinkedinIcon from '@/assets/linkedinIcon.svg';
 import GithubIcon from '@/assets/githubIcon.svg';
 import type { NetworkConfig } from '@/model/NetworkEnum';
-import { getCurrentAccount } from '@/blockchain/provider';
 import {
   getEffectiveWalletAddress,
   resetAaAccountCache,
 } from '@/blockchain/aa/operations';
-import { PASSKEY_CONNECTOR_ID } from '@/blockchain/aa/session';
 
 interface MenuOption {
   label: string;
@@ -46,26 +39,15 @@ const infoMenuRef = ref(null);
 const walletAddressRef = ref(null);
 const currencyRef = ref(null);
 
-const { open } = useWalletModal();
-const connectWallet = async (): Promise<void> => {
-  await open({ view: 'Connect' });
-};
-const { disconnect } = useWalletDisconnect();
-const appKitAccount = useWalletAccount();
-const appKitNetwork = useWalletNetwork();
+const { open: connectWallet } = useConnectModal();
+const connection = useConnection();
+const switchChain = useSwitchChain();
+const disconnect = useDisconnect();
 let addressResolution = 0;
 
-// Read the address from wagmi, which already types it as `Address`; AppKit's
-// composable only drives reactivity. Fall back to AppKit address if Wagmi
-// connector is temporarily desynchronized.
 const syncEffectiveAddress = async () => {
   const resolution = ++addressResolution;
-  let connectorAddress = getCurrentAccount().address;
-
-  // Fallback: if Wagmi address is undefined but AppKit has address, use AppKit
-  if (!connectorAddress && appKitAccount.value.address) {
-    connectorAddress = appKitAccount.value.address as any;
-  }
+  const connectorAddress = connection.address.value;
 
   if (!connectorAddress) {
     user.setWalletAddress(null);
@@ -83,37 +65,28 @@ const syncEffectiveAddress = async () => {
 };
 
 onMounted(() => {
-  // On mount, immediately sync from AppKit (handles session restore after page reload)
+  // On mount, immediately sync from wagmi (handles session restore after page reload)
   void syncEffectiveAddress();
 });
 
-watch(
-  () => appKitAccount.value.address,
-  () => {
-    void syncEffectiveAddress();
-  },
-);
+watch(connection.address, () => {
+  void syncEffectiveAddress();
+});
 
-watch(
-  () => appKitNetwork.value.chainId,
-  (newChainId) => {
-    if (
-      newChainId === undefined ||
-      !Networks.some((n) => n.id === Number(newChainId))
-    ) {
-      user.setNetwork(DEFAULT_NETWORK);
-      // The AA cache and the displayed address are bound to the previous chain's
-      // runtime; mirror the supported branch so a switch to an unsupported chain
-      // doesn't leave stale Kernel context or a misleading address on screen.
-      resetAaAccountCache();
-      void syncEffectiveAddress();
-      return;
-    }
-    user.setNetworkById(Number(newChainId));
+watch(connection.chainId, (newChainId) => {
+  if (newChainId === undefined || !Networks.some((n) => n.id === newChainId)) {
+    user.setNetwork(DEFAULT_NETWORK);
+    // The AA cache and the displayed address are bound to the previous chain's
+    // runtime; mirror the supported branch so a switch to an unsupported chain
+    // doesn't leave stale Kernel context or a misleading address on screen.
     resetAaAccountCache();
     void syncEffectiveAddress();
-  },
-);
+    return;
+  }
+  user.setNetworkById(newChainId);
+  resetAaAccountCache();
+  void syncEffectiveAddress();
+});
 
 const formatWalletAddress = (): string => {
   const value = walletAddress.value;
@@ -130,9 +103,8 @@ const formatWalletAddress = (): string => {
 const disconnectUser = async (): Promise<void> => {
   resetAaAccountCache();
   user.setWalletAddress(null);
-  if (appKitAccount.value.isConnected) {
-    await disconnect();
-    ConnectionController.resetWcConnection();
+  if (connection.isConnected.value) {
+    await disconnect.mutateAsync();
   }
   closeMenu();
 };
@@ -144,22 +116,14 @@ const closeMenu = (): void => {
 const networkChange = async (targetNetwork: NetworkConfig): Promise<void> => {
   currencyMenuOpenToggle.value = false;
 
-  if (appKitAccount.value.isConnected) {
+  if (connection.isConnected.value) {
     try {
-      await appKitNetwork.value.switchNetwork(targetNetwork);
+      await switchChain.mutateAsync({ chainId: targetNetwork.id });
       user.setNetwork(targetNetwork);
     } catch (error) {
-      // The passkey connector is intentionally single-chain at the EIP-1193
-      // layer. Our owner-agnostic Kernel client can still derive/send on the
-      // selected AA trading chain, so keep AppKit as the login rail and switch
-      // the application execution context here.
-      const connectorId = getCurrentAccount().connector?.id;
-      if (connectorId === PASSKEY_CONNECTOR_ID && targetNetwork.aa) {
-        user.setNetwork(targetNetwork);
-        resetAaAccountCache();
-        await syncEffectiveAddress();
-        return;
-      }
+      // Passkey switchChain rejects chains without AA support, so the app
+      // network stays put; chains with AA succeed and the chainId watcher
+      // resets the AA cache.
       console.log('Error changing network', error);
     }
   } else {

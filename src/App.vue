@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { useRoute } from 'vue-router';
+import ConnectModal from '@/components/ConnectModal/ConnectModal.vue';
 import TopBar from '@/components/TopBar/TopBar.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import ToasterComponent from '@/components/ui/ToasterComponent.vue';
@@ -29,6 +30,7 @@ const route = useRoute();
         </Transition>
       </template>
     </RouterView>
+    <ConnectModal />
     <ToasterComponent />
     <VersionFooter />
   </main>

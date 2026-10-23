@@ -1,44 +1,35 @@
 <script setup lang="ts">
 import { ref, computed, watch, onMounted } from 'vue';
-import { useWalletAccount, useWalletNetwork } from '@/config/appkit';
-import type { WalletNetwork } from '@/config/networks';
+import { useConnection, useSwitchChain } from '@wagmi/vue';
 import { useUser } from '@/composables/useUser';
-import { getCurrentAccount } from '@/blockchain/provider';
-import { PASSKEY_CONNECTOR_ID } from '@/blockchain/aa/session';
 
 const user = useUser();
-const { network } = user;
-const { toast } = user;
-const appKitAccount = useWalletAccount();
-const appKitNetwork = useWalletNetwork();
+const { network, toast } = user;
+const connection = useConnection();
+const switchChain = useSwitchChain();
 
 const isWrongNetwork = ref(false);
 const targetNetworkName = computed(() => network.value.name);
 
 const checkNetwork = () => {
-  if (appKitAccount.value.isConnected && appKitNetwork.value.chainId) {
-    const connectorId = getCurrentAccount().connector?.id;
-    const usesAppAaChain =
-      connectorId === PASSKEY_CONNECTOR_ID && Boolean(network.value.aa);
-    isWrongNetwork.value =
-      Number(appKitNetwork.value.chainId) !== network.value.id &&
-      !usesAppAaChain;
-  } else {
-    isWrongNetwork.value = false;
-  }
+  const chainId = connection.chainId.value;
+  isWrongNetwork.value =
+    connection.isConnected.value &&
+    chainId !== undefined &&
+    chainId !== network.value.id;
 };
 
 const switchNetwork = async () => {
   try {
-    await appKitNetwork.value.switchNetwork(network.value as WalletNetwork);
+    await switchChain.mutateAsync({ chainId: network.value.id });
   } catch (error) {
     console.error('Failed to switch network:', error);
   }
 };
 
 onMounted(checkNetwork);
-watch(() => appKitNetwork.value.chainId, checkNetwork);
-watch(() => appKitAccount.value.isConnected, checkNetwork);
+watch(connection.chainId, checkNetwork);
+watch(connection.isConnected, checkNetwork);
 watch(network, checkNetwork, { immediate: true });
 </script>
 

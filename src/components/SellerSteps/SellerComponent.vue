@@ -5,7 +5,7 @@ import CustomButton from '@/components/ui/CustomButton.vue';
 import { postProcessKey } from '@/utils/pixKeyFormat';
 import { TokenEnum } from '@/model/NetworkEnum';
 import { getTokenImage } from '@/utils/imagesPath';
-import { useWalletModal } from '@/config/appkit';
+import { useConnectModal } from '@/wallet/useConnectModal';
 import ChevronDown from '@/assets/chevron.svg';
 
 // Import the bank list
@@ -58,9 +58,7 @@ const handleBankSelect = (bank: Bank) => {
 // Emits
 const emit = defineEmits(['approveTokens']);
 
-const connectAccount = async (): Promise<void> => {
-  await useWalletModal().open({ view: 'Connect' });
-};
+const { open: connectAccount } = useConnectModal();
 
 const handleSubmit = (e: Event): void => {
   e.preventDefault();

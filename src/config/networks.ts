@@ -1,9 +1,6 @@
 import type { Address } from 'viem';
 import { arbitrum, mainnet, sepolia } from 'viem/chains';
-import type { AppKitNetwork as WalletNetwork } from '@doiim/reown-appkit/networks';
 import type { NetworkConfig } from '@/model/NetworkEnum';
-
-export type { WalletNetwork };
 
 // Contract addresses come from the contracts repo's deploys/<name>.json.
 const deploys = import.meta.glob<{ p2pix: Address; token: Address }>(
@@ -13,20 +10,10 @@ const deploys = import.meta.glob<{ p2pix: Address; token: Address }>(
 const record = (name: string) => deploys[`./${name}.json`];
 const p2pix = (name: string) => ({ p2pix: { address: record(name)?.p2pix } });
 
-// A missing deploy record must not take the SPA down at import time: unwired
-// networks are skipped (with a log) instead of rejected. Anything that actually
-// needs a wired network (e.g. setupAppKit in config/appkit.ts) then fails at
-// that point with a clear message rather than a blank page on load.
 const ifWired = (
   name: string,
   network: NetworkConfig,
-): NetworkConfig | undefined => {
-  if (record(name)?.p2pix) return network;
-  console.error(
-    `[networks] ${name}: no p2pix address in p2pix-smart-contracts/deploys/${name}.json; skipping network`,
-  );
-  return undefined;
-};
+): NetworkConfig | undefined => (record(name)?.p2pix ? network : undefined);
 
 // prettier-ignore
 const prodNetworks = [
@@ -65,33 +52,11 @@ const wired = (isProd ? prodNetworks : testNetworks).filter(
   (network): network is NetworkConfig => network !== undefined,
 );
 
-const NO_WIRED_NETWORK =
-  '[networks] no wired deployments for this environment; add the p2pix address to p2pix-smart-contracts/deploys/*.json';
-
-if (wired.length === 0) console.error(NO_WIRED_NETWORK);
+if (wired.length === 0)
+  throw new Error(
+    '[networks] no wired deployments for this environment; check the contracts submodule deploys/*.json',
+  );
 
 export const Networks = wired as [NetworkConfig, ...NetworkConfig[]];
 
-// Import must not throw (see above), so the missing address surfaces on the
-// first read of the default network instead: `setupAppKit` reads
-// `defaultNetwork.rpcUrls` / `.aa` / `.id`, which then raise NO_WIRED_NETWORK
-// rather than `Cannot read properties of undefined`.
-const missingDefaultNetwork = {
-  get rpcUrls(): never {
-    throw new Error(NO_WIRED_NETWORK);
-  },
-  get aa(): never {
-    throw new Error(NO_WIRED_NETWORK);
-  },
-  get id(): never {
-    throw new Error(NO_WIRED_NETWORK);
-  },
-} as unknown as NetworkConfig;
-
-export const DEFAULT_NETWORK: NetworkConfig =
-  wired.length > 0 ? wired[0] : missingDefaultNetwork;
-
-/** Network list handed to AppKit / the wagmi adapter (see config/appkit.ts).
- * Note: NetworkConfig extends Chain with extra fields (tokens, aa).
- * AppKit uses the Chain subset; extra fields are harmless but not used. */
-export const wagmiNetworks: [WalletNetwork, ...WalletNetwork[]] = Networks;
+export const DEFAULT_NETWORK = Networks[0];

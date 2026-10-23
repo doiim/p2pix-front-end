@@ -3,6 +3,7 @@ import {
   getTokenBalances,
   type TokenBalance,
 } from '@doiim/passkeys/smart-account';
+import { readStoredSession } from '@doiim/passkeys/storage';
 import {
   encodeFunctionData,
   erc20Abi,
@@ -11,12 +12,11 @@ import {
   type Hex,
 } from 'viem';
 
-import { isAaAvailable } from '@/blockchain/aa/aaContext';
+import { getAaOwnerKind, isAaAvailable } from '@/blockchain/aa/aaContext';
 import {
   getActiveAaContext,
   sendAaOperation,
 } from '@/blockchain/aa/operations';
-import { getAaOwnerKind, readPasskeySession } from '@/blockchain/aa/session';
 import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
@@ -201,7 +201,7 @@ export function usePasskeyAccount() {
   const reset = (): void => {
     smartAccountAddress.value =
       user.walletAddress.value ??
-      readPasskeySession()?.smartAccountAddress ??
+      readStoredSession()?.smartAccountAddress ??
       null;
     balances.value = [];
     ethBalance.value = 0n;

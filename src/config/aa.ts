@@ -5,7 +5,8 @@
 //
 // Bundler URLs are set per chain in config/networks.ts; the sponsorship policy
 // id is the only remaining Pimlico env var read here.
-// VITE_REOWN_PROJECT_ID is read directly in config/appkit.ts.
+
+import { resolveRpId } from '@doiim/passkeys';
 
 import type { TokenEnum } from '@/model/NetworkEnum';
 
@@ -32,16 +33,38 @@ export type AaConfig = {
   feeToken?: TokenEnum;
 };
 
-const DEMO_RP_ID = 'demo.p2pix.co';
-const PROD_RP_ID = 'p2pix.co';
+export const env = (key: string): string | undefined =>
+  (import.meta.env[key] as string | undefined)?.trim() || undefined;
+
+/** Hosts we operate as one passkey realm. */
+// TODO: extra origins (e.g. an ENS gateway) via Related Origin Requests — list
+// them and have nginx serve https://p2pix.co/.well-known/webauthn. Deferred
+// 2026-10-15: only p2pix.co for now.
+export const PASSKEY_SHARED_SUFFIXES = ['demo.p2pix.co', 'p2pix.co'] as const;
 
 /**
- * WebAuthn RP id shared across AA-enabled chains: `p2pix.co` in production,
- * `demo.p2pix.co` otherwise (demo builds are served from `<n>.demo.p2pix.co`,
- * so the passkey must be registered for the shared suffix).
+ * WebAuthn RP id, or `null` when passkeys are disabled. Resolution order:
+ *   1. `VITE_PASSKEY_RP_ID` override (another owned origin; it must serve
+ *      `https://<rpId>/.well-known/webauthn` for Related Origin Requests);
+ *   2. the longest owned suffix the host belongs to, so `*.p2pix.co` and
+ *      `*.demo.p2pix.co` keep sharing their credentials;
+ *   3. `localhost` for local development (browsers reject IP literals as rpId,
+ *      so 127.0.0.1 stays disabled);
+ *   4. otherwise `null`. A path-style IPFS gateway (`ipfs.io/ipfs/<cid>`)
+ *      shares one origin across every CID, so any page there could ask the
+ *      passkey to sign: never enable passkeys on an origin we do not own.
  */
-export const rpId =
-  import.meta.env.VITE_APP_ENV === 'production' ? PROD_RP_ID : DEMO_RP_ID;
+export const rpId: string | null = resolveRpId(window.location.hostname, {
+  override: env('VITE_PASSKEY_RP_ID'),
+  sharedSuffixes: PASSKEY_SHARED_SUFFIXES,
+  strict: true,
+});
+
+/** The rpId for code paths that only run when passkeys are enabled. */
+export const requireRpId = (): string => {
+  if (!rpId) throw new Error('Passkeys are disabled on this origin');
+  return rpId;
+};
 
 /**
  * Default minimum fee token balance (in wei) to attempt paymaster fees, used
@@ -49,9 +72,6 @@ export const rpId =
  * token; override per chain if a network's fee token differs.
  */
 export const MIN_FEE_BALANCE_WEI_DEFAULT = 100000000000000000n; // 0.1 fee token (18 decimals)
-
-const env = (key: string): string | undefined =>
-  (import.meta.env[key] as string | undefined)?.trim() || undefined;
 
 export const sponsorshipPolicyId = (): string | undefined =>
   env('VITE_PIMLICO_SPONSORSHIP_POLICY_ID');

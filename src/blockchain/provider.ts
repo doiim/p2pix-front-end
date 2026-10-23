@@ -4,7 +4,7 @@ import {
   getPublicClient as wagmiGetPublicClient,
   getWalletClient as wagmiGetWalletClient,
 } from '@wagmi/core';
-import { getWagmiConfig } from '@/config/appkit';
+import { reconnectSettled, wagmiConfig } from '@/wallet/wagmi';
 import { useUser } from '@/composables/useUser';
 import type { NetworkConfig } from '@/model/NetworkEnum';
 import type { PublicClient, WalletClient } from 'viem';
@@ -16,21 +16,24 @@ const getUserChainId = () => {
 };
 
 const getCurrentAccount = () => {
-  return wagmiGetAccount(getWagmiConfig());
+  return wagmiGetAccount(wagmiConfig);
 };
 
 // Defaults to the selected chain; pass a chainId to read a specific network
 // (a client is bound to one chain and cannot read another).
 const getPublicClient = (chainId: number = getUserChainId()): PublicClient => {
-  const client = wagmiGetPublicClient(getWagmiConfig(), { chainId });
+  const client = wagmiGetPublicClient(wagmiConfig, { chainId });
   if (!client) throw new Error(`No public client for chain ${chainId}`);
   return client as PublicClient;
 };
 
 const getWalletClient = async (): Promise<WalletClient | null> => {
+  // after a reload wagmi holds placeholder connections (no getChainId) until
+  // the mount-time reconnect ends; a client asked for meanwhile fails
+  await reconnectSettled();
   try {
     const chainId = getUserChainId();
-    return (await wagmiGetWalletClient(getWagmiConfig(), {
+    return (await wagmiGetWalletClient(wagmiConfig, {
       chainId,
     })) as WalletClient;
   } catch (error) {

@@ -8,7 +8,7 @@ import {
 } from '@/composables/account/useAccountRouter';
 import { useSendForm } from '@/composables/account/useSendForm';
 import { useUser } from '@/composables/useUser';
-import { useWalletDisconnect } from '@/config/appkit';
+import { useDisconnect } from '@wagmi/vue';
 import { resetAaAccountCache } from '@/blockchain/aa/operations';
 import { TokenEnum } from '@/model/NetworkEnum';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
@@ -27,7 +27,7 @@ const accountRouter = useAccountRouter();
 const copyAddress = useCopyAddress();
 const form = useSendForm();
 const user = useUser();
-const { disconnect } = useWalletDisconnect();
+const disconnect = useDisconnect();
 
 const tab = ref(0);
 
@@ -39,7 +39,7 @@ const shortAddress = () => {
 const handleDisconnect = async () => {
   resetAaAccountCache();
   user.setWalletAddress(null);
-  await disconnect();
+  await disconnect.mutateAsync();
   form.reset();
   accountRouter.reset();
   router.push({ name: 'home' });

@@ -9,75 +9,33 @@ import {
   prepareErc20PaymasterQuote,
   sendPreparedErc20UserOperation,
 } from './paymasters/erc20';
-import { ensureReownEoaAccount, getReownEip155Address } from '@/config/appkit';
 import {
   getCurrentAccount,
   getPublicClient,
   getWalletClient,
 } from '../provider';
 import {
-  getAaOwnerKind,
-  PASSKEY_CONNECTOR_ID,
-  REOWN_AUTH_CONNECTOR_ID,
-} from './session';
-import {
   getAaAccountForRuntime,
   getAaContextForRuntime,
+  getAaOwnerKind,
   isAaAvailable,
 } from './aaContext';
-import type { AaCall, AaContext, AaOwnerKind, AaRuntime } from './types';
+import type { AaCall, AaContext, AaRuntime } from './types';
 
 export { resetAaAccountCache } from './aaContext';
 
-const resolveActiveRuntime = async (
-  ownerKind: AaOwnerKind,
-  network: AaRuntime['network'],
-): Promise<AaRuntime> => {
-  if (ownerKind === 'reown') {
-    // Ensure Reown returns EOA, not smart account, for Kernel ownership
-    await ensureReownEoaAccount();
-
-    const walletClient = await getWalletClient();
-    if (!walletClient?.account) {
-      throw new Error('Reown EOA signer not available');
-    }
-
-    // ensureReownEoaAccount only proves Reown's own state. wagmi may not have
-    // propagated the switch yet, and deriving the Kernel account from the
-    // smart account would cache an account owned by the wrong key for the
-    // rest of the session.
-    const reownAddress = getReownEip155Address();
-    if (
-      reownAddress &&
-      walletClient.account.address.toLowerCase() !== reownAddress.toLowerCase()
-    ) {
-      throw new Error('Reown EOA signer has not propagated to wagmi yet');
-    }
-
-    return {
-      connectorId: REOWN_AUTH_CONNECTOR_ID,
-      publicClient: getPublicClient(),
-      walletClient,
-      network,
-    };
-  }
-
-  return {
-    connectorId: PASSKEY_CONNECTOR_ID,
-    publicClient: getPublicClient(),
-    network,
-  };
-};
-
 const resolveActiveAaRuntime = async (): Promise<AaRuntime | null> => {
-  const connection = getCurrentAccount();
-  const ownerKind = getAaOwnerKind(connection.connector?.id);
+  const ownerKind = getAaOwnerKind(getCurrentAccount().connector?.id);
   if (!ownerKind) return null;
 
   const network = useUser().network.value;
   if (!isAaAvailable(network)) return null;
 
-  return resolveActiveRuntime(ownerKind, network);
+  const walletClient = ownerKind === 'social' ? await getWalletClient() : null;
+  if (ownerKind === 'social' && !walletClient?.account) {
+    throw new Error('Social login signer not available');
+  }
+  return { ownerKind, publicClient: getPublicClient(), walletClient, network };
 };
 
 /** Resolve the active app connection into the unified Kernel rail. */

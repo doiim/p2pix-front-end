@@ -1,29 +1,36 @@
 import {
-  toKernelAccount,
-  toKernelPasskeyAccount,
-  buildOperationScopedPimlicoClients,
-} from '@doiim/passkeys/smart-account';
-import {
-  zeroAddress,
+  http,
   type Account,
   type Chain,
   type Transport,
   type WalletClient,
 } from 'viem';
 import type { SmartAccount } from 'viem/account-abstraction';
-
+import { PASSKEY_CONNECTOR_ID } from '@doiim/passkeys/wagmi';
+import { readStoredSession } from '@doiim/passkeys/storage';
 import {
-  rpId,
-  sponsorshipPolicyId as configuredSponsorshipPolicyId,
-} from '@/config/aa';
+  toKernelAccount,
+  toKernelPasskeyAccount,
+} from '@doiim/passkeys/smart-account';
+import { createSmartAccountClient } from 'permissionless';
+import { createPimlicoClient } from 'permissionless/clients/pimlico';
+import { prepareUserOperationForErc20Paymaster } from 'permissionless/experimental/pimlico';
+
+import { requireRpId, sponsorshipPolicyId } from '@/config/aa';
 import type { NetworkConfig } from '@/model/NetworkEnum';
-import { getAaOwnerKind, readPasskeySession } from './session';
+import { MAGIC_CONNECTOR_ID } from '@/wallet/magic';
 import type { AaContext, AaOwnerKind, AaRuntime } from './types';
+
+export const getAaOwnerKind = (connectorId?: string): AaOwnerKind | null => {
+  if (connectorId === PASSKEY_CONNECTOR_ID) return 'passkey';
+  if (connectorId === MAGIC_CONNECTOR_ID) return 'social';
+  return null;
+};
 
 /** AA is usable only with a bundler and, on Pimlico, a sponsorship policy. */
 export const isAaAvailable = (network: NetworkConfig): boolean => {
   if (!network.aa?.bundlerUrl) return false;
-  return Boolean(configuredSponsorshipPolicyId());
+  return Boolean(sponsorshipPolicyId());
 };
 
 const aaAccountCache = new Map<string, Promise<SmartAccount>>();
@@ -50,33 +57,30 @@ const cachePromise = <T>(
   return pending;
 };
 
-const getRuntimeOwnerIdentity = (
-  runtime: AaRuntime,
-  ownerKind: AaOwnerKind,
-): string | undefined =>
-  ownerKind === 'passkey'
-    ? readPasskeySession()?.credentialId
+const getRuntimeOwnerIdentity = (runtime: AaRuntime): string | undefined =>
+  runtime.ownerKind === 'passkey'
+    ? readStoredSession()?.credentialId
     : runtime.walletClient?.account?.address.toLowerCase();
 
 const createKernelAccount = async (
   runtime: AaRuntime,
-  ownerKind: AaOwnerKind,
 ): Promise<SmartAccount> => {
   const { publicClient } = runtime;
-  if (ownerKind === 'passkey') {
-    const session = readPasskeySession();
+  if (runtime.ownerKind === 'passkey') {
+    const session = readStoredSession();
     if (!session) throw new Error('Passkey session not available');
+    const { credentialId, publicKeyX, publicKeyY } = session;
     return toKernelPasskeyAccount({
       client: publicClient,
-      credentialId: session.credentialId,
-      publicKeyX: session.publicKeyX,
-      publicKeyY: session.publicKeyY,
-      rpId,
+      credentialId,
+      publicKeyX,
+      publicKeyY,
+      rpId: requireRpId(),
     });
   }
 
   const owner = runtime.walletClient;
-  if (!owner?.account) throw new Error('Reown EOA signer not available');
+  if (!owner?.account) throw new Error('Social login signer not available');
   return toKernelAccount({
     client: publicClient,
     owner: owner as WalletClient<Transport, Chain | undefined, Account>,
@@ -85,49 +89,55 @@ const createKernelAccount = async (
 
 const createContext = async (
   runtime: AaRuntime,
-  ownerKind: AaOwnerKind,
   account: SmartAccount,
 ): Promise<AaContext> => {
   const { network, publicClient } = runtime;
-  const aa = network.aa;
-  if (!aa) throw new Error(`AA is not configured for chain ${network.id}`);
-
-  const bundlerUrl = aa.bundlerUrl;
-  if (!bundlerUrl) {
-    throw new Error(`Bundler URL not configured for chain ${network.id}`);
+  const bundlerUrl = network.aa?.bundlerUrl;
+  const sponsorshipPolicy = sponsorshipPolicyId();
+  // Callers already checked isAaAvailable; this narrows the types.
+  if (!bundlerUrl || !sponsorshipPolicy) {
+    throw new Error(`AA is not configured for chain ${network.id}`);
   }
 
-  const sponsorshipPolicyId = configuredSponsorshipPolicyId();
-  if (!sponsorshipPolicyId) {
-    throw new Error(
-      `VITE_PIMLICO_SPONSORSHIP_POLICY_ID is required for chain ${network.id}`,
-    );
-  }
-
-  const feeTokenAddress = aa.feeToken
-    ? network.tokens[aa.feeToken].address
-    : undefined;
-
-  const common = {
+  const pimlicoClient = createPimlicoClient({
+    chain: network,
+    transport: http(bundlerUrl),
+    entryPoint: account.entryPoint,
+  });
+  const base = {
     account,
     chain: network,
-    publicClient,
-    bundlerUrl,
-    sponsorshipPolicyId,
-    // The library requires a token; with none configured the paid client is
-    // built but never exposed, so nothing can send through it.
-    erc20Token: feeTokenAddress ?? zeroAddress,
-  } as const;
-
-  const regular = buildOperationScopedPimlicoClients(common);
+    bundlerTransport: http(bundlerUrl),
+    client: publicClient,
+    paymaster: pimlicoClient,
+  };
+  const estimateFeesPerGas = async () =>
+    (await pimlicoClient.getUserOperationGasPrice()).fast;
+  const feeToken = network.aa?.feeToken;
 
   return {
     account,
-    sponsoredClient: regular.sponsoredClient,
-    erc20Client: feeTokenAddress ? regular.erc20Client : undefined,
-    ownerKind,
     network,
-    pimlicoClient: regular.pimlicoClient,
+    pimlicoClient,
+    sponsoredClient: createSmartAccountClient({
+      ...base,
+      paymasterContext: { sponsorshipPolicyId: sponsorshipPolicy },
+      userOperation: { estimateFeesPerGas },
+    }),
+    // Only when the network names a fee token; unset means sponsorship only.
+    erc20Client: feeToken
+      ? createSmartAccountClient({
+          ...base,
+          paymasterContext: { token: network.tokens[feeToken].address },
+          userOperation: {
+            estimateFeesPerGas,
+            prepareUserOperation: prepareUserOperationForErc20Paymaster(
+              pimlicoClient,
+              { balanceOverride: false },
+            ),
+          },
+        })
+      : undefined,
   };
 };
 
@@ -138,16 +148,15 @@ const createContext = async (
 export const getAaAccountForRuntime = async (
   runtime: AaRuntime,
 ): Promise<SmartAccount | null> => {
-  const ownerKind = getAaOwnerKind(runtime.connectorId);
-  if (!ownerKind || !isAaAvailable(runtime.network)) return null;
+  if (!isAaAvailable(runtime.network)) return null;
 
-  const ownerIdentity = getRuntimeOwnerIdentity(runtime, ownerKind);
+  const ownerIdentity = getRuntimeOwnerIdentity(runtime);
   if (!ownerIdentity) return null;
 
   return cachePromise(
     aaAccountCache,
-    `${runtime.network.id}:${ownerKind}:${ownerIdentity}`,
-    () => createKernelAccount(runtime, ownerKind),
+    `${runtime.network.id}:${runtime.ownerKind}:${ownerIdentity}`,
+    () => createKernelAccount(runtime),
   );
 };
 
@@ -155,13 +164,12 @@ export const getAaAccountForRuntime = async (
 export const getAaContextForRuntime = async (
   runtime: AaRuntime,
 ): Promise<AaContext | null> => {
-  const ownerKind = getAaOwnerKind(runtime.connectorId);
   const account = await getAaAccountForRuntime(runtime);
-  if (!ownerKind || !account) return null;
+  if (!account) return null;
 
   return cachePromise(
     aaContextCache,
-    `${runtime.network.id}:${ownerKind}:${account.address.toLowerCase()}`,
-    () => createContext(runtime, ownerKind, account),
+    `${runtime.network.id}:${runtime.ownerKind}:${account.address.toLowerCase()}`,
+    () => createContext(runtime, account),
   );
 };

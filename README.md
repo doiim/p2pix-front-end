@@ -7,7 +7,7 @@ This application aims to create a democratic and secure solution for the purchas
 
 # Design, security & trust
 
-P2Pix is a **self-custody** dApp: for injected-EOA and WebAuthn passkey wallets, keys and signing stay on your device. Email/social login (Reown AUTH) is the exception — it uses a Reown-managed signer, not self-custody (see Trusted parties below). Because releasing an escrow still relies on several **trusted third parties**, each one is listed plainly in [Trusted parties & attestation](#trusted-parties--attestation) and in [`SECURITY.md`](./SECURITY.md); a trust-minimized version is in active development — see [Roadmap: trust minimization](#roadmap-trust-minimization).
+P2Pix is a **self-custody** dApp: for injected-EOA and WebAuthn passkey wallets, keys and signing stay on your device. Email/Google login (Magic) is the exception — Magic holds that login key, not self-custody (see Trusted parties below). Because releasing an escrow still relies on several **trusted third parties**, each one is listed plainly in [Trusted parties & attestation](#trusted-parties--attestation) and in [`SECURITY.md`](./SECURITY.md); a trust-minimized version is in active development — see [Roadmap: trust minimization](#roadmap-trust-minimization).
 
 # Table of Contents
 
@@ -45,9 +45,11 @@ Create a `.env` file with these variables the build reads:
 
 | Var | Purpose |
 | --- | --- |
-| `VITE_APP_ENV` | `production` selects Ethereum mainnet + Arbitrum One and the production prover (`api.p2pix.co`); any other value selects Sepolia and the demo hosts |
-| `VITE_PIX_API_URL` | Optional; another prover URL, for a local run against `../zkPix` |
-| `VITE_REOWN_PROJECT_ID` | Reown AppKit project id (required; the app throws at startup without it) |
+| `VITE_APP_ENV` | `production` selects mainnet and the production prover (`api.p2pix.co`); any other value selects testnet and the demo hosts |
+| `VITE_PIX_API_URL` | Prover URL |
+| `VITE_WALLETCONNECT_PROJECT_ID` | WalletConnect project id |
+| `VITE_MAGIC_PUBLISHABLE_KEY` | Magic publishable key; enables email and social login. Optional |
+| `VITE_PASSKEY_RP_ID` | Optional WebAuthn RP id override. |
 | `VITE_PIMLICO_SPONSORSHIP_POLICY_ID` | Pimlico sponsorship policy; enables the smart-account rail and therefore passkey login |
 
 RPC, bundler and subgraph URLs and token addresses are set in `src/config/networks.ts` (see [`ARCHITECTURE.md`](./ARCHITECTURE.md)); contract addresses — and which networks are listed at all — come from the smart-contracts submodule's `deploys/*.json`, so an un-deployed network is not offered.
@@ -97,7 +99,7 @@ The CID is recorded per tag: anyone can check that the build they loaded matches
 
 ## Trusted parties & attestation
 
-P2Pix is self-custodial for signing on injected-EOA and WebAuthn passkey wallets, but releasing an escrow still depends on infrastructure run by third parties (Reown AUTH email/social login is a Reown-managed signer, not you). We disclose every one of these plainly, with no silent trust:
+P2Pix is self-custodial for signing on injected-EOA and WebAuthn passkey wallets, but releasing an escrow still depends on infrastructure run by third parties (Magic email/Google login holds the login key, not you; WalletConnect uses Reown's relay, contacted only when you use it). We disclose every one of these plainly, with no silent trust:
 
 - **What we rely on, and your escape paths** — [`SECURITY.md`](./SECURITY.md).
 - **The design principles behind these tradeoffs** — [`DESIGN.md`](./DESIGN.md).
