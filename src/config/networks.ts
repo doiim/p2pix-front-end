@@ -60,6 +60,17 @@ const testNetworks = [
     tokens: { BRZ: { address: record('sepolia')?.token } },
     aa: { bundlerUrl: 'https://api.pimlico.io/v2/11155111/rpc?apikey=pim_MQjrtKPAPnQ2oyfvyr128e' },
     subgraphUrls: ['https://api.studio.thegraph.com/query/1763496/p-2-pix-arthur/sepolia'],
+    // Test only. CoW's Sepolia solvers read the testnet Uniswap V2 fork
+    // (factory 0xc9f18c25…e978), where the MockBRZ/WETH pair 0x802c967F…E39c
+    // was seeded for this. USDC: Circle's Sepolia token, routed via WETH.
+    swap: {
+      apiUrl: 'https://api.cow.fi/sepolia',
+      settlement: '0x9008D19f58AAbD9eD0D60971565AA8510560ab41',
+      tokens: [
+        { symbol: 'USDC', name: 'USD Coin', address: '0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238' },
+        { symbol: 'WETH', name: 'Wrapped Ether', address: '0xfFf9976782d46CC05630D1f6eBAb18b2324d6B14' },
+      ],
+    },
   }),
 ];
 
