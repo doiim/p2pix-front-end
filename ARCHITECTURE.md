@@ -17,7 +17,7 @@ Blueprint of what we actually ship: the stack, the signing rails, the prover pro
 | State | Module-scoped `ref`s in composables; `useUser()` is the de-facto store. | `src/composables/` |
 | Routing | Hash history in built bundles (`base: './'`), so the bundle runs from any path, including `ipfs://<CID>` — no server origin required; HTML5 history under the dev server. One view per flow: `/` buy (`/:lockID` resumes a lock), `/seller` offer and deposit, `/manage_bids` withdraw, `/explore`, `/faq`, `/versions`, `/account`. | `src/router/index.ts`, `src/views/` |
 | Copy | Hardcoded pt-BR strings. | `src/views/*`, `src/components/*` |
-| Tests | Vitest. | `vitest.config.ts` |
+| Tests | Vitest (`tests/`). | `vitest.config.ts` |
 
 Build-time configuration, injected by CI (the build also bakes in git-derived release metadata and the submodule's deployment addresses, see Build & verification):
 
@@ -79,13 +79,13 @@ The proof binds the lock itself, through the reconciliation code the prover wrot
 Reads are split by concern so that no single party is silently authoritative:
 
 - **Subgraph for discovery.** Deposit lists and liquidity, wallet history and the Explore view's activity and analytics come from The Graph (`src/blockchain/events.ts`, `src/blockchain/wallet.ts`, `src/composables/useGraphQL.ts`). The subgraph is an _index_; the chain is authoritative.
-- **RPC for authority.** Money amounts are read from the chain with viem `readContract` / `multicall` (`getBalance`, `mapLocks`, `getLocksStatus`, `getPixTarget`, `userRecord`, ERC-20 `allowance` / `balanceOf`); which deposits and locks to read is discovered through the subgraph. The buyer's spend limit comes from a separate Reputation contract, whose address the P2Pix contract reports (`reputation`, `limiter`; `src/components/BuyerSteps/BuyerSearchComponent.vue`).
+- **RPC for authority.** Money amounts are read from the chain with viem `readContract` / `multicall` (`getBalance`, `mapLocks`, `getLocksStatus`, `getPixTarget`, `userRecord`, ERC-20 `allowance` / `balanceOf`); which deposits and locks to read is discovered through the subgraph. The buyer's spend limit comes from a separate Reputation contract, whose address the P2Pix contract reports (`reputation`, `limiter`; `src/blockchain/reputation.ts`).
 - **Whose RPC.** Reads use the app-supplied wagmi transports: `createConfig` in `src/wallet/wagmi.ts` builds each chain's transport as `http(<first RPC URL>)` from `src/config/networks.ts` with no other read fallback. The Alchemy URLs there also serve the passkey connector's on-chain reads and Magic, which are handed the default network's URL. They are deviations — metadata-visible read providers — and the configurable-infra switch is an open gap in `SECURITY.md`. The zero option we owe is pointing the app at your own RPC and subgraph.
 - **Direct contract escape path.** Every P2Pix contract action the UI performs — `deposit`, `lock`, `release`, `withdraw` — is a public function callable with any EIP-1193 wallet against the deployed address, without this frontend. The app is a convenience, not a permission slip.
 
 ### 5. Distribution layer
 
-One workflow, `.gitea/workflows/ci.yml` (`CI & Deploy`), builds every branch and tag push, PRs and manual dispatches. Build mode follows the audience: PR previews, `main` and tags build production (`VITE_APP_ENV=production`, mainnet config); other branch pushes build development (testnet config). It installs, lints, checks formatting, runs the test step, generates the ABIs, builds, then deploys from hosted CI runners — team-run infrastructure, a deviation (`SECURITY.md`, walkaway requirements):
+One workflow, `.gitea/workflows/ci.yml` (`CI & Deploy`), builds every branch and tag push, PRs and manual dispatches. Build mode follows the audience: PR previews, `main` and tags build production (`VITE_APP_ENV=production`, mainnet config); other branch pushes build development (testnet config). It installs, lints, checks formatting, generates the ABIs, runs the unit tests, builds, then deploys from hosted CI runners — team-run infrastructure, a deviation (`SECURITY.md`, walkaway requirements):
 
 - **Self-hosted server.** `dist/` is rsynced over SSH into a directory named after the ref. Development builds are served at `*.demo.p2pix.co`.
 - **IPFS.** `dist/` is merkleized in CI, SHA-256 and CID profile pinned in the workflow; the resulting CAR is uploaded to a remote pinning service, which pins the root CID.

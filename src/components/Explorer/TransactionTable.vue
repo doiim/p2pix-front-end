@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref } from 'vue';
+import { shortAddress } from '@/utils/shortAddress';
 
 interface Transaction {
   id: string;
@@ -46,10 +47,6 @@ const getTransactionTypeColor = (type: string) => {
     return: 'text-gray-600',
   };
   return colorMap[type as keyof typeof colorMap] || 'text-gray-600';
-};
-
-const formatAddress = (address: string) => {
-  return `${address.slice(0, 6)}...${address.slice(-4)}`;
 };
 
 const formatAmount = (amount: string, decimals: number = 18): string => {
@@ -136,7 +133,7 @@ const copyToClipboard = async (address: string, key: string) => {
                       "
                       title="Copiar"
                     >
-                      {{ formatAddress(transaction.seller) }}
+                      {{ shortAddress(transaction.seller, 6, '...') }}
                     </span>
                     <transition name="fade">
                       <span
@@ -161,7 +158,7 @@ const copyToClipboard = async (address: string, key: string) => {
                       "
                       title="Copiar"
                     >
-                      {{ formatAddress(transaction.buyer) }}
+                      {{ shortAddress(transaction.buyer, 6, '...') }}
                     </span>
                     <transition name="fade">
                       <span
@@ -231,7 +228,7 @@ const copyToClipboard = async (address: string, key: string) => {
                 "
                 title="Copiar"
               >
-                {{ formatAddress(transaction.seller) }}
+                {{ shortAddress(transaction.seller, 6, '...') }}
               </span>
               <transition name="fade">
                 <span
@@ -253,7 +250,7 @@ const copyToClipboard = async (address: string, key: string) => {
                 "
                 title="Copiar"
               >
-                {{ formatAddress(transaction.buyer) }}
+                {{ shortAddress(transaction.buyer, 6, '...') }}
               </span>
               <transition name="fade">
                 <span

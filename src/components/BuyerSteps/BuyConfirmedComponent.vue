@@ -17,11 +17,14 @@ import { useUser } from '@/composables/useUser';
 import { onMounted, ref, watch } from 'vue';
 import ListingComponent from '@/components/ListingComponent/ListingComponent.vue';
 import { erc20Abi, UserRejectedRequestError } from 'viem';
+import ReputationNewLimitLine from '@/components/BuyerSteps/Reputation/ReputationNewLimitLine.vue';
+import type { LimitChange } from '@/utils/reputation';
 
 // props
 const props = defineProps<{
   tokenAmount: number | undefined;
   isCurrentStep: boolean;
+  newLimit: LimitChange | null;
 }>();
 
 const user = useUser();
@@ -161,9 +164,13 @@ const watchToken = async () => {
 const emit = defineEmits(['makeAnotherTransaction']);
 
 // observer
-watch(props, async (): Promise<void> => {
-  if (props.isCurrentStep) await getWalletTransactions();
-});
+// Not `watch(props)`: the late `newLimit` update must not re-run the subgraph and RPC reads.
+watch(
+  [() => props.tokenAmount, () => props.isCurrentStep],
+  async (): Promise<void> => {
+    if (props.isCurrentStep) await getWalletTransactions();
+  },
+);
 
 onMounted(async () => {
   await getWalletTransactions();
@@ -185,6 +192,10 @@ onMounted(async () => {
           <p class="text-2xl text-gray-900">
             {{ props.tokenAmount }} {{ user.selectedToken }}
           </p>
+          <ReputationNewLimitLine
+            v-if="props.newLimit"
+            v-bind="props.newLimit"
+          />
         </div>
         <div class="my-5">
           <p class="text-sm">

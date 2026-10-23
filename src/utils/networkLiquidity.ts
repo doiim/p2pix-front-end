@@ -1,19 +1,13 @@
 import type { ValidDeposit } from '@/model/ValidDeposit';
-import { isAddressEqual, type Address } from 'viem';
 
 const verifyNetworkLiquidity = (
   tokenValue: number,
-  walletAddress: Address,
   validDepositList: ValidDeposit[],
 ): ValidDeposit[] => {
   const filteredDepositList = validDepositList
     .filter((element) => {
       const remaining = element.remaining;
-      if (
-        tokenValue! <= remaining &&
-        tokenValue! != 0 &&
-        !isAddressEqual(element.seller, walletAddress)
-      ) {
+      if (tokenValue! <= remaining && tokenValue! != 0) {
         return true;
       }
       return false;

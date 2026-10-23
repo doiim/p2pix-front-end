@@ -155,7 +155,6 @@ const getValidDeposits = async (
         remaining: Number(formatEther(mappedBalance.result)),
         seller,
         network,
-        participantID: '',
       };
       depositList[seller + token] = validDeposit;
     }

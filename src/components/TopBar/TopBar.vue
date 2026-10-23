@@ -16,6 +16,7 @@ import {
   getEffectiveWalletAddress,
   resetAaAccountCache,
 } from '@/blockchain/aa/operations';
+import { shortAddress } from '@/utils/shortAddress';
 
 interface MenuOption {
   label: string;
@@ -91,13 +92,7 @@ watch(connection.chainId, (newChainId) => {
 const formatWalletAddress = (): string => {
   const value = walletAddress.value;
   if (!value) throw new Error('Carteira não conectada');
-  const walletAddressLength = value.length;
-  const initialText = value.substring(0, 5);
-  const finalText = value.substring(
-    walletAddressLength - 4,
-    walletAddressLength,
-  );
-  return `${initialText}...${finalText}`;
+  return shortAddress(value, 5, '...');
 };
 
 const disconnectUser = async (): Promise<void> => {

@@ -6,7 +6,6 @@ export type ValidDeposit = {
   blockNumber: number;
   remaining: number;
   seller: Address;
-  participantID: string;
   network: NetworkConfig;
   open?: boolean;
 };
