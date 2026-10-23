@@ -25,6 +25,12 @@ P2Pix is self-custodial for signing on injected and WalletConnect EOAs and WebAu
 - _Disclosure:_ The relayer observes transaction traffic.
 - _Escape path:_ Any ERC-4337 bundler can relay the UserOp; the endpoint is a literal in `src/config/networks.ts`, so routing around Pimlico requires editing it and rebuilding (UI switch is an open gap).
 
+### CoW Protocol order book (`api.cow.fi`) — optional swap
+
+- **What it is:** CoW Protocol's order book, used only on Arbitrum One and only when the buyer picks a swap token (USDT, USDC, DAI, WETH or cbBTC) instead of BRZ, or the seller pays with one of them instead of BRZ. The app requests quotes from it and posts the user's order; independent solvers settle the order through the GPv2Settlement contract. Orders are built, hashed and signed client-side (EIP-712 on the EOA rail, an on-chain pre-signature from the smart account); the API supplies only a price, and the order uid it returns must equal the locally computed one.
+- **What it sees or can block:** the requester's IP, the user's address (the zero address before a wallet is connected), the token pair, amounts and timing — quotes are requested as the user types, before any wallet action. It can refuse, delay or never settle an order; it cannot move more than the signed sell limit or pay anyone but the user, and an unfilled order expires after 30 minutes with the tokens still in the user's account.
+- **Escape path:** release never depends on the swap — a quote or order failure delivers BRZ and the buyer keeps it ("Ficar com BRZ") or trades it on any DEX. A live order can be withdrawn on-chain (`setPreSignature(uid, false)` or `invalidateOrder(uid)` on GPv2Settlement), not only through the API.
+
 ### WalletConnect relay (`wss://relay.walletconnect.com`, …)
 
 - **What it is:** transport for WalletConnect sessions.
@@ -83,6 +89,12 @@ Every request below is triggered by **first-party** code in this front-end (not 
   - _Data exposed:_ Query (read) parameters, addresses.
   - _Escape path:_ Index, not authoritative; the chain is the source of truth. Pointing at another subgraph requires a rebuild; only `subgraphUrls[0]` is used (open gap).
 
+- **`https://api.cow.fi/arbitrum_one`** (CoW Protocol order book) — _on user action (swap token picked)_
+  - _Trigger:_ Buy or sell form with a swap token selected on Arbitrum One (quotes while typing), order post, and order status polling every 10 s while it is live.
+  - _Purpose:_ Price quotes and order relay to solvers; settlement is on-chain.
+  - _Data exposed:_ Address (zero address before connecting), token pair, amounts, timing.
+  - _Escape path:_ Pick BRZ — no request is made. The endpoint is `swap.apiUrl` in `src/config/networks.ts`.
+
 - **`https://api.p2pix.co` / `https://demo.api.p2pix.co`** (P2Pix prover) — _on user action (trade)_
   - _Trigger:_ Seller registration (`/register`), buyer charge creation (`/request`), release polling (`/release`).
   - _Purpose:_ Pix charge creation and the proof of Pix payment.
@@ -123,9 +135,9 @@ Neither the build output nor any config in this repo sets a `connect-src` CSP; w
 | Structural metadata hardening | ⚠️ | The connect UI loads no remote wallet lists or images; Magic loads its own iframe when email/Google login is used. |
 | Reproducible, signed releases | ❌ | Rebuilding a tag to its recorded CID is an open gap; releases are not signed. |
 | Explicit privacy boundaries | ✅ | Metadata-only guarantee; on-chain content is public |
-| Signing safety | ⚠️ | Exact-amount approvals, chainId checks and wallet-visible actions; no EIP-4361 (no off-chain auth) and no documented tx simulation. |
+| Signing safety | ⚠️ | Exact-amount approvals, chainId checks and wallet-visible actions; CoW swap orders are built locally with the buyer as receiver, their EIP-712 domain pins the chain and settlement contract, and the relayer approval covers exactly the order's sell limit. No EIP-4361 (no off-chain auth) and no documented tx simulation. |
 | Read-path metadata hygiene | ❌ | Reads go through shared RPC/indexer endpoints with no user-configurable option in the shipped app. |
-| Zero option | ❌ | Contract writes are callable directly (✓), but escrow release has no intermediary-free path today; the Bacen ask ([bacen/pix-api#61](https://github.com/bacen/pix-api/issues/61)) is the primary route to one. |
+| Zero option | ❌ | Contract writes are callable directly (✓), but escrow release has no intermediary-free path today; the Bacen ask ([bacen/pix-api#61](https://github.com/bacen/pix-api/issues/61)) is the primary route to one. The optional CoW swap has one: keep the released BRZ. |
 | User-controlled defenses | ✅ | No default blocklists, venue steering, or opaque AI in the shipped app. |
 | Cross-layer review | ⚠️ | The zkPix design places the forgeable point in the `validAttestors` set and the prover's BB Pay credentials — a disclosed relocation of the chokepoint, not an elimination. |
 | Two-pillar review before ship | ⚠️ | This document is the record; there is no automated CI gate yet. |

@@ -1,5 +1,6 @@
 import type { Chain, ChainContract } from 'viem';
 import type { AaConfig } from '@/config/aa';
+import type { SwapConfig } from '@/config/swap';
 
 export enum TokenEnum {
   BRZ = 'BRZ',
@@ -14,4 +15,6 @@ export type NetworkConfig = Chain & {
    * whose P2Pix deployment supports the AA rail. Absence means AA is disabled for this chain.
    */
   aa?: AaConfig;
+  /** Post-release CoW swap. Absence means only BRZ is offered on this chain. */
+  swap?: SwapConfig;
 };

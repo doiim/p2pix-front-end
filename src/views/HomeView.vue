@@ -21,7 +21,16 @@ import { getNetworksLiquidity } from '@/blockchain/events';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
-import type { Address } from 'viem';
+import {
+  loadSwapIntent,
+  releaseAndSwap,
+  saveSwapIntent,
+  separatePrompts,
+  type SwapIntent,
+} from '@/blockchain/swap';
+import { promptsNotice } from '@/utils/walletPrompts';
+import { TokenEnum } from '@/model/NetworkEnum';
+import type { Address, Hex } from 'viem';
 import type { PixProof } from '@/utils/pixProof';
 
 enum Step {
@@ -44,6 +53,8 @@ const loadingRelease = ref<boolean>(false);
 const showModal = ref<boolean>(false);
 const showBuyAlert = ref<boolean>(false);
 const showLockRecoveryAlert = ref<boolean>(false);
+const swapResult = ref<{ uid: Hex | null; token: string }>();
+const releaseNotice = ref<string | null>(null);
 const paramLockID = window.history.state?.lockID;
 // Set when the contract refused the lock with AmountNotAllowed: the search step reopens with that press.
 const searchRefusal = ref<BuyPress | null>(null);
@@ -58,9 +69,11 @@ watch(flowStep, (step) => {
 const confirmBuyClick = async (
   selectedDeposit: ValidDeposit,
   press: BuyPress,
+  swapIntent?: SwapIntent,
 ) => {
   searchRefusal.value = null;
   tokenAmount.value = press.amount;
+  swapResult.value = undefined;
 
   flowStep.value = Step.Buy;
   user.setLoadingLock(true);
@@ -100,6 +113,7 @@ const confirmBuyClick = async (
       flowStep.value = Step.Search;
     });
 
+  if (swapIntent && lockID.value) saveSwapIntent(lockID.value, swapIntent);
   user.setLoadingLock(false);
 };
 
@@ -112,9 +126,23 @@ const releaseTransaction = async (proof: PixProof) => {
   const networkName = network.value.name;
 
   try {
-    const receipt = await releaseLock(BigInt(lockID.value), proof);
+    const intent = loadSwapIntent(lockID.value);
+    releaseNotice.value = intent
+      ? promptsNotice(await separatePrompts(true), {
+          sell: TokenEnum.BRZ,
+          buy: intent.token,
+        })
+      : null;
+    const released = intent
+      ? await releaseAndSwap(BigInt(lockID.value), proof, intent)
+      : {
+          uid: null,
+          blockNumber: (await releaseLock(BigInt(lockID.value), proof))
+            .blockNumber,
+        };
+    if (intent) swapResult.value = { uid: released.uid, token: intent.token };
     // Not awaited: the screen shows now and the line appears once the read lands. refresh() never rejects.
-    void reputation.refresh({ minBlock: receipt.blockNumber }).then((read) => {
+    void reputation.refresh({ minBlock: released.blockNumber }).then((read) => {
       newLimit.value =
         read.ok &&
         beforeTokens !== null &&
@@ -231,12 +259,16 @@ onMounted(async () => {
           :tokenAmount="tokenAmount"
           :is-current-step="flowStep == Step.List"
           :new-limit="newLimit"
+          :swap="swapResult"
           @make-another-transaction="flowStep = Step.Search"
         />
       </div>
       <LoadingComponent
         v-if="loadingRelease"
-        :message="'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'"
+        :message="
+          releaseNotice ??
+          'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'
+        "
       />
     </div>
   </div>
