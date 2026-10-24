@@ -53,7 +53,11 @@ const showExplorerLink = computed(() => {
 });
 
 const showContinueButton = computed(() => {
-  return eventName.value === 'Reserva' && props.transaction.lockStatus === 1;
+  return (
+    eventName.value === 'Reserva' &&
+    props.transaction.lockStatus === 1 &&
+    !!props.transaction.transactionID
+  );
 });
 
 const formattedDate = computed(() => {
@@ -115,8 +119,8 @@ const handleExplorerClick = () => {
         >
           <RouterLink
             :to="{
-              name: 'home',
-              force: true,
+              name: 'redirect buy',
+              params: { lockID: transaction.transactionID },
               state: { lockID: transaction.transactionID },
             }"
             class="router-button"

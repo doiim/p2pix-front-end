@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { ValidDeposit } from '@/model/ValidDeposit';
-import { ref, watch, computed } from 'vue';
-import { debounce } from '@/utils/debounce';
+import { ref, computed } from 'vue';
 import { decimalCount } from '@/utils/decimalCount';
 import IconButton from '../ui/IconButton.vue';
 import withdrawIcon from '@/assets/withdraw.svg?url';
@@ -24,9 +23,6 @@ const emit = defineEmits<{
 
 const withdrawAmount = ref<string>('');
 const isCollapsibleOpen = ref<boolean>(false);
-const validDecimals = ref<boolean>(true);
-const validWithdrawAmount = ref<boolean>(true);
-const enableConfirmButton = ref<boolean>(false);
 
 const remaining = computed(() => {
   if (props.validDeposits.length > 0) {
@@ -36,32 +32,29 @@ const remaining = computed(() => {
   return 0;
 });
 
-const handleInputEvent = (event: any): void => {
-  const { value } = event.target;
-
-  if (decimalCount(String(value)) > 2) {
-    validDecimals.value = false;
-    enableConfirmButton.value = false;
-    return;
-  }
-  validDecimals.value = true;
-
-  if (value > remaining.value) {
-    validWithdrawAmount.value = false;
-    enableConfirmButton.value = false;
-    return;
-  }
-  validWithdrawAmount.value = true;
-  enableConfirmButton.value = true;
-};
+// The amount leaves as the decimal string `parseEther` consumes, so it stays a
+// string from the input down (text + inputmode instead of a number input) and
+// the pattern below is the accepted grammar.
+const enteredAmount = computed(() => Number(withdrawAmount.value));
+const validDecimals = computed(() => decimalCount(withdrawAmount.value) <= 2);
+// NaN-safe on purpose: garbage input keeps the button off without claiming
+// "Saldo insuficiente".
+const validWithdrawAmount = computed(
+  () => !(enteredAmount.value > remaining.value),
+);
+const enableConfirmButton = computed(
+  () =>
+    /^(\d+|\d*\.\d{1,2})$/.test(withdrawAmount.value) &&
+    enteredAmount.value > 0 &&
+    validWithdrawAmount.value,
+);
 
 const callWithdraw = () => {
-  if (enableConfirmButton.value && withdrawAmount.value) {
-    emit('withdraw', withdrawAmount.value);
-    // Reset form after withdraw
-    withdrawAmount.value = '';
-    isCollapsibleOpen.value = false;
-  }
+  if (!enableConfirmButton.value) return;
+  emit('withdraw', withdrawAmount.value);
+  // Reset form after withdraw
+  withdrawAmount.value = '';
+  isCollapsibleOpen.value = false;
 };
 
 const openWithdrawForm = () => {
@@ -71,9 +64,6 @@ const openWithdrawForm = () => {
 const cancelWithdraw = () => {
   isCollapsibleOpen.value = false;
   withdrawAmount.value = '';
-  validDecimals.value = true;
-  validWithdrawAmount.value = true;
-  enableConfirmButton.value = false;
 };
 </script>
 
@@ -140,11 +130,11 @@ const cancelWithdraw = () => {
       <div v-show="isCollapsibleOpen" class="py-2 w-100">
         <p class="text-sm leading-5 font-medium">Valor do saque</p>
         <input
-          type="number"
-          @input="debounce(handleInputEvent, 500)($event)"
+          type="text"
+          inputmode="decimal"
           placeholder="0"
           class="text-2xl text-gray-900 w-full outline-none"
-          v-model="withdrawAmount"
+          v-model.trim="withdrawAmount"
         />
       </div>
       <div class="flex justify-center" v-if="!validDecimals">
@@ -188,16 +178,6 @@ p {
 
 .tooltip {
   @apply bg-white text-gray-900 font-medium text-xs md:text-base px-3 py-2 rounded border-2 border-emerald-500 left-5 top-[-3rem];
-}
-
-input[type='number'] {
-  appearance: textfield;
-  -moz-appearance: textfield;
-}
-
-input[type='number']::-webkit-inner-spin-button,
-input[type='number']::-webkit-outer-spin-button {
-  -webkit-appearance: none;
 }
 
 @media screen and (max-width: 640px) {

@@ -2,6 +2,7 @@ import type { LockStatus } from '@/model/LockStatus';
 import type { Address } from 'viem';
 
 export type WalletTransaction = {
+  id: string;
   token?: Address;
   blockNumber: number;
   blockTimestamp?: number;

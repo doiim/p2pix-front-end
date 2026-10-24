@@ -111,6 +111,7 @@ export const listAllTransactionByWalletAddress = async (
           transactionHash
         }
         lockAddeds(where: {buyer: "${escapedAddress}"}) {
+          id
           buyer
           lockID
           seller
@@ -120,6 +121,7 @@ export const listAllTransactionByWalletAddress = async (
           transactionHash
         }
         lockReleaseds(where: {buyer: "${escapedAddress}"}) {
+          id
           buyer
           lockId
           blockTimestamp
@@ -127,6 +129,7 @@ export const listAllTransactionByWalletAddress = async (
           transactionHash
         }
         depositWithdrawns(where: {seller: "${escapedAddress}"}) {
+          id
           seller
           token
           amount
@@ -159,6 +162,7 @@ export const listAllTransactionByWalletAddress = async (
   if (data.data?.depositAddeds) {
     for (const deposit of data.data.depositAddeds) {
       transactions.push({
+        id: deposit.id,
         token: deposit.token,
         blockNumber: parseInt(deposit.blockNumber),
         blockTimestamp: parseInt(deposit.blockTimestamp),
@@ -179,6 +183,7 @@ export const listAllTransactionByWalletAddress = async (
       const lockStatus = await readLockStatus(BigInt(lock.lockID));
 
       transactions.push({
+        id: lock.id,
         token: lock.token,
         blockNumber: parseInt(lock.blockNumber),
         blockTimestamp: parseInt(lock.blockTimestamp),
@@ -197,6 +202,7 @@ export const listAllTransactionByWalletAddress = async (
   if (data.data?.lockReleaseds) {
     for (const release of data.data.lockReleaseds) {
       transactions.push({
+        id: release.id,
         token: undefined, // Subgraph doesn't provide token in this event, we could enhance this later
         blockNumber: parseInt(release.blockNumber),
         blockTimestamp: parseInt(release.blockTimestamp),
@@ -215,6 +221,7 @@ export const listAllTransactionByWalletAddress = async (
   if (data.data?.depositWithdrawns) {
     for (const withdrawal of data.data.depositWithdrawns) {
       transactions.push({
+        id: withdrawal.id,
         token: withdrawal.token,
         blockNumber: parseInt(withdrawal.blockNumber),
         blockTimestamp: parseInt(withdrawal.blockTimestamp),

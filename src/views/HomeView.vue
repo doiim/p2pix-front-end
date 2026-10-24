@@ -182,7 +182,6 @@ if (paramLockID) {
 onMounted(async () => {
   await getNetworksLiquidity();
   if (walletAddress.value && !paramLockID) await checkForUnreleasedLocks();
-  window.history.state.lockID = '';
 });
 </script>
 

@@ -35,10 +35,11 @@ const showInitialItems = (): void => {
   itemsToShow.value = props.walletTransactions.slice(0, 3);
 };
 
-const openEtherscanUrl = (transactionHash: string): void => {
+const openExplorerUrl = (transactionHash: string): void => {
   const networkUrl = user.network.value.blockExplorers?.default.url;
-  const url = `https://${networkUrl}/tx/${transactionHash}`;
-  window.open(url, '_blank');
+  if (!networkUrl) return;
+  const url = `${networkUrl}/tx/${transactionHash}`;
+  window.open(url, '_blank', 'noopener');
 };
 
 const loadMore = (): void => {
@@ -85,11 +86,11 @@ showInitialItems();
 
     <TransactionCard
       v-for="item in itemsToShow"
-      :key="item.blockNumber"
+      :key="item.id"
       :selected-token="user.selectedToken.value"
       :transaction="item"
       :network="user.network.value"
-      @open-explorer="openEtherscanUrl"
+      @open-explorer="openExplorerUrl"
     />
 
     <div
