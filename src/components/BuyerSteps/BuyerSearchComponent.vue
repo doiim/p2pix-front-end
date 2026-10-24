@@ -58,7 +58,7 @@ const selectedNetworkUnread = computed(() =>
 );
 
 // html references
-const tokenDropdownEl = useTemplateRef<HTMLButtonElement>('tokenDropdown');
+const tokenDropdownEl = useTemplateRef<HTMLDivElement>('tokenDropdown');
 const amountInputEl = useTemplateRef<HTMLInputElement>('amountInput');
 const maxButtonEl =
   useTemplateRef<InstanceType<typeof ReputationMaxButton>>('maxButton');
@@ -67,7 +67,6 @@ const limitRowEl =
 
 // Reactive state (seeded before any watcher exists, so a refusal does not clear itself)
 const selectTokenToggle = ref<boolean>(false);
-const identification = ref('');
 const amountText = ref(
   props.refusal ? amountInputText(floorCents(props.refusal.amount)) : '',
 );
@@ -225,8 +224,8 @@ const emitConfirmButton = (checkedWithin: boolean): void => {
   emit('tokenBuy', deposit, press);
 };
 
-const openTokenSelection = (): void => {
-  selectTokenToggle.value = true;
+const toggleTokenSelection = (): void => {
+  selectTokenToggle.value = !selectTokenToggle.value;
 };
 
 onClickOutside(tokenDropdownEl, () => {
@@ -310,217 +309,191 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
 </script>
 
 <template>
-  <div class="page">
-    <div class="text-container">
-      <span
-        class="text font-extrabold sm:text-5xl text-3xl sm:max-w-[29rem] max-w-[20rem]"
-      >
-        Adquira cripto com apenas um Pix</span
-      >
-      <span class="text font-medium sm:text-base text-sm max-w-[28rem]"
-        >Digite um valor, confira a oferta, conecte sua carteira e receba os
-        tokens após realizar o Pix</span
-      >
-    </div>
-    <form class="main-container" @submit="handleSubmit">
-      <div class="backdrop-blur -z-10 w-full h-full"></div>
-      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg">
-        <div class="flex justify-between sm:w-full items-center gap-3 sm:gap-4">
-          <input
-            ref="amountInput"
-            v-model="amountText"
-            type="text"
-            inputmode="decimal"
-            name="tokenAmount"
-            placeholder="0"
-            required
-            :aria-label="`Quantidade de ${selectedToken}`"
-            :aria-invalid="amountInvalid ? 'true' : 'false'"
-            :aria-describedby="limitState ? 'rep-status rep-amount' : undefined"
-            class="flex-1 min-w-0 max-w-[60%] p-0 border-0 outline-none bg-transparent text-xl font-semibold placeholder:text-gray-900/50"
-            :class="amountInvalid ? 'text-red-700' : 'text-gray-900'"
+  <form class="main-container" @submit="handleSubmit">
+    <slot />
+    <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg">
+      <div class="flex justify-between sm:w-full items-center gap-3 sm:gap-4">
+        <input
+          ref="amountInput"
+          v-model="amountText"
+          type="text"
+          inputmode="decimal"
+          name="tokenAmount"
+          placeholder="0"
+          required
+          :aria-label="`Quantidade de ${selectedToken}`"
+          :aria-invalid="amountInvalid ? 'true' : 'false'"
+          :aria-describedby="limitState ? 'rep-status rep-amount' : undefined"
+          class="flex-1 min-w-0 max-w-[60%] p-0 border-0 outline-none bg-transparent text-xl font-semibold placeholder:text-gray-900/50"
+          :class="amountInvalid ? 'text-red-700' : 'text-gray-900'"
+        />
+        <div class="flex items-center flex-none gap-1 sm:gap-2 ml-auto sm:ml-0">
+          <ReputationMaxButton
+            v-if="limitState"
+            ref="maxButton"
+            :variant="limitState.variant"
+            :limit-tokens="limitState.snapshot.limitTokens"
+            :max-offer-cents="maxOfferCents"
+            @fill="onFill"
           />
-          <div
-            class="flex items-center flex-none gap-1 sm:gap-2 ml-auto sm:ml-0"
-          >
-            <ReputationMaxButton
-              v-if="limitState"
-              ref="maxButton"
-              :variant="limitState.variant"
-              :limit-tokens="limitState.snapshot.limitTokens"
-              :max-offer-cents="maxOfferCents"
-              @fill="onFill"
-            />
-            <div class="relative overflow-visible">
-              <button
-                ref="tokenDropdown"
-                type="button"
-                class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
-                @click="openTokenSelection()"
+          <div ref="tokenDropdown" class="relative overflow-visible">
+            <button
+              type="button"
+              class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
+              :aria-expanded="selectTokenToggle"
+              @click="toggleTokenSelection()"
+            >
+              <img
+                alt="Imagem do token"
+                class="sm:w-fit w-4"
+                :src="getTokenImage(selectedToken)"
+              />
+              <span
+                class="text-gray-900 sm:text-lg text-md font-medium"
+                id="token"
+                >{{ selectedToken }}</span
               >
-                <img
-                  alt="Imagem do token"
-                  class="sm:w-fit w-4"
-                  :src="getTokenImage(selectedToken)"
-                />
-                <span
-                  class="text-gray-900 sm:text-lg text-md font-medium"
-                  id="token"
-                  >{{ selectedToken }}</span
-                >
-                <ChevronDown
-                  class="pr-4 sm:pr-0 transition-all duration-500 ease-in-out invert"
-                  :class="{ 'scale-y-[-1]': selectTokenToggle }"
-                  alt="Expandir"
-                />
-              </button>
-              <transition name="dropdown">
+              <ChevronDown
+                class="shrink-0 text-gray-900 transition-all duration-500 ease-in-out"
+                :class="{ 'scale-y-[-1]': selectTokenToggle }"
+                alt="Expandir"
+              />
+            </button>
+            <transition name="dropdown">
+              <div
+                v-if="selectTokenToggle"
+                class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
+              >
                 <div
-                  v-if="selectTokenToggle"
-                  class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
+                  class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
                 >
                   <div
-                    class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
+                    v-for="token in TokenEnum"
+                    :key="token"
+                    class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
+                    @click="handleSelectedToken(token)"
                   >
-                    <div
-                      v-for="token in TokenEnum"
-                      :key="token"
-                      class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
-                      @click="handleSelectedToken(token)"
+                    <img
+                      :alt="token + ' logo'"
+                      width="20"
+                      height="20"
+                      :src="getTokenImage(token)"
+                    />
+                    <span
+                      class="text-gray-900 py-4 text-end font-semibold text-sm"
                     >
-                      <img
-                        :alt="token + ' logo'"
-                        width="20"
-                        height="20"
-                        :src="getTokenImage(token)"
-                      />
-                      <span
-                        class="text-gray-900 py-4 text-end font-semibold text-sm"
-                      >
-                        {{ token }}
-                      </span>
-                    </div>
-                    <div class="w-full flex justify-center">
-                      <hr class="w-4/5" />
-                    </div>
+                      {{ token }}
+                    </span>
+                  </div>
+                  <div class="w-full flex justify-center">
+                    <hr class="w-4/5" />
                   </div>
                 </div>
-              </transition>
-            </div>
+              </div>
+            </transition>
           </div>
         </div>
-        <div class="custom-divide py-2 mb-2"></div>
-        <template v-if="!loadingNetworkLiquidity">
-          <div class="flex justify-between">
-            <p class="text-gray-500 font-normal text-sm w-auto">
-              ~ R$ {{ formatBrlFixed(displayCents) }}
-            </p>
-            <div class="flex gap-2">
-              <img
-                v-for="network in availableNetworks"
-                :key="network.id"
-                :alt="`${network.name} image`"
-                :src="getNetworkImage(network.name)"
-                width="24"
-                height="24"
-              />
-            </div>
+      </div>
+      <div class="custom-divide py-2 mb-2"></div>
+      <template v-if="!loadingNetworkLiquidity">
+        <div class="flex justify-between">
+          <p class="text-gray-500 font-normal text-sm w-auto">
+            ~ R$ {{ formatBrlFixed(displayCents) }}
+          </p>
+          <div class="flex gap-2">
+            <img
+              v-for="network in availableNetworks"
+              :key="network.id"
+              :alt="`${network.name} image`"
+              :src="getNetworkImage(network.name)"
+              width="24"
+              height="24"
+            />
           </div>
-          <ReputationChecking v-if="showChecking" />
-          <template v-else-if="limitState">
-            <ReputationLimitRow
-              ref="limitRow"
-              :variant="limitState.variant"
-              :limit-tokens="limitState.snapshot.limitTokens"
-              :expanded="open"
-              @toggle="onToggle"
-            />
-            <ReputationDetailsPanel
-              v-if="open"
-              v-model:tag="tag"
-              :snapshot="limitState.snapshot"
-              :network-name="network.name"
-              :account-kind="accountKind"
-              :amount-cents="displayCents"
-              :max-offer-cents="maxOfferCents"
-              :limit-changed="refused && refusal?.checkedWithin === true"
-              @close="onPanelClose"
-            />
-          </template>
+        </div>
+        <ReputationChecking v-if="showChecking" />
+        <template v-else-if="limitState">
+          <ReputationLimitRow
+            ref="limitRow"
+            :variant="limitState.variant"
+            :limit-tokens="limitState.snapshot.limitTokens"
+            :expanded="open"
+            @toggle="onToggle"
+          />
+          <ReputationDetailsPanel
+            v-if="open"
+            v-model:tag="tag"
+            :snapshot="limitState.snapshot"
+            :network-name="network.name"
+            :account-kind="accountKind"
+            :amount-cents="displayCents"
+            :max-offer-cents="maxOfferCents"
+            :limit-changed="refused && refusal?.checkedWithin === true"
+            @close="onPanelClose"
+          />
         </template>
-        <div
-          class="flex justify-center items-center"
-          v-if="loadingNetworkLiquidity"
+      </template>
+      <div
+        class="flex justify-center items-center"
+        v-if="loadingNetworkLiquidity"
+      >
+        <span class="text-gray-900 font-normal text-sm mr-2"
+          >Carregando liquidez das redes.</span
         >
-          <span class="text-gray-900 font-normal text-sm mr-2"
-            >Carregando liquidez das redes.</span
-          >
-          <SpinnerComponent width="4" height="4"></SpinnerComponent>
-        </div>
-        <div
-          class="flex justify-center"
-          v-if="!validDecimals && !loadingNetworkLiquidity"
-        >
-          <span class="text-red-500 font-normal text-sm"
-            >Por favor utilize no máximo 2 casas decimais</span
-          >
-        </div>
-        <div
-          class="flex justify-center"
-          v-else-if="
-            !hasLiquidity &&
-            !loadingNetworkLiquidity &&
-            !selectedNetworkUnread &&
-            tokenValue > 0 &&
-            !rowVariant
-          "
-        >
-          <span class="text-red-500 font-normal text-sm"
-            >Atualmente não há liquidez nas redes selecionadas para sua
-            demanda</span
-          >
-        </div>
-        <div
-          class="flex justify-center"
-          v-if="failedLiquidityNetworks.length && !loadingNetworkLiquidity"
-        >
-          <span class="text-red-500 font-normal text-sm"
-            >Não foi possível ler a liquidez de:
-            {{ failedLiquidityNetworks.map((n) => n.name).join(', ') }}</span
-          >
-        </div>
-        <p class="sr-only" aria-live="polite">{{ announcement }}</p>
+        <SpinnerComponent width="4" height="4"></SpinnerComponent>
       </div>
-
-      <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
-        <input
-          type="text"
-          v-model="identification"
-          maxlength="14"
-          :pattern="'^\\d{11}$|^\\d{14}$'"
-          class="border-none outline-none sm:text-lg text-sm text-gray-900 w-full"
-          placeholder="Digite seu CPF ou CNPJ (somente números)"
-          required
-        />
+      <div
+        class="flex justify-center"
+        v-if="!validDecimals && !loadingNetworkLiquidity"
+      >
+        <span class="text-red-500 font-normal text-sm"
+          >Por favor utilize no máximo 2 casas decimais</span
+        >
       </div>
+      <div
+        class="flex justify-center"
+        v-else-if="
+          !hasLiquidity &&
+          !loadingNetworkLiquidity &&
+          !selectedNetworkUnread &&
+          tokenValue > 0 &&
+          !rowVariant
+        "
+      >
+        <span class="text-red-500 font-normal text-sm"
+          >Atualmente não há liquidez nas redes selecionadas para sua
+          demanda</span
+        >
+      </div>
+      <div
+        class="flex justify-center"
+        v-if="failedLiquidityNetworks.length && !loadingNetworkLiquidity"
+      >
+        <span class="text-red-500 font-normal text-sm"
+          >Não foi possível ler a liquidez de:
+          {{ failedLiquidityNetworks.map((n) => n.name).join(', ') }}</span
+        >
+      </div>
+      <p class="sr-only" aria-live="polite">{{ announcement }}</p>
+    </div>
 
-      <!-- Action buttons -->
-      <CustomButton
-        v-if="walletAddress"
-        type="submit"
-        text="Confirmar Oferta"
-        :isDisabled="!enableConfirmButton"
-        :loading="busy"
-        :aria-busy="busy ? 'true' : 'false'"
-        aria-label="Confirmar Oferta"
-      />
-      <CustomButton
-        v-else
-        text="Conectar carteira"
-        @buttonClicked="connectAccount()"
-      />
-    </form>
-  </div>
+    <!-- Action buttons -->
+    <CustomButton
+      v-if="walletAddress"
+      type="submit"
+      text="Confirmar Oferta"
+      :isDisabled="!enableConfirmButton"
+      :loading="busy"
+      :aria-busy="busy ? 'true' : 'false'"
+      aria-label="Confirmar Oferta"
+    />
+    <CustomButton
+      v-else
+      text="Conectar carteira"
+      @buttonClicked="connectAccount()"
+    />
+    <slot name="footer" />
+  </form>
 </template>
 
 <style scoped>
@@ -528,17 +501,5 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
 .custom-divide {
   width: 100%;
   border-bottom: 1px solid #d1d5db;
-}
-
-.page {
-  @apply flex flex-col items-center justify-center w-full mt-16;
-}
-
-.text-container {
-  @apply flex flex-col items-center justify-center gap-4;
-}
-
-.text {
-  @apply text-white text-center;
 }
 </style>

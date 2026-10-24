@@ -181,12 +181,6 @@ const walletMenuOptions: MenuOption[] = [
     showInMobile: true,
   },
   {
-    label: 'Conta inteligente',
-    route: '/account',
-    showInDesktop: true,
-    showInMobile: true,
-  },
-  {
     label: 'Perguntas frequentes',
     route: '/faq',
     showInDesktop: false,

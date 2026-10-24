@@ -1,87 +1,75 @@
 <script setup lang="ts">
-import { computed, type Component } from 'vue';
-import ChevronDown from '@/assets/chevronDown.svg';
-import CloseAlertIcon from '@/assets/closeAlertIcon.svg';
-import router from '@/router/index';
+import { computed, onMounted, watch, type Component } from 'vue';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useSendForm } from '@/composables/account/useSendForm';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
+import { useUser } from '@/composables/useUser';
 import AccountHomeView from './AccountHomeView.vue';
 import ReceiveView from './ReceiveView.vue';
 import SendView from './SendView.vue';
-import SendPreviewView from './SendPreviewView.vue';
+import SendStatusView from './SendStatusView.vue';
 
+const account = usePasskeyAccount();
 const accountRouter = useAccountRouter();
-const { current, canGoBack, title, back } = accountRouter;
-const { busy } = usePasskeyAccount();
 const form = useSendForm();
+const user = useUser();
 
-const views: Record<typeof current.value, Component> = {
+const views: Record<typeof accountRouter.current.value, Component> = {
   account: AccountHomeView,
   receive: ReceiveView,
   send: SendView,
-  sendPreview: SendPreviewView,
+  sendStatus: SendStatusView,
 };
-const activeView = computed(() => views[current.value]);
+const activeView = computed(() => views[accountRouter.current.value]);
 
-const handleClose = () => {
+const refresh = async () => {
+  await account.refreshBalances();
+  if (account.error.value)
+    user.showToast('error', 'Não foi possível ler o saldo.');
+};
+
+// Switching between Comprar and Vender remounts the panel: keep the open
+// screen and the balances, only re-read them.
+onMounted(() => void refresh());
+
+// TopBar owns network switching and disconnect; start over on either. A send
+// in flight keeps its screen, or Enviar would be offered again before it ends.
+watch([() => user.network.value.id, user.walletAddress], () => {
+  account.reset();
+  void refresh();
+  if (account.busy.value) return;
   form.reset();
   accountRouter.reset();
-  router.push({ name: 'home' });
-};
+});
 </script>
 
 <template>
-  <div class="main-container max-w-md">
-    <header class="header">
-      <button
-        v-if="canGoBack"
-        type="button"
-        class="header-btn"
-        :disabled="busy"
-        @click="back"
-      >
-        <ChevronDown class="h-5 w-5 rotate-90" />
-        Voltar
-      </button>
-      <span v-else />
-      <span class="text-center text-base font-semibold">{{ title }}</span>
-      <button
-        type="button"
-        class="header-btn justify-end"
-        aria-label="Fechar"
-        :disabled="busy"
-        @click="handleClose"
-      >
-        <CloseAlertIcon class="h-5 w-5 [&_path]:fill-current" />
-      </button>
-    </header>
-    <component :is="activeView" />
-  </div>
+  <!-- On phones an open flow moves the panel above the offer card. -->
+  <section
+    aria-label="Sua conta"
+    class="main-container lg:max-w-[21.375rem]!"
+    :class="{ 'max-lg:order-first': accountRouter.current.value !== 'account' }"
+  >
+    <div class="flex flex-col gap-4 w-full p-5 rounded-lg bg-white">
+      <component :is="activeView" />
+    </div>
+  </section>
 </template>
-
-<style scoped>
-@reference "tailwindcss";
-
-.header {
-  @apply grid w-full grid-cols-[5rem_1fr_5rem] items-center text-white;
-}
-
-.header-btn {
-  @apply flex items-center gap-1 text-sm font-medium text-white transition-colors hover:text-gray-300 disabled:opacity-50 cursor-pointer;
-}
-</style>
 
 <!-- Shared, prefixed classes for the screens inside the card. -->
 <style>
 @reference "tailwindcss";
+
+.acct-title {
+  @apply text-xl font-bold text-gray-900;
+}
 
 .acct-label {
   @apply text-sm font-medium text-gray-600;
 }
 
 .acct-link {
-  @apply text-xs font-semibold text-emerald-500 transition-opacity hover:opacity-70 disabled:opacity-40 cursor-pointer;
+  @apply text-xs font-semibold text-gray-900 transition-opacity hover:opacity-70 disabled:opacity-40 cursor-pointer;
 }
 
 a.acct-link:hover {
@@ -92,7 +80,7 @@ a.acct-link:hover {
   @apply py-4 text-center text-sm text-gray-400;
 }
 
-.acct-row {
-  @apply flex items-center gap-3 py-3;
+.acct-network {
+  @apply flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gray-100 text-[11px] text-gray-600 whitespace-nowrap;
 }
 </style>

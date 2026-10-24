@@ -35,19 +35,19 @@ P2Pix is self-custodial for signing on injected and WalletConnect EOAs and WebAu
 
 - **What it is:** email and Google login through our own Magic account. The Magic-held login key is an EOA that owns the user's Kernel smart account (smart-account rail, `ARCHITECTURE.md` §2). Enabled only when `VITE_MAGIC_PUBLISHABLE_KEY` is set; the publishable key is public and ships in the bundle.
 - **What it sees or can block:** Magic holds the login key (custodial-ish: you do not hold it and it cannot be exported by this app), sees your email or Google identity, IP and the messages it is asked to sign, and can block or lose access to the key. Signing is not on-device for this login, unlike injected and passkey wallets.
-- **Escape path:** on chains with the smart-account rail, `/account` sends the smart account's ETH or BRZ to any address (needs BRZ for gas). On chains without it (e.g. Rootstock Testnet) the Magic EOA itself is your account — there is no Kernel and `/account` does not apply, and the key stays with Magic. Prefer a passkey or injected wallet for funds you cannot afford to have gated by Magic.
+- **Escape path:** on chains with the smart-account rail, Enviar, in the account panel on `/` and `/seller`, sends each of the smart account's tokens, one at a time, to any address (needs BRZ for gas). On chains without it (e.g. Rootstock Testnet) the Magic EOA itself is your account — there is no Kernel and Enviar does not apply, and the key stays with Magic. Prefer a passkey or injected wallet for funds you cannot afford to have gated by Magic.
 
 ### Google OAuth (Magic social login)
 
 - **What it is:** the identity provider behind "Continue with Google". The OAuth client is ours, configured in Magic; Google is redirected to and back, and Magic completes the login.
 - **What it sees or can block:** Google sees that you log in to P2Pix and your IP; it can suspend the account or the OAuth client, which blocks this login method.
-- **Escape path:** log in with a passkey or an injected wallet. A Google or Magic login does not carry over: funds in the Magic-owned smart account leave via `/account`.
+- **Escape path:** log in with a passkey or an injected wallet. A Google or Magic login does not carry over: funds in the Magic-owned smart account leave via Enviar in the account panel.
 
 ### Passkey (`@doiim/passkeys`; no third party beyond the RPC and Pimlico)
 
 - **What it is:** WebAuthn login through `@doiim/passkeys` 0.5.0-alpha.0 (MIT, maintained by doiim; github.com/doiim/passkeys), pinned to an exact version, plus permissionless Kernel v0.3.1. It is a new supply-chain root: a doiim-maintained package whose own dependencies are `ox` ^0.11 and `permissionless`. The key stays in your authenticator. There is no server: the public key is recovered from the WebAuthn signature (P-256 recovery), and the on-chain reads (code, nonce, ETH balance) choose between the two candidate keys; if still ambiguous, a second assertion restricted to that credential settles it. `localStorage` (`doiim:passkey*`) is a cache and session pointer only — never used as `allowCredentials`.
 - **What it sees or can block:** no operator beyond the configured RPC (Alchemy, reads above) and the Pimlico bundler/paymaster below. The credential is bound to the RP id, and passkeys are enabled only on owned origins: `p2pix.co`, `demo.p2pix.co` and their subdomains, `localhost` in development, or the host named by `VITE_PASSKEY_RP_ID` (which must serve `https://<rpId>/.well-known/webauthn`). They are disabled on IPFS gateways (every CID shares one origin and could ask the passkey to sign), on ENS gateways without that override, on IP literals and on lookalike domains.
-- **Escape path:** `/account`, or use an injected wallet.
+- **Escape path:** Enviar in the account panel, or use an injected wallet.
 
 ### Alchemy RPC + The Graph (reads)
 

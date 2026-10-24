@@ -17,7 +17,7 @@
     "items": [
       {
         "title": "Como comprar?",
-        "content": "1. Conectar a carteira (MetaMask, WalletConnect ou passkey);\n2. Digitar a quantidade de tokens desejada;\n3. Informar seu CPF ou CNPJ;\n4. Confirmar a oferta e escanear o QR Code para pagar o Pix;\n5. Após a confirmação do Pix, os tokens são liberados para a sua carteira."
+        "content": "1. Conectar a carteira (MetaMask, WalletConnect ou passkey);\n2. Digitar a quantidade de tokens desejada;\n3. Confirmar a oferta e escanear o QR Code para pagar o Pix;\n4. Após a confirmação do Pix, os tokens são liberados para a sua carteira."
       },
       {
         "title": "O que é uma stablecoin?",

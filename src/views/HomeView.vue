@@ -1,5 +1,8 @@
 <script setup lang="ts">
 import SearchComponent from '@/components/BuyerSteps/BuyerSearchComponent.vue';
+import AccountLayout from '@/components/SmartAccount/AccountLayout.vue';
+import ActivityTab from '@/components/SmartAccount/ActivityTab.vue';
+import OfferTabs from '@/components/SmartAccount/OfferTabs.vue';
 import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import BuyConfirmedComponent from '@/components/BuyerSteps/BuyConfirmedComponent.vue';
 import { ref, onMounted, watch } from 'vue';
@@ -187,11 +190,12 @@ onMounted(async () => {
 
 <template>
   <div>
-    <SearchComponent
-      v-if="flowStep == Step.Search"
-      :refusal="searchRefusal"
-      @token-buy="confirmBuyClick"
-    />
+    <AccountLayout v-if="flowStep == Step.Search" :selling="false">
+      <SearchComponent :refusal="searchRefusal" @token-buy="confirmBuyClick">
+        <OfferTabs />
+        <template #footer><ActivityTab /></template>
+      </SearchComponent>
+    </AccountLayout>
     <CustomAlert
       v-if="showLockRecoveryAlert"
       :type="'lockPending'"

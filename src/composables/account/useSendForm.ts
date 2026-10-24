@@ -1,5 +1,6 @@
 import { computed, ref } from 'vue';
 import {
+  type Address,
   formatUnits,
   getAddress,
   isAddress,
@@ -8,21 +9,21 @@ import {
 } from 'viem';
 
 import { getCurrentAccount } from '@/blockchain/provider';
-import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
+import {
+  usePasskeyAccount,
+  type SendResult,
+} from '@/composables/usePasskeyAccount';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { useUser } from '@/composables/useUser';
-import type { TokenEnum } from '@/model/NetworkEnum';
+import type { NetworkConfig, TokenEnum } from '@/model/NetworkEnum';
 
-const CTA_LABELS = {
-  ADD_AMOUNT: 'Adicionar valor',
-  INCORRECT_VALUE: 'Valor inválido',
-  INSUFFICIENT_FUNDS: 'Saldo insuficiente',
-  ADD_ADDRESS: 'Adicionar endereço',
-  INVALID_ADDRESS: 'Endereço inválido',
-  PREVIEW_SEND: 'Revisar envio',
-} as const;
-
-type SendCta = keyof typeof CTA_LABELS;
+type SendCta =
+  | 'ADD_AMOUNT'
+  | 'INCORRECT_VALUE'
+  | 'INSUFFICIENT_FUNDS'
+  | 'ADD_ADDRESS'
+  | 'INVALID_ADDRESS'
+  | 'SEND';
 
 /** Parse a user-typed decimal (`,` or `.`) into wei; null when invalid. */
 const parseAmount = (input: string, decimals: number): bigint | null => {
@@ -32,15 +33,26 @@ const parseAmount = (input: string, decimals: number): bigint | null => {
   return parseUnits(text, decimals);
 };
 
-// Module-level draft: the send and preview screens are separate components on
+// Module-level draft: the send and status screens are separate components on
 // the same stack and must see the same values. No token means the native coin,
 // so the draft starts on the token selected across the app.
 const token = ref<TokenEnum | undefined>(useUser().selectedToken.value);
 const amountInput = ref('');
 const receiver = ref('');
+// Kept outside any screen: switching Comprar/Vender remounts the panel while
+// the passkey prompt is open, and the receipt must survive that.
+const lastSent = ref<
+  | (SendResult & {
+      token?: TokenEnum;
+      amountText: string;
+      to: Address;
+      network: NetworkConfig;
+    })
+  | null
+>(null);
 export function useSendForm() {
   const account = usePasskeyAccount();
-  const { showToast, selectedToken } = useUser();
+  const { showToast, selectedToken, network } = useUser();
 
   const self = computed(() =>
     [account.smartAccountAddress.value, getCurrentAccount().address]
@@ -70,9 +82,8 @@ export function useSendForm() {
     }
     if (receiver.value.trim() === '') return 'ADD_ADDRESS';
     if (receiverAddress.value === null) return 'INVALID_ADDRESS';
-    return 'PREVIEW_SEND';
+    return 'SEND';
   });
-  const ctaLabel = computed(() => CTA_LABELS[cta.value]);
 
   const amountText = computed(() =>
     amount.value === null
@@ -96,6 +107,29 @@ export function useSendForm() {
     }
   };
 
+  /** Sends the draft; on success the draft resets and `lastSent` holds it. */
+  const submit = async (): Promise<boolean> => {
+    const to = receiverAddress.value;
+    if (account.busy.value || amount.value === null || !to) return false;
+    lastSent.value = null;
+    // The receipt names the network the send went out on, even after a switch.
+    const sent = {
+      token: token.value,
+      amountText: amountText.value,
+      to,
+      network: network.value,
+    };
+    const result = await account.send({
+      token: token.value,
+      amount: amount.value,
+      to,
+    });
+    if (!result) return false;
+    lastSent.value = { ...result, ...sent };
+    reset();
+    return true;
+  };
+
   const reset = (): void => {
     token.value = selectedToken.value;
     amountInput.value = '';
@@ -112,7 +146,8 @@ export function useSendForm() {
     maxAmount,
     receiverAddress,
     cta,
-    ctaLabel,
+    lastSent,
+    submit,
     setToken,
     setMax,
     pasteAddress,

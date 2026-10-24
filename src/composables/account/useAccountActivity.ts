@@ -12,7 +12,7 @@ export type ActivityItem = {
   title: string;
   direction: 'in' | 'out' | 'neutral';
   amount: bigint;
-  /** Absent means the chain's native coin. */
+  /** Absent means the chain's native coin, or an unknown token (amount 0n). */
   token?: TokenEnum;
   /** Milliseconds since epoch. */
   timestamp: number;
@@ -23,16 +23,19 @@ type ActivityGroup = { title: string; items: ActivityItem[] };
 
 // Direction is the money flow of the queried role, not of the event alone: the
 // activity query scopes lock/release/return to the buyer and deposit to the
-// seller, so each entry reads from that side of the trade.
+// seller, so each entry reads from that side of the trade. A lock only reserves
+// the seller's tokens; the release pays them to the buyer.
 const SUBGRAPH: Record<
   Transaction['type'],
   { title: string; direction: ActivityItem['direction'] }
 > = {
-  deposit: { title: 'Depósito na oferta', direction: 'out' },
-  lock: { title: 'Reserva', direction: 'out' },
-  release: { title: 'Liberação', direction: 'neutral' },
-  return: { title: 'Devolução', direction: 'in' },
+  deposit: { title: 'Oferta criada', direction: 'out' },
+  lock: { title: 'Compra iniciada', direction: 'neutral' },
+  release: { title: 'Comprado com Pix', direction: 'in' },
+  return: { title: 'Reserva devolvida', direction: 'neutral' },
 };
+// A withdrawal brings the offer's tokens back to the seller.
+const WITHDRAWN = { title: 'Saque da oferta', direction: 'in' } as const;
 
 const monthOf = (timestampMs: number): string => {
   const title = new Date(timestampMs).toLocaleDateString('pt-BR', {
@@ -58,16 +61,19 @@ export function useAccountActivity() {
   const account = usePasskeyAccount();
   const graph = useGraphQL(user.network);
   const items = ref<ActivityItem[]>([]);
-  const loading = ref(false);
 
-  /** Subgraph rows always move a configured ERC-20: deposits name it by
-   * address; lock/release/return carry none, so they read as the selected one. */
-  const tokenAt = (address: string | undefined): TokenEnum =>
-    Object.values(TokenEnum).find(
-      (token) =>
-        user.network.value.tokens[token].address.toLowerCase() ===
-        address?.toLowerCase(),
-    ) ?? user.selectedToken.value;
+  /** Deposits name their ERC-20 by address; lock/release/return carry none,
+   * so they can only be the network's token when it has exactly one. */
+  const tokenAt = (address: string | undefined): TokenEnum | undefined => {
+    const tokens = Object.values(TokenEnum);
+    return (
+      tokens.find(
+        (token) =>
+          user.network.value.tokens[token].address.toLowerCase() ===
+          address?.toLowerCase(),
+      ) ?? (tokens.length === 1 ? tokens[0] : undefined)
+    );
+  };
 
   const refresh = async (): Promise<void> => {
     const address = account.smartAccountAddress.value;
@@ -75,7 +81,7 @@ export function useAccountActivity() {
     const local = readHistory(user.network.value.id, address).map(
       (e): ActivityItem => ({
         id: e.id,
-        title: 'Envio',
+        title: 'Enviado',
         direction: 'out',
         amount: BigInt(e.amount),
         token: e.token,
@@ -84,28 +90,27 @@ export function useAccountActivity() {
       }),
     );
     items.value = local;
-    loading.value = true;
     await graph.fetchUserActivity(address.toLowerCase());
-    const remote = graph.transactions.value.map(
-      (tx): ActivityItem => ({
+    const remote = graph.transactions.value.map((tx): ActivityItem => {
+      const token = tokenAt(tx.token);
+      return {
         id: tx.id,
-        ...SUBGRAPH[tx.type],
-        amount: BigInt(tx.amount || '0'),
-        token: tokenAt(tx.token),
+        ...(tx.withdrawn ? WITHDRAWN : SUBGRAPH[tx.type]),
+        // An amount without a known token has no unit: show none, never a guess.
+        amount: token ? BigInt(tx.amount || '0') : 0n,
+        token,
         timestamp: Number(tx.blockTimestamp) * 1000,
         href: account.explorerTxUrl(tx.transactionHash as Address),
-      }),
-    );
+      };
+    });
     items.value = [...local, ...remote].sort(
       (a, b) => b.timestamp - a.timestamp,
     );
-    loading.value = false;
   };
 
   return {
     groups: computed(() => groupByMonth(items.value)),
     isEmpty: computed(() => items.value.length === 0),
-    loading,
     error: graph.error,
     refresh,
   };

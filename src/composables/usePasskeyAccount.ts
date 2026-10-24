@@ -21,7 +21,8 @@ import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
 import { useUser } from '@/composables/useUser';
-import type { TokenEnum } from '@/model/NetworkEnum';
+import { TokenEnum } from '@/model/NetworkEnum';
+import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 
 export type SendParams = {
   /** ERC-20 to move; absent means the chain's native coin. */
@@ -108,6 +109,16 @@ export function usePasskeyAccount() {
     user.network.value.nativeCurrency.decimals;
   const balanceOf = (token?: TokenEnum): bigint =>
     token ? (tokenRead(token)?.balance ?? 0n) : ethBalance.value;
+  // The configured ERC-20s, then the native coin (no token).
+  const assets = computed(() =>
+    [...Object.values(TokenEnum), undefined].map((token) => ({
+      token,
+      symbol: symbolOf(token),
+      image: token
+        ? getTokenImage(token)
+        : getNetworkImage(user.network.value.name),
+    })),
+  );
 
   const readBalances = async (): Promise<Balances> => {
     const context = await getActiveAaContext();
@@ -132,7 +143,9 @@ export function usePasskeyAccount() {
       ethBalance.value = result.eth;
       balances.value = result.tokens;
       balancesLoaded.value = true;
+      error.value = null;
     } catch (cause) {
+      console.error('[account] balance read failed', cause);
       // `balancesLoaded` stays false on purpose: consumers must render `error`
       // (never the loading state) when a read fails.
       error.value =
@@ -140,12 +153,16 @@ export function usePasskeyAccount() {
     }
   };
 
-  const explorerTxUrl = (hash: Hex): string | null => {
-    const base = user.network.value.blockExplorers?.default.url;
+  const explorerTxUrl = (
+    hash: Hex,
+    network = user.network.value,
+  ): string | null => {
+    const base = network.blockExplorers?.default.url;
     return base ? `${base.replace(/\/$/, '')}/tx/${hash}` : null;
   };
 
   const send = async (params: SendParams): Promise<SendResult | null> => {
+    if (busy.value) return null;
     busy.value = true;
     error.value = null;
     try {
@@ -190,6 +207,7 @@ export function usePasskeyAccount() {
       await refreshBalances();
       return { userOpHash, txHash };
     } catch (cause) {
+      console.error('[account] send failed', cause);
       error.value = cause instanceof Error ? cause.message : 'Falha ao enviar';
       return null;
     } finally {
@@ -220,6 +238,7 @@ export function usePasskeyAccount() {
     symbolOf,
     decimalsOf,
     balanceOf,
+    assets,
     send,
     refreshBalances,
     explorerTxUrl,

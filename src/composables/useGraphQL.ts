@@ -12,6 +12,8 @@ export interface Transaction {
   /** ERC-20 address; absent on lock, release and return events,
    * which do not carry one. */
   token?: string;
+  /** Set on DepositWithdrawn rows, which share the 'deposit' type. */
+  withdrawn?: true;
   blockNumber: string;
   transactionHash: string;
 }
@@ -282,6 +284,7 @@ export function useGraphQL(network: Ref<NetworkConfig>) {
           blockTimestamp: withdrawal.blockTimestamp,
           transactionHash: withdrawal.transactionHash,
           type: 'deposit', // Treat as deposit withdrawal
+          withdrawn: true,
           seller: withdrawal.seller,
           buyer: undefined,
           amount: withdrawal.amount,

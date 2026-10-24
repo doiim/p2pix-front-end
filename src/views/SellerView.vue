@@ -2,6 +2,9 @@
 import { ref } from 'vue';
 
 import SellerComponent from '@/components/SellerSteps/SellerComponent.vue';
+import AccountLayout from '@/components/SmartAccount/AccountLayout.vue';
+import ActivityTab from '@/components/SmartAccount/ActivityTab.vue';
+import OfferTabs from '@/components/SmartAccount/OfferTabs.vue';
 import SendNetwork from '@/components/SellerSteps/SendNetwork.vue';
 import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import { useUser } from '@/composables/useUser';
@@ -56,7 +59,12 @@ const sendNetwork = async () => {
 <template>
   <div>
     <div v-if="flowStep == Step.Sell">
-      <SellerComponent v-if="!loading" @approve-tokens="approveOffer" />
+      <AccountLayout v-if="!loading" selling>
+        <SellerComponent @approve-tokens="approveOffer">
+          <OfferTabs />
+          <template #footer><ActivityTab /></template>
+        </SellerComponent>
+      </AccountLayout>
       <LoadingComponent
         v-if="loading"
         :message="'A transação está sendo enviada para a rede.'"
