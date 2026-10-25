@@ -34,8 +34,7 @@ const prodNetworks = [
     subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/arbitrum/p2pix'],
     // Settlement: cowprotocol/contracts networks.json. USDC: Circle's address
     // list. USDT: docs.usdt0.to deployments ("Token", on-chain symbol USD₮0).
-    // DAI: MakerDAO's official Arbitrum bridge token. WETH: Arbitrum's bridged
-    // WETH9. cbBTC: Coinbase's address, the same on every chain.
+    // DAI: MakerDAO's official Arbitrum bridge token.
     // The first token is the one the UI preselects.
     swap: {
       apiUrl: 'https://api.cow.fi/arbitrum_one',
@@ -44,8 +43,6 @@ const prodNetworks = [
         { symbol: 'USDT', name: 'Tether USD', address: '0xFd086bC7CD5C481DCC9C85ebE478A1C0b69FCbb9' },
         { symbol: 'USDC', name: 'USD Coin', address: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' },
         { symbol: 'DAI', name: 'Dai Stablecoin', address: '0xDA10009cBd5D07dd0CeCc66161FC93D7c9000da1' },
-        { symbol: 'WETH', name: 'Wrapped Ether', address: '0x82aF49447D8a07e3bd95BD0d56f35241523fBab1' },
-        { symbol: 'cbBTC', name: 'Coinbase Wrapped BTC', address: '0xcbB7C0000aB88B473b1f5aFd9ef808440eed33Bf' },
       ],
     },
   }),

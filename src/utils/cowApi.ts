@@ -2,8 +2,8 @@
 // external JSON, so it is shape-checked here before anything else reads it.
 
 import { isHex, type Address, type Hex } from 'viem';
-import { APP_DATA, type SwapConfig } from '@/config/swap';
-import type { CowOrder, OrderKind } from '@/blockchain/cowOrder';
+import { APP_DATA, type CowOrder, type OrderKind } from '@/blockchain/cowOrder';
+import type { SwapConfig } from '@/model/NetworkEnum';
 
 export type Quote = {
   sellAmount: bigint;

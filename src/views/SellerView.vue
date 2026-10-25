@@ -14,8 +14,7 @@ import { approveTokens, addDeposit } from '@/blockchain/sellerMethods';
 import { buyBrz, cancelSwap, separatePrompts } from '@/blockchain/swap';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import { findSwapToken } from '@/model/BuyToken';
-import { TokenEnum } from '@/model/NetworkEnum';
-import type { SwapToken } from '@/config/swap';
+import { TokenEnum, type SwapToken } from '@/model/NetworkEnum';
 import { promptsNotice } from '@/utils/walletPrompts';
 import type { Participant } from '@/utils/bbPay';
 
@@ -66,11 +65,13 @@ const approveOffer = async (args: Participant, paySymbol?: string) => {
 
 /** Buys the offer's BRZ with `token`; the deposit follows once it fills. */
 const startSwap = async (args: Participant, token: SwapToken) => {
-  loadingMessage.value =
+  const notice =
     promptsNotice(await separatePrompts(false).catch(() => []), {
       sell: token.symbol,
       buy: TokenEnum.BRZ,
     }) ?? 'A ordem de troca está sendo enviada.';
+  // The deposit cannot ride in the order: it needs the BRZ the order delivers.
+  loadingMessage.value = `${notice} Quando a troca executar, a carteira ainda pede a aprovação e o depósito do ${TokenEnum.BRZ}.`;
   loading.value = true;
   const uid = await buySwapBrz(args, token).catch((cause) => {
     console.error('[swap] sell-side order failed', cause);

@@ -10,7 +10,7 @@ import {
 } from '@/blockchain/swap';
 import { promptsNotice } from '@/utils/walletPrompts';
 import type { OrderState, OrderStatus } from '@/utils/cowApi';
-import { ORDER_VALIDITY_SECONDS } from '@/config/swap';
+import { ORDER_VALIDITY_SECONDS } from '@/blockchain/cowOrder';
 import { useUser } from '@/composables/useUser';
 
 /**

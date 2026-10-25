@@ -39,12 +39,18 @@ import {
 import { useUser } from '@/composables/useUser';
 import { MIN_FEE_BALANCE_WEI_DEFAULT } from '@/config/aa';
 import {
-  REQUOTE_SLIPPAGE_BPS,
+  TokenEnum,
+  type NetworkConfig,
   type SwapConfig,
   type SwapToken,
-} from '@/config/swap';
-import { TokenEnum, type NetworkConfig } from '@/model/NetworkEnum';
+} from '@/model/NetworkEnum';
 import { findSwapToken } from '@/model/BuyToken';
+
+/** Slippage accepted by a re-quote, which sells the BRZ already in the account. */
+const REQUOTE_SLIPPAGE_BPS = 100n;
+
+/** Price impact above this shows a warning; it never blocks the buyer. */
+export const IMPACT_WARN_BPS = 100;
 
 /** What the buyer asked for: a configured token symbol and a decimal amount. */
 export type SwapIntent = { token: string; amount: string };
@@ -60,7 +66,7 @@ export const quoteLock = async (intent: SwapIntent, from: Address) => {
     ctx,
     { sellToken: brz(ctx.network), buyToken: target.token.address, from },
     target.buyAmount,
-    // Not one whole token: 1 cbBTC or 1 WETH outweighs most purchases.
+    // Not one whole token: 1 WETH outweighs most purchases.
     target.buyAmount / 100n,
   );
   return {

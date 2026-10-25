@@ -13,11 +13,14 @@ import {
   type Hex,
 } from 'viem';
 import type { AaCall } from './aa/types';
-import {
-  APP_DATA,
-  LOCK_SLIPPAGE_BPS,
-  ORDER_VALIDITY_SECONDS,
-} from '@/config/swap';
+
+/** Headroom on the quoted BRZ so the order still fills after the minutes a Pix takes. */
+const LOCK_SLIPPAGE_BPS = 200n;
+
+export const ORDER_VALIDITY_SECONDS = 30 * 60;
+
+/** Order metadata; its keccak256 is the order's `appData` field. */
+export const APP_DATA = '{"appCode":"p2pix","metadata":{},"version":"1.4.0"}';
 
 export type OrderKind = 'buy' | 'sell';
 

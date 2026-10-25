@@ -9,9 +9,8 @@ import { postProcessKey } from '@/utils/pixKeyFormat';
 import { floorCents, formatBrlFixed } from '@/utils/reputation';
 import { useConnectModal } from '@/wallet/useConnectModal';
 import { defaultUiToken, findSwapToken } from '@/model/BuyToken';
-import { quoteBrzCost } from '@/blockchain/swap';
+import { IMPACT_WARN_BPS, quoteBrzCost } from '@/blockchain/swap';
 import { useSwapQuote } from '@/composables/useSwapQuote';
-import { IMPACT_WARN_BPS } from '@/config/swap';
 
 // Import the bank list
 import bankList from '@/utils/files/isbpList.json';
