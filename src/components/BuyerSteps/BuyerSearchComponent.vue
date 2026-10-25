@@ -30,6 +30,7 @@ import { useConnectModal } from '@/wallet/useConnectModal';
 import { TokenEnum } from '@/model/NetworkEnum';
 import { getCurrentAccount } from '@/blockchain/provider';
 import { getAaOwnerKind, isAaAvailable } from '@/blockchain/aa/aaContext';
+import { findAllowlistProof } from '@/blockchain/allowlist';
 
 // Set by HomeView when the contract refused the lock with AmountNotAllowed: the press it refused,
 // read once to seed the form.
@@ -101,10 +102,11 @@ const selectedDeposits = computed(() =>
     ? verifyNetworkLiquidity(tokenValue.value, othersDeposits.value)
     : [],
 );
+const selectedDeposit = computed(() =>
+  selectedDeposits.value.find((d) => d.network.id === network.value.id),
+);
 const hasLiquidity = computed(
-  () =>
-    !walletAddress.value ||
-    selectedDeposits.value.some((d) => d.network.id === network.value.id),
+  () => !walletAddress.value || selectedDeposit.value !== undefined,
 );
 const availableNetworks = computed(() =>
   Networks.filter((n) =>
@@ -124,9 +126,29 @@ const maxOfferCents = computed(() => {
   return cents === 0n ? null : cents;
 });
 
-// Reputation: no snapshot (guest, loading, failed read) means no verdict, so nothing renders or blocks.
+// On the seller's on-chain allowlist the limit does not apply: `lock` sends the proof.
+const allowlisted = ref(false);
+watch(
+  () => [selectedDeposit.value?.seller, walletAddress.value] as const,
+  async ([seller, buyer], _, onCleanup) => {
+    let stale = false;
+    onCleanup(() => {
+      stale = true;
+    });
+    allowlisted.value = false;
+    if (!seller || !buyer) return;
+    const proof = await findAllowlistProof(seller, buyer);
+    if (!stale) allowlisted.value = proof.length > 0;
+  },
+  { immediate: true },
+);
+
+// Reputation: no snapshot (guest, loading, failed read) or an allowlist pass means no verdict, so nothing
+// renders or blocks.
 const verdict = computed(() =>
-  reputation.snapshot.value !== null && parsed.value.status === 'ok'
+  reputation.snapshot.value !== null &&
+  parsed.value.status === 'ok' &&
+  !allowlisted.value
     ? classifyAmount(parsed.value.wei, reputation.snapshot.value.limitTokens)
     : null,
 );
@@ -213,9 +235,7 @@ watch(
 const { open: connectAccount } = useConnectModal();
 
 const emitConfirmButton = (checkedWithin: boolean): void => {
-  const deposit = selectedDeposits.value.find(
-    (d) => d.network.id === network.value.id,
-  );
+  const deposit = selectedDeposit.value;
   if (!deposit) return;
   const press = {
     amount: tokenValue.value,

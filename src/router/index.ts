@@ -9,6 +9,7 @@ import ManageBidsView from '@/views/ManageBidsView.vue';
 import SellerView from '@/views/SellerView.vue';
 import ExploreView from '@/views/ExploreView.vue';
 import VersionsView from '@/views/VersionsView.vue';
+import TrustedBuyersView from '@/views/TrustedBuyersView.vue';
 
 const router = createRouter({
   history:
@@ -21,6 +22,11 @@ const router = createRouter({
       name: 'home',
       component: HomeView,
       props: true,
+    },
+    {
+      path: '/allowlist',
+      name: 'allowlist',
+      component: TrustedBuyersView,
     },
     {
       path: '/:lockID',
