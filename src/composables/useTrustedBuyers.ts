@@ -1,5 +1,6 @@
 import { computed, ref, watch } from 'vue';
 import { zeroHash, type Address, type Hex } from 'viem';
+import { isPasskeyCancelled } from '@doiim/passkeys';
 import { useUser } from '@/composables/useUser';
 import { readAllowlistRoot, writeAllowlistRoot } from '@/blockchain/allowlist';
 import { addressError, allowlistRoot, sameAddress } from '@/utils/allowlist';
@@ -152,7 +153,12 @@ export function useTrustedBuyers() {
       return true;
     } catch (error) {
       console.error('[allowlist] setRoot failed', error);
-      user.showToast('error', 'A lista não foi gravada. Tente de novo.');
+      user.showToast(
+        'error',
+        isPasskeyCancelled(error)
+          ? 'Assinatura cancelada.'
+          : 'A lista não foi gravada. Tente de novo.',
+      );
       return false;
     } finally {
       busy.value = false;

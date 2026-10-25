@@ -126,8 +126,9 @@ const maxOfferCents = computed(() => {
   return cents === 0n ? null : cents;
 });
 
-// On the seller's on-chain allowlist the limit does not apply: `lock` sends the proof.
-const allowlisted = ref(false);
+// On the seller's on-chain allowlist the limit does not apply: `lock` sends the proof. `null` while the
+// check runs, which gives no verdict, like a reputation read in flight.
+const allowlisted = ref<boolean | null>(false);
 watch(
   () => [selectedDeposit.value?.seller, walletAddress.value] as const,
   async ([seller, buyer], _, onCleanup) => {
@@ -135,7 +136,7 @@ watch(
     onCleanup(() => {
       stale = true;
     });
-    allowlisted.value = false;
+    allowlisted.value = seller && buyer ? null : false;
     if (!seller || !buyer) return;
     const proof = await findAllowlistProof(seller, buyer);
     if (!stale) allowlisted.value = proof.length > 0;
@@ -148,7 +149,7 @@ watch(
 const verdict = computed(() =>
   reputation.snapshot.value !== null &&
   parsed.value.status === 'ok' &&
-  !allowlisted.value
+  allowlisted.value === false
     ? classifyAmount(parsed.value.wei, reputation.snapshot.value.limitTokens)
     : null,
 );

@@ -66,7 +66,7 @@ defineEmits<{ remove: []; undo: [] }>();
       <button
         v-if="status === 'leaving'"
         type="button"
-        class="font-semibold text-gray-900 hover:opacity-70 cursor-pointer"
+        class="min-h-11 px-2 font-semibold text-gray-900 hover:opacity-70 cursor-pointer"
         @click="$emit('undo')"
       >
         Desfazer
@@ -100,6 +100,6 @@ defineEmits<{ remove: []; undo: [] }>();
 }
 
 .icon-button {
-  @apply rounded-md p-2 text-gray-900 hover:bg-gray-100 cursor-pointer;
+  @apply flex min-h-11 min-w-11 items-center justify-center rounded-md text-gray-900 hover:bg-gray-100 cursor-pointer;
 }
 </style>

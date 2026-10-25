@@ -1,4 +1,4 @@
-import { erc20Abi, type Address, type PublicClient } from 'viem';
+import { erc20Abi, zeroAddress, type Address, type PublicClient } from 'viem';
 import type { UserOperationReceipt } from 'viem/account-abstraction';
 
 import { useUser } from '@/composables/useUser';
@@ -23,6 +23,12 @@ import {
 import type { AaCall, AaContext, AaRuntime } from './types';
 
 export { resetAaAccountCache } from './aaContext';
+
+/** Fee token argument for `sendAaOperation`: unset on a sponsorship-only chain, where it is never read. */
+export const feeTokenAddress = (aa: AaContext): Address => {
+  const feeToken = aa.network.aa?.feeToken;
+  return feeToken ? aa.network.tokens[feeToken].address : zeroAddress;
+};
 
 const resolveActiveAaRuntime = async (): Promise<AaRuntime | null> => {
   const ownerKind = getAaOwnerKind(getCurrentAccount().connector?.id);

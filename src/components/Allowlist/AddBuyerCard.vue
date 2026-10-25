@@ -61,12 +61,14 @@ const summary = computed(() => {
         <h2 class="text-xl font-semibold text-gray-900">Adicionar comprador</h2>
       </div>
 
-      <label for="buyer-address" class="label mt-2">Endereço da carteira</label>
+      <label for="buyer-address" class="acct-label mt-2"
+        >Endereço da carteira</label
+      >
       <input
         id="buyer-address"
         v-model="address"
         class="field font-mono"
-        :class="{ 'ring-2 ring-red-500': error }"
+        :class="{ 'ring-2 ring-red-700': error }"
         placeholder="0x…"
         autocomplete="off"
         spellcheck="false"
@@ -75,7 +77,9 @@ const summary = computed(() => {
         @input="error = undefined"
       />
 
-      <label for="buyer-nickname" class="label mt-2">Apelido (opcional)</label>
+      <label for="buyer-nickname" class="acct-label mt-2"
+        >Apelido (opcional)</label
+      >
       <div class="flex flex-col gap-3 sm:flex-row">
         <input
           id="buyer-nickname"
@@ -84,7 +88,7 @@ const summary = computed(() => {
           placeholder="Ex.: Marina"
           maxlength="40"
         />
-        <button type="submit" class="add-button">
+        <button type="submit" class="account-button px-5!">
           <span aria-hidden="true" class="text-xl leading-none">+</span>
           <span class="font-semibold">Adicionar</span>
         </button>
@@ -93,7 +97,7 @@ const summary = computed(() => {
       <p
         v-if="error"
         id="buyer-address-error"
-        class="text-sm text-red-600"
+        class="text-sm text-red-700"
         role="alert"
       >
         {{ error }}
@@ -129,15 +133,7 @@ const summary = computed(() => {
   @apply flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-indigo-900;
 }
 
-.label {
-  @apply text-sm font-medium text-gray-600;
-}
-
 .field {
   @apply w-full rounded-lg bg-gray-100 px-4 py-3 text-gray-900 outline-none placeholder:text-gray-400 focus:ring-2 focus:ring-amber-400;
-}
-
-.add-button {
-  @apply flex items-center justify-center gap-2 rounded-lg border-2 border-amber-400 px-5 py-3 text-gray-900 transition-colors hover:bg-amber-400/10 cursor-pointer;
 }
 </style>

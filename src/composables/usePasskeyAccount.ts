@@ -4,16 +4,11 @@ import {
   type TokenBalance,
 } from '@doiim/passkeys/smart-account';
 import { readStoredSession } from '@doiim/passkeys/storage';
-import {
-  encodeFunctionData,
-  erc20Abi,
-  zeroAddress,
-  type Address,
-  type Hex,
-} from 'viem';
+import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem';
 
 import { getAaOwnerKind, isAaAvailable } from '@/blockchain/aa/aaContext';
 import {
+  feeTokenAddress,
   getActiveAaContext,
   sendAaOperation,
 } from '@/blockchain/aa/operations';
@@ -186,7 +181,7 @@ export function usePasskeyAccount() {
       const receipt = await sendAaOperation(
         context,
         calls,
-        feeToken ? context.network.tokens[feeToken].address : zeroAddress,
+        feeTokenAddress(context),
         feeToken && params.token === feeToken ? params.amount : 0n,
       );
       const { userOpHash } = receipt;

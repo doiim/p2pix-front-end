@@ -85,7 +85,7 @@ const contract = computed(
     <div class="mt-2 flex items-center justify-end gap-6">
       <button
         type="button"
-        class="font-semibold hover:opacity-70 cursor-pointer disabled:opacity-40"
+        class="min-h-11 px-2 font-semibold hover:opacity-70 cursor-pointer disabled:opacity-40"
         :disabled="busy"
         @click="$emit('back')"
       >

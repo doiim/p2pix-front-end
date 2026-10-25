@@ -141,7 +141,7 @@ const remove = (target: ReceivedAllowlist) =>
           />
           <button
             type="button"
-            class="text-sm font-semibold text-red-600 hover:opacity-70 cursor-pointer"
+            class="min-h-11 px-2 text-sm font-semibold text-red-700 hover:opacity-70 cursor-pointer"
             @click="remove(list)"
           >
             Remover

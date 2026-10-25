@@ -102,11 +102,7 @@ const deactivate = async () => {
       role="alert"
     >
       <p>Não foi possível ler a lista na rede.</p>
-      <button
-        type="button"
-        class="rounded-lg border-2 border-amber-400 px-4 py-2 font-semibold hover:bg-amber-400/10 cursor-pointer"
-        @click="list.reload"
-      >
+      <button type="button" class="account-button" @click="list.reload">
         Tentar de novo
       </button>
     </div>
