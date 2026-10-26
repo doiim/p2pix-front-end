@@ -1,13 +1,11 @@
 import { getContract } from './provider';
 import { p2PixAbi } from './abi';
-import { getActiveAaContext, sendAaOperation } from './aa/operations';
-import type { AaCall } from './aa/types';
+import { getSender, sendContractCalls } from './send';
 import type { PixProof } from '@/utils/pixProof';
 import {
   type Abi,
   type ContractFunctionReturnType,
   decodeEventLog,
-  encodeFunctionData,
   parseEther,
   type Address,
   type Log,
@@ -99,57 +97,28 @@ export const addLock = async (
   tokenAddress: Address,
   amount: number,
 ): Promise<bigint> => {
-  const { address, abi, wallet, client, account } = await getContract();
+  const from = await getSender();
+  const { address, abi } = await getContract();
   const parsedAmount = parseEther(amount.toString());
-  const aa = await getActiveAaContext();
-
-  if (aa) {
-    const call: AaCall = {
-      to: address,
-      data: encodeFunctionData({
-        abi: abi as Abi,
-        functionName: 'lock',
-        args: [sellerAddress, tokenAddress, parsedAmount, [], []],
-      }),
-      value: 0n,
-    };
-    const aaReceipt = await sendAaOperation(aa, [call], tokenAddress);
-    if (!aaReceipt.success) {
-      throw new Error(`AA lock failed: ${aaReceipt.receipt.transactionHash}`);
-    }
-
-    return getLockIdFromLogs(
-      abi,
-      aaReceipt.logs,
-      aa.account.address,
-      sellerAddress,
-      parsedAmount,
-      address,
-    );
-  }
-
-  if (!wallet) throw new Error('Carteira não conectada');
-  if (!account) throw new Error('Account not available');
-
-  const { request } = await client.simulateContract({
-    address,
-    abi,
-    functionName: 'lock',
-    args: [sellerAddress, tokenAddress, parsedAmount, [], []],
-    account,
-  });
-  const hash = await wallet.writeContract(request);
-  const receipt = await client.waitForTransactionReceipt({ hash });
-  if (receipt.status !== 'success') {
-    throw new Error(`Transaction failed: ${receipt.transactionHash}`);
-  }
 
   // `lockID = ++lockCounter` is global, so a simulated return value belongs to
   // whichever lock lands first. Read the id our own tx actually wrote.
+  const { sender, success, receipt, logs } = await sendContractCalls(from, [
+    {
+      address,
+      abi,
+      functionName: 'lock',
+      args: [sellerAddress, tokenAddress, parsedAmount, [], []],
+    },
+  ]);
+  if (!success) {
+    throw new Error(`Falha na reserva: ${receipt.transactionHash}`);
+  }
+
   return getLockIdFromLogs(
     abi,
-    receipt.logs,
-    account,
+    logs,
+    sender,
     sellerAddress,
     parsedAmount,
     address,
@@ -161,37 +130,17 @@ export const withdrawDeposit = async (
   token: Address,
   expiredLocks: bigint[] = [],
 ): Promise<boolean> => {
-  const { address, abi, wallet, client, account } = await getContract();
-  const parsedAmount = parseEther(amount);
-  const aa = await getActiveAaContext();
-
-  if (aa) {
-    const call: AaCall = {
-      to: address,
-      data: encodeFunctionData({
-        abi: abi as Abi,
-        functionName: 'withdraw',
-        args: [token, parsedAmount, expiredLocks],
-      }),
-      value: 0n,
-    };
-    const aaReceipt = await sendAaOperation(aa, [call], token);
-    return aaReceipt.success;
-  }
-
-  if (!wallet) throw new Error('Carteira não conectada');
-  if (!account) throw new Error('Account not available');
-
-  const { request } = await client.simulateContract({
-    address,
-    abi,
-    functionName: 'withdraw',
-    args: [token, parsedAmount, expiredLocks],
-    account,
-  });
-  const hash = await wallet.writeContract(request);
-  const receipt = await client.waitForTransactionReceipt({ hash });
-  return receipt.status === 'success';
+  const sender = await getSender();
+  const { address, abi } = await getContract();
+  const { success } = await sendContractCalls(sender, [
+    {
+      address,
+      abi,
+      functionName: 'withdraw',
+      args: [token, parseEther(amount), expiredLocks],
+    },
+  ]);
+  return success;
 };
 
 /** Releases the lock with the prover's proof of Pix payment. */
@@ -199,41 +148,8 @@ export const releaseLock = async (
   lockID: bigint,
   proof: PixProof,
 ): Promise<TransactionReceipt> => {
-  const { address, abi, wallet, client, account } = await getContract();
-  const aa = await getActiveAaContext();
-
-  if (aa) {
-    const lock = await client.readContract({
-      address,
-      abi,
-      functionName: 'mapLocks',
-      args: [lockID],
-    });
-    const { token: lockToken, buyerAddress } = toLock(lock);
-    if (buyerAddress.toLowerCase() !== aa.account.address.toLowerCase()) {
-      throw new Error('Active smart account is not the buyer of this lock');
-    }
-
-    const call: AaCall = {
-      to: address,
-      data: encodeFunctionData({
-        abi: abi as Abi,
-        functionName: 'release',
-        args: [lockID, proof],
-      }),
-      value: 0n,
-    };
-    const aaReceipt = await sendAaOperation(aa, [call], lockToken);
-    if (!aaReceipt.success) {
-      throw new Error(
-        `AA release failed: ${aaReceipt.receipt.transactionHash}`,
-      );
-    }
-    return aaReceipt.receipt;
-  }
-
-  if (!wallet) throw new Error('Carteira não conectada');
-  if (!account) throw new Error('Account not available');
+  const sender = await getSender();
+  const { address, abi, client } = await getContract();
 
   // `release` always pays the lock's buyer, whoever submits it; only the
   // buyer's own account should spend gas on it.
@@ -243,17 +159,21 @@ export const releaseLock = async (
     functionName: 'mapLocks',
     args: [lockID],
   });
-  if (toLock(lock).buyerAddress.toLowerCase() !== account.toLowerCase()) {
-    throw new Error('Connected account is not the buyer of this lock');
+  const { buyerAddress } = toLock(lock);
+  if (buyerAddress.toLowerCase() !== sender.address.toLowerCase()) {
+    throw new Error('A conta conectada não é a compradora desta reserva');
   }
 
-  const { request } = await client.simulateContract({
-    address,
-    abi,
-    functionName: 'release',
-    args: [lockID, proof],
-    account,
-  });
-  const hash = await wallet.writeContract(request);
-  return client.waitForTransactionReceipt({ hash });
+  const { success, receipt } = await sendContractCalls(sender, [
+    {
+      address,
+      abi,
+      functionName: 'release',
+      args: [lockID, proof],
+    },
+  ]);
+  if (!success) {
+    throw new Error(`Falha na liberação: ${receipt.transactionHash}`);
+  }
+  return receipt;
 };

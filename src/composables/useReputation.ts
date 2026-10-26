@@ -1,11 +1,13 @@
 import { computed, shallowRef } from 'vue';
-import type { ComputedRef } from 'vue';
+import type { ComputedRef, Ref } from 'vue';
+import type { Address } from 'viem';
 import {
   ReputationReadError,
   readReputationSnapshot,
 } from '@/blockchain/reputation';
 import { getPublicClient } from '@/blockchain/provider';
 import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import type {
   ReputationErrorKind,
   ReputationRead,
@@ -39,13 +41,15 @@ const DISCONNECTED: ReputationRead = { ok: false, reason: 'disconnected' };
 const STALE: ReputationRead = { ok: false, reason: 'stale' };
 const TIMEOUT: ReputationRead = { ok: false, reason: 'timeout' };
 
-const createReputationStore = (): ReputationStore => {
-  // Memory only (D3). A commit replaces the entry object, never mutates it.
-  const entry = shallowRef<Entry | null>(null);
-  let lastSeq = 0;
+// Memory only (D3), shared by every caller. A commit replaces the entry object, never mutates it.
+const entry = shallowRef<Entry | null>(null);
+let lastSeq = 0;
 
+const createReputationStore = (
+  account: Readonly<Ref<Address | null>>,
+): ReputationStore => {
   const currentKey = () => {
-    const target = selectedTarget();
+    const target = selectedTarget(account.value);
     return target === null ? null : keyOf(target);
   };
   // The entry when it belongs to the current key, so a commit for another wallet or network never shows.
@@ -101,7 +105,7 @@ const createReputationStore = (): ReputationStore => {
   };
 
   const ensure = (): Promise<ReputationRead> => {
-    const target = selectedTarget();
+    const target = selectedTarget(account.value);
     if (target === null) return Promise.resolve(DISCONNECTED);
     const own = ownEntry(keyOf(target));
     if (own?.snapshot)
@@ -110,7 +114,7 @@ const createReputationStore = (): ReputationStore => {
   };
 
   const refresh = (opts: RefreshOptions = {}): Promise<ReputationRead> => {
-    const target = selectedTarget();
+    const target = selectedTarget(account.value);
     if (target === null) return Promise.resolve(DISCONNECTED);
     const settled = start(target, { minBlock: opts.minBlock });
     return opts.timeoutMs === undefined
@@ -126,7 +130,8 @@ const createReputationStore = (): ReputationStore => {
   };
 };
 
-export const useReputation = (): ReputationStore => store;
+export const useReputation = (): ReputationStore =>
+  createReputationStore(useWalletAddress());
 
 const keyOf = (target: ReputationTarget) =>
   `${target.chainId}:${target.p2pix.toLowerCase()}:${target.account.toLowerCase()}`;
@@ -143,13 +148,10 @@ const withTimeout = (
     ),
   ]);
 
-const selectedTarget = (): ReputationTarget | null => {
+const selectedTarget = (account: Address | null): ReputationTarget | null => {
   const user = useUser();
-  const account = user.walletAddress.value;
   const p2pix = user.network.value.contracts?.p2pix;
   if (account === null || p2pix === undefined || !('address' in p2pix))
     return null;
   return { chainId: user.network.value.id, p2pix: p2pix.address, account };
 };
-
-const store = createReputationStore();

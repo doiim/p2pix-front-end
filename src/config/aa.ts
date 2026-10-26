@@ -20,17 +20,21 @@ export type AaConfig = {
    */
   bundlerUrl?: string;
   /**
-   * Minimum fee token balance (in wei) to attempt paymaster fees. Below this,
-   * use sponsored UserOps. Assumes an 18-decimal fee token. Falls back to
-   * `MIN_FEE_BALANCE_WEI_DEFAULT`.
-   */
-  minFeeBalance?: bigint;
-  /**
    * Token Pimlico's ERC-20 paymaster charges gas in. Unset = sponsorship only
    * (P2Pix pays gas and charges its fee inside protocol transactions). Unset on
-   * every network today because the paymaster does not support BRZ.
+   * every network today because the paymaster accepts none of our tokens.
+   *
+   * TODO: the paid path (`sendAaOperation` → `paymasters/erc20.ts`) does not
+   * work yet and has never run end to end; the sandbox paymaster only
+   * sponsors. Test it against a paymaster that accepts the token before
+   * setting this on any network.
    */
   feeToken?: TokenEnum;
+  /**
+   * P2Pix pays the gas of the recovery sweep (`sweepAccount`) through the Pimlico sponsorship
+   * policy. Unset: the account pays its own gas in native ETH, no paymaster.
+   */
+  sponsorSweep?: boolean;
 };
 
 export const env = (key: string): string | undefined =>
@@ -65,13 +69,6 @@ export const requireRpId = (): string => {
   if (!rpId) throw new Error('Passkeys are disabled on this origin');
   return rpId;
 };
-
-/**
- * Default minimum fee token balance (in wei) to attempt paymaster fees, used
- * when a chain's `AaConfig.minFeeBalance` is unset. Assumes an 18-decimal fee
- * token; override per chain if a network's fee token differs.
- */
-export const MIN_FEE_BALANCE_WEI_DEFAULT = 100000000000000000n; // 0.1 fee token (18 decimals)
 
 export const sponsorshipPolicyId = (): string | undefined =>
   env('VITE_PIMLICO_SPONSORSHIP_POLICY_ID');

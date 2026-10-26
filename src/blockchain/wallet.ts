@@ -1,20 +1,6 @@
-import {
-  encodeFunctionData,
-  formatEther,
-  isAddressEqual,
-  type Abi,
-  type Address,
-} from 'viem';
-import { useUser } from '@/composables/useUser';
-import {
-  getActiveAaContext,
-  getEffectiveWalletAddress,
-  sendAaOperation,
-} from './aa/operations';
-import type { AaCall } from './aa/types';
-
-import { getCurrentAccount, getPublicClient, getContract } from './provider';
-
+import { formatEther, isAddressEqual, type Address } from 'viem';
+import { getContract } from './provider';
+import { getSender, sendContractCalls } from './send';
 import { getValidDeposits, getUnreleasedLockById } from './events';
 import { toLock } from './buyerMethods';
 import { escapeForGraphQL } from '@/utils/escapeForGraphQL';
@@ -22,57 +8,18 @@ import { escapeForGraphQL } from '@/utils/escapeForGraphQL';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { WalletTransaction } from '@/model/WalletTransaction';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 import { LockStatus } from '@/model/LockStatus';
 
-export const updateWalletStatus = async (): Promise<void> => {
-  const user = useUser();
-  const { address: connectorAddress } = getCurrentAccount();
-
-  if (!connectorAddress) {
-    return;
-  }
-
-  // The smart account is what signs locks and releases. Falling back to the
-  // connector EOA here would show an address the app never transacts from, so
-  // clear the state and surface the failure instead of downgrading silently.
-  let address: Address;
-  try {
-    address = await getEffectiveWalletAddress(connectorAddress);
-  } catch (cause) {
-    user.setWalletAddress(null);
-    user.setBalance('0');
-    throw new Error('Could not resolve the smart account address', { cause });
-  }
-
-  const publicClient = getPublicClient();
-  const balance = await publicClient.getBalance({ address });
-
-  user.setWalletAddress(address);
-  user.setBalance(formatEther(balance));
-};
-
-export const listValidDepositTransactionsByWalletAddress = async (
+export const getWalletDeposits = async (
   walletAddress: Address,
+  network: NetworkConfig,
+  token: Address,
 ): Promise<ValidDeposit[]> => {
-  const user = useUser();
-  // Wallet views render their own lists; keep them usable when the subgraph
-  // or RPC is down instead of leaving their loading state stuck.
-  const walletDeposits = await getValidDeposits(
-    user.network.value.tokens[user.selectedToken.value].address,
-    user.network.value,
-  ).catch((error) => {
-    console.error('[wallet] could not read deposits', error);
-    return [];
-  });
-  if (walletDeposits) {
-    return walletDeposits
-      .filter((deposit) => isAddressEqual(deposit.seller, walletAddress))
-      .sort((a: ValidDeposit, b: ValidDeposit) => {
-        return b.blockNumber - a.blockNumber;
-      });
-  }
-
-  return [];
+  const walletDeposits = await getValidDeposits(token, network);
+  return walletDeposits
+    .filter((deposit) => isAddressEqual(deposit.seller, walletAddress))
+    .sort((a, b) => b.blockNumber - a.blockNumber);
 };
 
 const readLockStatus = async (id: bigint): Promise<LockStatus> => {
@@ -87,14 +34,52 @@ const readLockStatus = async (id: bigint): Promise<LockStatus> => {
   return status[0];
 };
 
-export const listAllTransactionByWalletAddress = async (
+// Shapes mirror the field selections in the documents below; the lock query
+// does not request `token` on `lockAddeds`, so that one field stays optional.
+type SubgraphDepositAdded = {
+  id: string;
+  seller: Address;
+  token: Address;
+  amount: string;
+  blockTimestamp: string;
+  blockNumber: string;
+  transactionHash: string;
+};
+
+type SubgraphLockAdded = {
+  id: string;
+  buyer: Address;
+  lockID: string;
+  seller: Address;
+  token?: Address;
+  amount: string;
+  blockTimestamp: string;
+  blockNumber: string;
+  transactionHash: string;
+};
+
+type SubgraphLockReleased = {
+  id: string;
+  buyer: Address;
+  lockId: string;
+  blockTimestamp: string;
+  blockNumber: string;
+  transactionHash: string;
+};
+
+type WalletTransactionsResponse = {
+  data?: {
+    depositAddeds?: SubgraphDepositAdded[];
+    lockAddeds?: SubgraphLockAdded[];
+    lockReleaseds?: SubgraphLockReleased[];
+    depositWithdrawns?: SubgraphDepositAdded[];
+  };
+};
+
+export const getWalletTransactions = async (
   walletAddress: Address,
+  network: NetworkConfig,
 ): Promise<WalletTransaction[]> => {
-  const user = useUser();
-
-  // Get the current network for the subgraph URL
-  const network = user.network.value;
-
   const escapedAddress = escapeForGraphQL(walletAddress);
 
   // Query subgraph for all relevant transactions
@@ -143,96 +128,89 @@ export const listAllTransactionByWalletAddress = async (
 
   // Same outage tolerance as the deposit list: an empty history instead of a
   // rejected refresh.
-  const data = await fetch(network.subgraphUrls[0], {
+  const body = await fetch(network.subgraphUrls[0], {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(subgraphQuery),
   })
-    .then((response) => response.json())
-    .catch((error) => {
+    .then((response) => response.json() as Promise<WalletTransactionsResponse>)
+    .catch((error): WalletTransactionsResponse => {
       console.error('[wallet] could not read transactions', error);
       return {};
     });
+
   // Convert all transactions to common WalletTransaction format
   const transactions: WalletTransaction[] = [];
 
   // Process deposit added events
-  if (data.data?.depositAddeds) {
-    for (const deposit of data.data.depositAddeds) {
-      transactions.push({
-        id: deposit.id,
-        token: deposit.token,
-        blockNumber: parseInt(deposit.blockNumber),
-        blockTimestamp: parseInt(deposit.blockTimestamp),
-        amount: parseFloat(formatEther(BigInt(deposit.amount))),
-        seller: deposit.seller,
-        buyer: '',
-        event: 'DepositAdded',
-        lockStatus: undefined,
-        transactionHash: deposit.transactionHash,
-      });
-    }
+  for (const deposit of body.data?.depositAddeds ?? []) {
+    transactions.push({
+      id: deposit.id,
+      token: deposit.token,
+      blockNumber: parseInt(deposit.blockNumber),
+      blockTimestamp: parseInt(deposit.blockTimestamp),
+      amount: parseFloat(formatEther(BigInt(deposit.amount))),
+      seller: deposit.seller,
+      buyer: '',
+      event: 'DepositAdded',
+      lockStatus: undefined,
+      transactionHash: deposit.transactionHash,
+    });
   }
 
   // Process lock added events
-  if (data.data?.lockAddeds) {
-    for (const lock of data.data.lockAddeds) {
-      // Get lock status from the contract
-      const lockStatus = await readLockStatus(BigInt(lock.lockID));
+  for (const lock of body.data?.lockAddeds ?? []) {
+    // Get lock status from the contract
+    const lockStatus = await readLockStatus(BigInt(lock.lockID));
 
-      transactions.push({
-        id: lock.id,
-        token: lock.token,
-        blockNumber: parseInt(lock.blockNumber),
-        blockTimestamp: parseInt(lock.blockTimestamp),
-        amount: parseFloat(formatEther(BigInt(lock.amount))),
-        seller: lock.seller,
-        buyer: lock.buyer,
-        event: 'LockAdded',
-        lockStatus: lockStatus,
-        transactionHash: lock.transactionHash,
-        transactionID: lock.lockID.toString(),
-      });
-    }
+    transactions.push({
+      id: lock.id,
+      token: lock.token,
+      blockNumber: parseInt(lock.blockNumber),
+      blockTimestamp: parseInt(lock.blockTimestamp),
+      amount: parseFloat(formatEther(BigInt(lock.amount))),
+      seller: lock.seller,
+      buyer: lock.buyer,
+      event: 'LockAdded',
+      lockStatus: lockStatus,
+      transactionHash: lock.transactionHash,
+      transactionID: lock.lockID.toString(),
+    });
   }
 
   // Process lock released events
-  if (data.data?.lockReleaseds) {
-    for (const release of data.data.lockReleaseds) {
-      transactions.push({
-        id: release.id,
-        token: undefined, // Subgraph doesn't provide token in this event, we could enhance this later
-        blockNumber: parseInt(release.blockNumber),
-        blockTimestamp: parseInt(release.blockTimestamp),
-        amount: -1, // Amount not available in this event
-        seller: '',
-        buyer: release.buyer,
-        event: 'LockReleased',
-        lockStatus: undefined,
-        transactionHash: release.transactionHash,
-        transactionID: release.lockId.toString(),
-      });
-    }
+  for (const release of body.data?.lockReleaseds ?? []) {
+    transactions.push({
+      id: release.id,
+      token: undefined, // Subgraph doesn't provide token in this event, we could enhance this later
+      blockNumber: parseInt(release.blockNumber),
+      blockTimestamp: parseInt(release.blockTimestamp),
+      amount: -1, // Amount not available in this event
+      seller: '',
+      buyer: release.buyer,
+      event: 'LockReleased',
+      lockStatus: undefined,
+      transactionHash: release.transactionHash,
+      transactionID: release.lockId.toString(),
+    });
   }
 
   // Process deposit withdrawn events
-  if (data.data?.depositWithdrawns) {
-    for (const withdrawal of data.data.depositWithdrawns) {
-      transactions.push({
-        id: withdrawal.id,
-        token: withdrawal.token,
-        blockNumber: parseInt(withdrawal.blockNumber),
-        blockTimestamp: parseInt(withdrawal.blockTimestamp),
-        amount: parseFloat(formatEther(BigInt(withdrawal.amount))),
-        seller: withdrawal.seller,
-        buyer: '',
-        event: 'DepositWithdrawn',
-        lockStatus: undefined,
-        transactionHash: withdrawal.transactionHash,
-      });
-    }
+  for (const withdrawal of body.data?.depositWithdrawns ?? []) {
+    transactions.push({
+      id: withdrawal.id,
+      token: withdrawal.token,
+      blockNumber: parseInt(withdrawal.blockNumber),
+      blockTimestamp: parseInt(withdrawal.blockTimestamp),
+      amount: parseFloat(formatEther(BigInt(withdrawal.amount))),
+      seller: withdrawal.seller,
+      buyer: '',
+      event: 'DepositWithdrawn',
+      lockStatus: undefined,
+      transactionHash: withdrawal.transactionHash,
+    });
   }
 
   // Sort transactions by block number (newest first)
@@ -253,8 +231,9 @@ type LockAddedResponse = {
 const fetchLockIds = async (
   field: 'buyer' | 'seller',
   walletAddress: Address,
+  network: NetworkConfig,
 ): Promise<bigint[] | undefined> => {
-  const subgraphUrl = useUser().network.value.subgraphUrls[0];
+  const subgraphUrl = network.subgraphUrls[0];
 
   try {
     const response = await fetch(subgraphUrl, {
@@ -281,10 +260,11 @@ const fetchLockIds = async (
 const getLockStatuses = async (
   field: 'buyer' | 'seller',
   walletAddress: Address,
+  network: NetworkConfig,
   onlyRpcProvider = true,
 ) => {
   const { address, abi, client } = await getContract(onlyRpcProvider);
-  const lockIds = await fetchLockIds(field, walletAddress);
+  const lockIds = await fetchLockIds(field, walletAddress, network);
   // Undefined: the subgraph could not answer. Null: there are no locks.
   if (!lockIds) return undefined;
   if (!lockIds.length) return null;
@@ -301,9 +281,10 @@ const getLockStatuses = async (
 
 export const checkUnreleasedLock = async (
   walletAddress: Address,
-): Promise<UnreleasedLock | undefined> => {
-  const locks = await getLockStatuses('buyer', walletAddress, false);
-  if (!locks) return undefined;
+  network: NetworkConfig,
+): Promise<UnreleasedLock | null> => {
+  const locks = await getLockStatuses('buyer', walletAddress, network, false);
+  if (!locks) return null;
 
   const { sortedIDs, status } = locks;
   const unreleasedLockId = status.findIndex(
@@ -312,6 +293,7 @@ export const checkUnreleasedLock = async (
   if (unreleasedLockId !== -1) {
     return getUnreleasedLockById(sortedIDs[unreleasedLockId]);
   }
+  return null;
 };
 
 const expiredOf = (
@@ -322,8 +304,9 @@ const expiredOf = (
 /** Undefined when the subgraph could not answer: expired locks are unknown. */
 export const getExpiredLockIds = async (
   seller: Address,
+  network: NetworkConfig,
 ): Promise<bigint[] | undefined> => {
-  const locks = await getLockStatuses('seller', seller);
+  const locks = await getLockStatuses('seller', seller, network);
   if (locks === undefined) return undefined;
   if (!locks) return [];
 
@@ -333,8 +316,9 @@ export const getExpiredLockIds = async (
 /** One subgraph + `getLocksStatus` read for both seller lock figures. */
 export const getSellerLockState = async (
   seller: Address,
+  network: NetworkConfig,
 ): Promise<{ activeLockAmount: number; expiredLockIds: bigint[] }> => {
-  const locks = await getLockStatuses('seller', seller);
+  const locks = await getLockStatuses('seller', seller, network);
   if (!locks) return { activeLockAmount: 0, expiredLockIds: [] };
 
   const { address, abi, client, sortedIDs, status } = locks;
@@ -363,48 +347,20 @@ export const getSellerLockState = async (
 
 export const sweepExpiredLocks = async (
   seller: Address,
-  token: Address,
+  network: NetworkConfig,
 ): Promise<number> => {
-  const lockIds = await getExpiredLockIds(seller);
+  const sender = await getSender();
+  const lockIds = await getExpiredLockIds(seller, network);
   // An outage must show as a failed sweep, not as "already recovered".
   if (!lockIds) throw new Error('Subgraph unavailable: expired locks unknown');
   if (!lockIds.length) return 0;
 
-  const { address, abi, client, wallet, account } = await getContract();
-  const aa = await getActiveAaContext();
-
-  if (aa) {
-    const call: AaCall = {
-      to: address,
-      value: 0n,
-      data: encodeFunctionData({
-        abi: abi as Abi,
-        functionName: 'unlockExpired',
-        args: [lockIds],
-      }),
-    };
-    const aaReceipt = await sendAaOperation(aa, [call], token);
-    if (!aaReceipt.success) {
-      throw new Error(
-        `AA unlockExpired failed: ${aaReceipt.receipt.transactionHash}`,
-      );
-    }
-    return lockIds.length;
-  }
-
-  if (!wallet) throw new Error('Wallet not connected');
-  if (!account) throw new Error('Account not available');
-
-  const { request } = await client.simulateContract({
-    address,
-    abi,
-    functionName: 'unlockExpired',
-    args: [lockIds],
-    account,
-  });
-  const hash = await wallet.writeContract(request);
-  const receipt = await client.waitForTransactionReceipt({ hash });
-  if (receipt.status !== 'success') {
+  const { address, abi } = await getContract();
+  // Moves no tokens out of the account, so there is no outflow to quote.
+  const { success, receipt } = await sendContractCalls(sender, [
+    { address, abi, functionName: 'unlockExpired', args: [lockIds] },
+  ]);
+  if (!success) {
     throw new Error(`Transaction failed: ${receipt.transactionHash}`);
   }
   return lockIds.length;

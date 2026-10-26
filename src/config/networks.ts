@@ -30,7 +30,7 @@ const prodNetworks = [
     rpcUrls: { default: { http: ['https://arb-mainnet.g.alchemy.com/v2/Ypckt5vbPFn6Knfwyfai0DevHqw8ukJl'] } },
     contracts: { ...arbitrum.contracts, ...p2pix('arbitrum') },
     tokens: { BRZ: { address: '0xa8940698fda5a07abaef4a5ccdf2f1bb525b47a2' } },
-    aa: { bundlerUrl: 'https://api.pimlico.io/v2/42161/rpc?apikey=pim_MQjrtKPAPnQ2oyfvyr128e' },
+    aa: { bundlerUrl: 'https://api.pimlico.io/v2/42161/rpc?apikey=pim_MQjrtKPAPnQ2oyfvyr128e', sponsorSweep: true },
     subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/arbitrum/p2pix'],
   }),
 ];
