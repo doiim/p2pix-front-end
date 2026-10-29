@@ -31,7 +31,7 @@ const prodNetworks = [
     contracts: { ...arbitrum.contracts, ...p2pix('arbitrum') },
     tokens: { BRZ: { address: '0xa8940698fda5a07abaef4a5ccdf2f1bb525b47a2' } },
     aa: { bundlerUrl: 'https://api.pimlico.io/v2/42161/rpc?apikey=pim_MQjrtKPAPnQ2oyfvyr128e' },
-    subgraphUrls: ['https://api.studio.thegraph.com/query/1745314/arbitrum/p2pix'],
+    subgraphUrls: ['https://api.studio.thegraph.com/query/1763496/p-2-pix-arthur/arbitrum'],
   }),
 ];
 
