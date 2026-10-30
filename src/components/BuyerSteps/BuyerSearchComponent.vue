@@ -440,18 +440,6 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
           />
         </template>
       </template>
-      <AllowlistBanner
-        v-if="
-          proofFound === true &&
-          !ignoreAllowlist &&
-          !loadingNetworkLiquidity &&
-          selectedDeposit
-        "
-        :seller="selectedDeposit.seller"
-        :network-name="network.name"
-        :limit-tokens="reputation.snapshot.value?.limitTokens ?? null"
-        @ignore="ignoreAllowlist = true"
-      />
       <div
         class="flex justify-center items-center"
         v-if="loadingNetworkLiquidity"
@@ -525,6 +513,19 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
       v-else
       text="Conectar carteira"
       @buttonClicked="connectAccount()"
+    />
+    <!-- Design 2I1A: the seller's list is a card of its own, under the button. -->
+    <AllowlistBanner
+      v-if="
+        proofFound === true &&
+        !ignoreAllowlist &&
+        !loadingNetworkLiquidity &&
+        selectedDeposit
+      "
+      :seller="selectedDeposit.seller"
+      :network-name="network.name"
+      :limit-tokens="reputation.snapshot.value?.limitTokens ?? null"
+      @ignore="ignoreAllowlist = true"
     />
     <slot name="footer" />
   </form>

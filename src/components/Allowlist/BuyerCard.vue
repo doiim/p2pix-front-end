@@ -2,6 +2,7 @@
 import type { AllowlistEntry } from '@/utils/allowlistStorage';
 import { shortHex } from '@/utils/allowlist';
 import TrashIcon from '@/assets/trash.svg';
+import UserIcon from '@/assets/user.svg';
 
 export type BuyerStatus = 'onchain' | 'offchain' | 'new' | 'leaving';
 
@@ -26,6 +27,7 @@ defineEmits<{ remove: []; undo: [] }>();
         <span v-if="entry.nickname" class="font-semibold">
           {{ entry.nickname[0].toUpperCase() }}
         </span>
+        <UserIcon v-else class="h-4 w-4" aria-hidden="true" />
       </span>
       <div
         class="min-w-0"

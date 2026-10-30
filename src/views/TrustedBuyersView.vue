@@ -32,9 +32,6 @@ watch(list.hasPending, (pending) => {
   if (pending) deactivated.value = false;
 });
 
-const DEACTIVATE_EFFECT =
-  'Com a raiz zero, ninguém compra das suas ofertas acima do limite de reputação e todos os arquivos deixam de valer. Os endereços continuam neste navegador para você gravar de novo quando quiser.';
-
 onMounted(() => {
   // walletAddress is set a tick after mount on reload; the connector is not.
   if (!getCurrentAccount().address) router.push({ name: 'home' });
@@ -173,8 +170,6 @@ const deactivate = async () => {
           :count="0"
           active
           closable
-          :effect="DEACTIVATE_EFFECT"
-          back-text="Voltar e editar"
           :rows="deactivateRows"
           :root="zeroHash"
           :busy="list.busy.value"

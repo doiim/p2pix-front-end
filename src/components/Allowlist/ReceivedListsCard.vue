@@ -22,6 +22,8 @@ const walletAddress = useWalletAddress();
 const copyAddress = useCopyAddress(walletAddress);
 
 const lists = ref<ReceivedAllowlist[]>(readReceivedAllowlists());
+// Not in the design: collapsed until asked for, or when a list is already here.
+const open = ref(lists.value.length > 0);
 /** On-chain root per seller, keyed by lowercase address. */
 const roots = ref<Record<string, Hex | null>>({});
 
@@ -97,63 +99,74 @@ const remove = (target: ReceivedAllowlist) =>
           Para comprar acima do limite de quem já confia em você.
         </p>
       </div>
-      <button type="button" class="ghost-button" @click="importFile">
-        Importar arquivo do vendedor
-      </button>
-    </div>
-
-    <div class="flex flex-col gap-3 rounded-lg bg-white p-6 text-gray-900">
-      <p class="text-gray-600">
-        Mande este endereço ao vendedor. Depois que ele gravar a lista, importe
-        o arquivo que ele enviar: nas ofertas dele, o limite de reputação deixa
-        de valer para você.
-      </p>
-      <div class="flex items-center gap-2 rounded-lg bg-gray-100 p-3">
-        <span class="flex-1 break-all font-mono text-sm">
-          {{ walletAddress }}
-        </span>
+      <div class="flex items-center gap-3">
+        <button type="button" class="ghost-button" @click="importFile">
+          Importar arquivo do vendedor
+        </button>
         <button
           type="button"
-          class="rounded-md p-1 hover:bg-gray-200 cursor-pointer"
-          aria-label="Copiar endereço"
-          @click="copyAddress"
+          class="text-sm font-semibold text-white underline cursor-pointer"
+          :aria-expanded="open"
+          @click="open = !open"
         >
-          <CopyIcon class="h-4 w-auto [&_path]:stroke-current" />
+          {{ open ? 'Ocultar' : 'Mostrar' }}
         </button>
       </div>
-
-      <ul v-if="lists.length" class="divide-y divide-gray-200">
-        <li
-          v-for="list in lists"
-          :key="`${list.chainId}-${list.seller}`"
-          class="flex flex-wrap items-center gap-3 py-3"
-        >
-          <div class="min-w-0 flex-1">
-            <p class="font-semibold">
-              Vendedor
-              <span class="font-mono">{{ shortHex(list.seller) }}</span>
-            </p>
-            <p class="truncate text-sm text-gray-500">
-              {{ list.fileName }} · {{ networkStatus(list) }}
-            </p>
-          </div>
-          <StatusBadge
-            :status="includesMe(list) ? 'completed' : 'pending'"
-            :custom-text="includesMe(list) ? 'Você está' : 'Você não está'"
-          />
+    </div>
+    <template v-if="open">
+      <div class="flex flex-col gap-3 rounded-lg bg-white p-6 text-gray-900">
+        <p class="text-gray-600">
+          Mande este endereço ao vendedor. Depois que ele gravar a lista,
+          importe o arquivo que ele enviar: nas ofertas dele, o limite de
+          reputação deixa de valer para você.
+        </p>
+        <div class="flex items-center gap-2 rounded-lg bg-gray-100 p-3">
+          <span class="flex-1 break-all font-mono text-sm">
+            {{ walletAddress }}
+          </span>
           <button
             type="button"
-            class="min-h-11 px-2 text-sm font-semibold text-red-700 hover:opacity-70 cursor-pointer"
-            @click="remove(list)"
+            class="rounded-md p-1 hover:bg-gray-200 cursor-pointer"
+            aria-label="Copiar endereço"
+            @click="copyAddress"
           >
-            Remover
+            <CopyIcon class="h-4 w-auto [&_path]:stroke-current" />
           </button>
-        </li>
-      </ul>
-      <p v-else class="py-2 text-center text-sm text-gray-400">
-        Nenhuma lista importada
-      </p>
-    </div>
+        </div>
+
+        <ul v-if="lists.length" class="divide-y divide-gray-200">
+          <li
+            v-for="list in lists"
+            :key="`${list.chainId}-${list.seller}`"
+            class="flex flex-wrap items-center gap-3 py-3"
+          >
+            <div class="min-w-0 flex-1">
+              <p class="font-semibold">
+                Vendedor
+                <span class="font-mono">{{ shortHex(list.seller) }}</span>
+              </p>
+              <p class="truncate text-sm text-gray-500">
+                {{ list.fileName }} · {{ networkStatus(list) }}
+              </p>
+            </div>
+            <StatusBadge
+              :status="includesMe(list) ? 'completed' : 'pending'"
+              :custom-text="includesMe(list) ? 'Você está' : 'Você não está'"
+            />
+            <button
+              type="button"
+              class="min-h-11 px-2 text-sm font-semibold text-red-700 hover:opacity-70 cursor-pointer"
+              @click="remove(list)"
+            >
+              Remover
+            </button>
+          </li>
+        </ul>
+        <p v-else class="py-2 text-center text-sm text-gray-400">
+          Nenhuma lista importada
+        </p>
+      </div>
+    </template>
   </section>
 </template>
 
