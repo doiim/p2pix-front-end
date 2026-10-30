@@ -83,7 +83,7 @@ const deactivate = async () => {
   <div class="page">
     <div
       v-if="alertText"
-      class="flex w-full max-w-6xl items-center justify-between gap-4 rounded-lg bg-amber-400 px-6 py-3"
+      class="flex w-full max-w-[61rem] items-center justify-between gap-4 rounded-lg bg-amber-400 px-6 py-3"
       role="status"
     >
       <p class="text-lg font-semibold text-gray-900">
@@ -100,10 +100,10 @@ const deactivate = async () => {
     </div>
 
     <div class="flex flex-col items-center gap-4 text-center text-white">
-      <h1 class="font-extrabold sm:text-5xl text-3xl">
+      <h1 class="font-extrabold sm:text-[30px] sm:leading-9 text-2xl">
         Compradores confiáveis
       </h1>
-      <p class="max-w-[36rem] font-medium sm:text-xl text-sm">
+      <p class="max-w-[30rem] font-medium text-base">
         Libere quem você conhece para comprar das suas ofertas acima do limite
         de reputação.
       </p>
@@ -113,7 +113,7 @@ const deactivate = async () => {
 
     <div
       v-if="list.readFailed.value"
-      class="flex w-full max-w-6xl flex-wrap items-center justify-between gap-3 rounded-lg bg-white p-4 text-gray-900"
+      class="flex w-full max-w-[61rem] flex-wrap items-center justify-between gap-3 rounded-lg bg-white p-4 text-gray-900"
       role="alert"
     >
       <p>Não foi possível ler a lista na rede.</p>
@@ -123,8 +123,8 @@ const deactivate = async () => {
     </div>
 
     <div
-      class="grid w-full max-w-6xl items-start gap-8"
-      :class="{ 'lg:grid-cols-[minmax(0,26rem)_1fr]': !list.isForeign.value }"
+      class="grid w-full max-w-[61rem] items-start gap-6"
+      :class="{ 'lg:grid-cols-[minmax(0,25rem)_1fr]': !list.isForeign.value }"
     >
       <template v-if="!list.isForeign.value">
         <ConfirmListCard
@@ -153,7 +153,7 @@ const deactivate = async () => {
       <BuyerListPanel :list="list" />
     </div>
 
-    <div class="w-full max-w-6xl">
+    <div class="w-full max-w-[61rem]">
       <ReceivedListsCard />
     </div>
 

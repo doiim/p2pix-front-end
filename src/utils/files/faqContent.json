@@ -57,8 +57,16 @@
         "content": "Para retirar a oferta, use o saque em 'Gerenciar Ofertas'. O saque desativa a oferta — novas reservas deixam de ser aceitas — e devolve para a sua carteira o saldo que não estiver em reservas ativas."
       },
       {
-        "title": "Como liberar o limite para compradores de confiança?",
-        "content": "Abra Compradores confiáveis no menu da carteira, adicione o endereço de cada comprador (o apelido é opcional e fica só com você) e clique em Gravar lista na rede. A rede guarda apenas um resumo de 32 bytes da lista (a raiz), não os endereços; a lista fica salva só no seu navegador. Depois clique em Baixar lista (.json) e envie o arquivo aos compradores, que o importam na mesma página; o arquivo leva os endereços e os apelidos. A lista vale para todas as suas ofertas na rede e não bloqueia ninguém: quem não está nela compra com o limite de reputação normal. Gravar uma lista nova invalida os arquivos já enviados. Para desligar, use Desativar lista."
+        "title": "O que são compradores confiáveis?",
+        "content": "É uma lista de endereços que você libera para comprar das suas ofertas sem o limite de reputação, pensada para quem você já conhece, como clientes antigos. Quem não está na lista continua comprando normalmente, dentro do próprio limite: a lista não bloqueia ninguém. Ela vale para todas as suas ofertas na rede em que foi gravada. O limite de reputação existe para reduzir fraudes, então só adicione quem você conhece."
+      },
+      {
+        "title": "Como libero um comprador?",
+        "content": "No menu da carteira, abra 'Compradores confiáveis'; adicione o endereço que aparece no topo do app do comprador; grave a lista na rede e confirme na carteira; baixe a lista (.json) e envie o arquivo aos compradores. Sempre que você grava uma lista nova, os arquivos anteriores deixam de valer."
+      },
+      {
+        "title": "A lista de compradores é pública?",
+        "content": "O contrato guarda só a raiz da lista, um resumo de 32 bytes, e não os endereços. Os endereços ficam no seu navegador e no arquivo que você baixa. Mas a lista não é secreta: quando um comprador usa o arquivo dele, a transação mostra o endereço dele e pode mostrar outro endereço da lista."
       }
     ]
   }

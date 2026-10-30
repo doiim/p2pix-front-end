@@ -157,6 +157,12 @@ const walletMenuOptions: MenuOption[] = [
     showInMobile: true,
   },
   {
+    label: 'Conta inteligente',
+    route: '/',
+    showInDesktop: true,
+    showInMobile: true,
+  },
+  {
     label: 'Perguntas frequentes',
     route: '/faq',
     showInDesktop: false,
@@ -473,10 +479,10 @@ const handleMenuOptionClick = (option: MenuOption): void => {
                     </RouterLink>
                     <div
                       v-if="
-                        index <
+                        index ===
                         walletMenuOptions.filter((opt) => opt.showInDesktop)
                           .length -
-                          1
+                          2
                       "
                       class="w-full flex justify-center"
                     >
