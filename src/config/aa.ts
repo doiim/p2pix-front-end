@@ -20,6 +20,12 @@ export type AaConfig = {
    */
   bundlerUrl?: string;
   /**
+   * Minimum fee token balance (in wei) kept back for paymaster fees, e.g. the
+   * BRZ reserve the CoW swap leaves in the account. Assumes an 18-decimal fee
+   * token. Falls back to `MIN_FEE_BALANCE_WEI_DEFAULT`.
+   */
+  minFeeBalance?: bigint;
+  /**
    * Token Pimlico's ERC-20 paymaster charges gas in. Unset = sponsorship only
    * (P2Pix pays gas and charges its fee inside protocol transactions). Unset on
    * every network today because the paymaster accepts none of our tokens.
@@ -36,6 +42,12 @@ export type AaConfig = {
    */
   sponsorSweep?: boolean;
 };
+
+/**
+ * Default minimum fee token balance (in wei), used when a chain's
+ * `AaConfig.minFeeBalance` is unset. Assumes an 18-decimal fee token.
+ */
+export const MIN_FEE_BALANCE_WEI_DEFAULT = 100000000000000000n; // 0.1 fee token
 
 export const env = (key: string): string | undefined =>
   (import.meta.env[key] as string | undefined)?.trim() || undefined;

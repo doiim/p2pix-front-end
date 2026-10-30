@@ -44,6 +44,7 @@ import {
   type SwapToken,
 } from '@/model/NetworkEnum';
 import { findSwapToken } from '@/model/BuyToken';
+import { MIN_FEE_BALANCE_WEI_DEFAULT } from '@/config/aa';
 
 /** Slippage accepted by a re-quote, which sells the BRZ already in the account. */
 const REQUOTE_SLIPPAGE_BPS = 100n;
@@ -71,7 +72,7 @@ export const quoteLock = async (intent: SwapIntent, from: Address) => {
   return {
     lockAmount: lockAmountFor(
       real.sellAmount + real.feeAmount,
-      FEE_RESERVE_WEI,
+      feeReserve(ctx.network),
     ),
     impactBps,
   };
@@ -246,7 +247,7 @@ export const requoteSwap = async (symbol: string): Promise<Hex> => {
     functionName: 'balanceOf',
     args: [owner],
   });
-  const sellAmount = balance - FEE_RESERVE_WEI;
+  const sellAmount = balance - feeReserve(ctx.network);
   if (sellAmount <= 0n) throw new Error('No BRZ left to swap');
 
   const q = await quote(ctx.swap, {
@@ -339,11 +340,9 @@ const swapContext = (): SwapContext => {
 
 const brz = (network: NetworkConfig) => network.tokens[TokenEnum.BRZ].address;
 
-/**
- * BRZ kept back for the paymaster's charge on the smart-account rail: 0.1 BRZ.
- * (`aa.minFeeBalance` is gone with #66's single `aa.feeToken`; same value.)
- */
-const FEE_RESERVE_WEI = 100000000000000000n;
+/** BRZ kept back for the paymaster's charge on the smart-account rail. */
+const feeReserve = (network: NetworkConfig) =>
+  network.aa?.minFeeBalance ?? MIN_FEE_BALANCE_WEI_DEFAULT;
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
@@ -420,7 +419,7 @@ const priceBuyOrder = async (
   owner: Address,
   released: bigint,
 ): Promise<CowOrder | null> => {
-  const sellLimit = released - FEE_RESERVE_WEI;
+  const sellLimit = released - feeReserve(ctx.network);
   const target = await resolve(ctx, intent);
   const q = await quote(ctx.swap, {
     sellToken: brz(ctx.network),
