@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue';
 import { onClickOutside } from '@vueuse/core';
-import { formatUnits, isHex, parseEther, zeroAddress, zeroHash } from 'viem';
+import { isHex, parseEther, zeroAddress, zeroHash } from 'viem';
 import { useRouter } from 'vue-router';
 import { readAllowlistRoot } from '@/blockchain/allowlist';
 import InfoIcon from '@/assets/infoCircle.svg';
