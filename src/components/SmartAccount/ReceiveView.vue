@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import ChevronDown from '@/assets/chevronDown.svg';
-import CopyIcon from '@/assets/copyPix.svg';
+import ChevronLeft from '@/assets/chevronLeft.svg';
+import CopyIcon from '@/assets/copy.svg';
 import QRCode from 'qrcode';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import {
@@ -64,7 +65,7 @@ watch(
       class="p-1 -ml-1 rounded-lg hover:bg-gray-100 cursor-pointer"
       @click="accountRouter.back()"
     >
-      <ChevronDown aria-hidden="true" class="w-4 h-4 rotate-90" />
+      <ChevronLeft aria-hidden="true" class="w-5 h-5" />
     </button>
     <h2 class="acct-title">Depositar</h2>
   </div>
@@ -82,16 +83,25 @@ watch(
   </p>
   <template v-else>
     <div class="relative self-center p-3 border border-gray-200 rounded-lg">
-      <div class="w-[184px] h-[184px] [&_svg]:h-full [&_svg]:w-full" v-html="qrSvg" />
-      <img
-        :src="getNetworkImage(user.network.value.name)"
-        alt=""
-        class="absolute inset-0 m-auto w-9 h-9 p-0.5 rounded-full bg-white"
+      <div
+        class="w-[184px] h-[184px] [&_svg]:h-full [&_svg]:w-full"
+        v-html="qrSvg"
       />
+      <span
+        class="absolute top-1/2 left-1/2 flex -translate-x-1/2 -translate-y-1/2 rounded-lg bg-white p-[5px]"
+      >
+        <img
+          :src="getNetworkImage(user.network.value.name)"
+          alt=""
+          class="block w-7 h-7"
+        />
+      </span>
     </div>
     <div class="flex flex-col items-center gap-1 text-center">
       <span class="acct-label">Endereço da sua conta</span>
-      <span class="max-w-[21ch] font-mono text-[15px] leading-[22px] text-gray-500 break-all">
+      <span
+        class="max-w-[21ch] font-mono text-[15px] leading-[22px] text-gray-500 break-all"
+      >
         <strong class="font-bold text-gray-900">{{
           address.slice(0, 10)
         }}</strong
@@ -102,7 +112,7 @@ watch(
       </span>
     </div>
     <button type="button" class="account-button" @click="copyAddress">
-      <CopyIcon aria-hidden="true" class="scale-75" />
+      <CopyIcon aria-hidden="true" />
       Copiar endereço
     </button>
   </template>

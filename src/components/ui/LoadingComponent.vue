@@ -18,7 +18,25 @@ const props = defineProps({
       </span>
     </div>
     <div class="main-container max-w-md">
-      <div class="flex flex-col w-full bg-white sm:px-10 px-4 py-5 rounded-lg">
+      <div
+        v-if="props.embedded"
+        class="flex flex-col items-center gap-4 w-full bg-white px-5 py-8 rounded-lg text-center"
+      >
+        <h2 class="text-xl font-bold text-gray-900">
+          {{ props.title ? props.title : 'Confirme em sua carteira' }}
+        </h2>
+        <span
+          aria-hidden="true"
+          class="block w-10 h-10 rounded-full border-4 border-gray-200 border-t-gray-600 animate-spin motion-reduce:animate-none"
+        />
+        <span class="text-sm font-medium text-gray-900 text-balance">
+          {{ props.message }}
+        </span>
+      </div>
+      <div
+        v-else
+        class="flex flex-col w-full bg-white sm:px-10 px-4 py-5 rounded-lg"
+      >
         <div
           class="flex flex-col text-center justify-center w-full items-center p-2 px-3 rounded-3xl lg:min-w-fit gap-1"
         >

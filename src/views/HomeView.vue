@@ -63,7 +63,7 @@ const flowStep = ref<Step>(Step.Search);
 const hero = computed(() => {
   if (flowStep.value === Step.Buy) {
     return loadingLock.value
-      ? { title: 'Confirme em sua carteira', subtitle: undefined }
+      ? { title: undefined, subtitle: undefined }
       : {
           title: 'Utilize o QR Code ou copie o código para realizar o Pix',
           subtitle:
@@ -72,7 +72,7 @@ const hero = computed(() => {
   }
   if (flowStep.value === Step.List) {
     return loadingRelease.value
-      ? { title: 'Confirme em sua carteira', subtitle: undefined }
+      ? { title: undefined, subtitle: undefined }
       : {
           title: 'Os tokens já foram transferidos para a sua carteira!',
           subtitle: undefined,
