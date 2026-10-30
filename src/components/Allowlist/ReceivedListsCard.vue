@@ -24,6 +24,9 @@ const copyAddress = useCopyAddress(walletAddress);
 const lists = ref<ReceivedAllowlist[]>(readReceivedAllowlists());
 // Not in the design: collapsed until asked for, or when a list is already here.
 const open = ref(lists.value.length > 0);
+watch(lists, (next) => {
+  if (next.length) open.value = true;
+});
 /** On-chain root per seller, keyed by lowercase address. */
 const roots = ref<Record<string, Hex | null>>({});
 
