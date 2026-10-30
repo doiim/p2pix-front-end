@@ -44,12 +44,13 @@ const address = computed(() => account.smartAccountAddress.value ?? '');
 watch(
   address,
   async (value) => {
-    // High error correction keeps the code readable under the network logo.
+    // Level M keeps a 42-char address at 29×29 modules, as drawn; the small
+    // logo covers less than the 15% the level tolerates.
     qrSvg.value = value
       ? await QRCode.toString(value, {
           type: 'svg',
-          margin: 0,
-          errorCorrectionLevel: 'H',
+          margin: 2,
+          errorCorrectionLevel: 'M',
         })
       : '';
   },
