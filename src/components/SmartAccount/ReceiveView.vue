@@ -9,6 +9,8 @@ import {
   useCopyAddress,
 } from '@/composables/account/useAccountRouter';
 import { useUser } from '@/composables/useUser';
+import { findSwapToken } from '@/model/BuyToken';
+import { TokenEnum } from '@/model/NetworkEnum';
 import { getNetworkImage } from '@/utils/imagesPath';
 import NetworkNotice from './NetworkNotice.vue';
 
@@ -20,6 +22,21 @@ const qrSvg = ref('');
 
 // One address receives every token the network knows and the native coin.
 const accepted = account.assets;
+const expanded = ref(false);
+// Collapsed: the first four tickers and an ellipsis, as in the design.
+const summary = computed(() => {
+  const symbols = accepted.value.map((token) => token.symbol);
+  return symbols.length > 4
+    ? `${symbols.slice(0, 4).join(', ')}…`
+    : symbols.join(', ');
+});
+const nameOf = (symbol: string): string => {
+  if (symbol === TokenEnum.BRZ) return 'Brazilian Digital Token';
+  return (
+    findSwapToken(user.network.value, symbol)?.name ??
+    user.network.value.nativeCurrency.name
+  );
+};
 
 const address = computed(() => account.smartAccountAddress.value ?? '');
 
@@ -65,15 +82,15 @@ watch(
   </p>
   <template v-else>
     <div class="relative self-center p-4 border border-gray-200 rounded-lg">
-      <div class="w-30 h-30 [&_svg]:h-full [&_svg]:w-full" v-html="qrSvg" />
+      <div class="w-48 h-48 [&_svg]:h-full [&_svg]:w-full" v-html="qrSvg" />
       <img
         :src="getNetworkImage(user.network.value.name)"
         alt=""
-        class="absolute inset-0 m-auto w-7 h-7 p-0.5 rounded-full bg-white"
+        class="absolute inset-0 m-auto w-9 h-9 p-0.5 rounded-full bg-white"
       />
     </div>
     <div class="flex flex-col items-center gap-1 text-center">
-      <span class="acct-label">Endereço da conta</span>
+      <span class="acct-label">Endereço da sua conta</span>
       <span class="font-mono text-xs text-gray-500 break-all">
         <strong class="font-bold text-gray-900">{{
           address.slice(0, 10)
@@ -90,21 +107,48 @@ watch(
     </button>
   </template>
   <div class="flex flex-col gap-2">
-    <span class="acct-label">Tokens aceitos nesta rede</span>
-    <div class="flex flex-col gap-1 p-3 border border-gray-200 rounded-lg">
-      <span class="flex -space-x-1">
+    <span id="accepted-label" class="acct-label">
+      Tokens aceitos neste endereço
+    </span>
+    <button
+      type="button"
+      :aria-expanded="expanded"
+      aria-describedby="accepted-label"
+      class="flex flex-col gap-2 w-full p-3 border border-gray-200 rounded-lg text-left transition-colors hover:bg-gray-50 cursor-pointer"
+      @click="expanded = !expanded"
+    >
+      <span class="flex -space-x-2">
         <img
           v-for="token in accepted"
           :key="token.symbol"
           :src="token.image"
           alt=""
-          class="w-4 h-4 rounded-full bg-white"
+          class="w-5 h-5 rounded-full border-2 border-white bg-white"
         />
       </span>
-      <span class="text-sm font-semibold text-gray-900">
-        {{ accepted.map((token) => token.symbol).join(', ') }}
+      <span class="flex items-center justify-between gap-2">
+        <span class="text-sm font-semibold text-gray-900">{{ summary }}</span>
+        <ChevronDown
+          aria-hidden="true"
+          class="w-4 h-4 transition-transform"
+          :class="{ 'scale-y-[-1]': expanded }"
+        />
       </span>
-    </div>
+    </button>
+    <ul
+      v-if="expanded"
+      class="flex flex-col divide-y divide-gray-100 border border-gray-200 rounded-lg"
+    >
+      <li
+        v-for="token in accepted"
+        :key="token.symbol"
+        class="flex items-center gap-3 px-3 py-2"
+      >
+        <img :src="token.image" alt="" class="w-5 h-5 rounded-full" />
+        <span class="text-sm font-semibold text-gray-900">{{ token.symbol }}</span>
+        <span class="text-xs text-gray-500">{{ nameOf(token.symbol) }}</span>
+      </li>
+    </ul>
   </div>
   <NetworkNotice />
 </template>

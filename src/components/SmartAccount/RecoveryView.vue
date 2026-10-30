@@ -2,7 +2,7 @@
 import { ref } from 'vue';
 import { formatEther, formatUnits } from 'viem';
 import ChevronDown from '@/assets/chevronDown.svg';
-import SendIcon from '@/assets/send.svg';
+import SendIcon from '@/assets/withdraw.svg';
 import { sweepGasNote } from '@/blockchain/aa/sweep';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useRecoverySweep } from '@/composables/useRecoverySweep';

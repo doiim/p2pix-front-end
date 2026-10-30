@@ -6,7 +6,7 @@ const user = useUser();
 </script>
 
 <template>
-  <div class="acct-network flex-col">
+  <div class="acct-network">
     <p class="flex items-center gap-1">
       Envios apenas para a rede
       <img
@@ -18,6 +18,5 @@ const user = useUser();
         {{ user.network.value.name }}
       </strong>
     </p>
-    <p>Envios por outras redes serão perdidos.</p>
   </div>
 </template>

@@ -4,7 +4,8 @@ import { onClickOutside } from '@vueuse/core';
 import { formatUnits, isHex, parseEther, zeroAddress, zeroHash } from 'viem';
 import { useRouter } from 'vue-router';
 import { readAllowlistRoot } from '@/blockchain/allowlist';
-import { entryLabel, readOwnAllowlist } from '@/utils/allowlistStorage';
+import InfoIcon from '@/assets/infoCircle.svg';
+import PencilIcon from '@/assets/pencil.svg';
 import { useUser } from '@/composables/useUser';
 import { useWalletAddress } from '@/queries/wallet';
 import CustomButton from '@/components/ui/CustomButton.vue';
@@ -104,17 +105,11 @@ watch(
 const allowlistActive = computed(
   () => allowlistRoot.value !== null && allowlistRoot.value !== zeroHash,
 );
-const allowlistSubLabel = computed(() => {
-  if (!allowlistActive.value) return 'Comprar sem o limite de reputação';
-  const entries = walletAddress.value
-    ? readOwnAllowlist(user.network.value.id, walletAddress.value)
-    : [];
-  if (!entries.length) return 'Lista ativa na rede';
-  const names = entries.slice(0, 2).map(entryLabel);
-  const rest = entries.length - names.length;
-  if (rest > 0) names.push(`mais ${rest}`);
-  return new Intl.ListFormat('pt-BR', { type: 'conjunction' }).format(names);
-});
+const allowlistHelp = computed(() =>
+  allowlistActive.value
+    ? 'Compram sem o limite de reputação. A lista vale para todas as suas ofertas nesta rede.'
+    : 'Libere quem você conhece para comprar das suas ofertas sem o limite de reputação.',
+);
 const editAllowlist = (): void => void router.push('/allowlist');
 
 // Bank selection
@@ -413,43 +408,47 @@ const handleSubmit = (e: Event): void => {
     <!-- Trusted buyers -->
     <div
       v-if="walletAddress && allowlistRoot !== null"
-      class="flex items-center justify-between gap-4 w-full bg-white sm:px-10 px-6 py-4 rounded-lg"
+      class="flex items-center justify-between gap-3 w-full bg-white sm:px-10 px-6 py-3 rounded-lg"
     >
-      <div class="flex flex-col min-w-0">
-        <span class="text-sm font-medium text-gray-900"
-          >Compradores confiáveis</span
-        >
-        <span class="text-xs text-gray-500 truncate">{{
-          allowlistSubLabel
-        }}</span>
-        <span id="allowlist-switch-help" class="sr-only"
-          >Para editar, abra a página Compradores confiáveis.</span
-        >
-      </div>
-      <div class="flex items-center gap-3 shrink-0">
+      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+        <span class="inline-flex items-center gap-1">
+          <span id="allowlist-title" class="text-base font-semibold text-gray-900"
+            >Compradores confiáveis</span
+          >
+          <span
+            class="inline-flex text-gray-500"
+            :title="allowlistHelp"
+            aria-label="Sobre compradores confiáveis"
+            role="img"
+          >
+            <InfoIcon aria-hidden="true" />
+          </span>
+        </span>
         <button
           type="button"
-          class="text-xs underline text-gray-500"
+          class="inline-flex items-center gap-1.5 min-h-11 text-sm font-semibold text-gray-900 cursor-pointer"
+          aria-label="Editar lista de compradores confiáveis"
           @click="editAllowlist"
         >
+          <PencilIcon aria-hidden="true" />
           Editar
         </button>
-        <button
-          type="button"
-          role="switch"
-          :aria-checked="allowlistActive"
-          aria-label="Compradores confiáveis"
-          aria-describedby="allowlist-switch-help"
-          class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-          :class="allowlistActive ? 'bg-emerald-500' : 'bg-gray-300'"
-          @click="editAllowlist"
-        >
-          <span
-            class="inline-block h-5 w-5 rounded-full bg-white transition-transform"
-            :class="allowlistActive ? 'translate-x-5' : 'translate-x-0.5'"
-          />
-        </button>
       </div>
+      <button
+        type="button"
+        role="switch"
+        :aria-checked="allowlistActive"
+        aria-labelledby="allowlist-title"
+        :title="allowlistHelp"
+        class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full transition-colors cursor-pointer"
+        :class="allowlistActive ? 'bg-gray-900' : 'bg-gray-300'"
+        @click="editAllowlist"
+      >
+        <span
+          class="inline-block h-5 w-5 rounded-full bg-white transition-transform"
+          :class="allowlistActive ? 'translate-x-5' : 'translate-x-0.5'"
+        />
+      </button>
     </div>
     <!-- Action buttons -->
     <CustomButton

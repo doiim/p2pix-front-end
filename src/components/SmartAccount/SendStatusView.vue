@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { useClipboard } from '@vueuse/core';
 import CopyIcon from '@/assets/copyPix.svg';
 import KeyIcon from '@/assets/key.svg';
@@ -15,6 +15,7 @@ const account = usePasskeyAccount();
 const user = useUser();
 const form = useSendForm();
 const { copy } = useClipboard({ legacy: true });
+const copied = ref(false);
 
 const short = (value: string) => `${value.slice(0, 10)}…${value.slice(-8)}`;
 const tiny = (value: string) => `${value.slice(0, 6)}…${value.slice(-4)}`;
@@ -29,18 +30,45 @@ const explorerHref = computed(() =>
 
 const copyHash = async () => {
   await copy(sent.value?.txHash ?? '');
-  user.showToast('success', 'Hash copiado!');
+  copied.value = true;
+  setTimeout(() => (copied.value = false), 1800);
 };
 
 const handleDone = () => {
   sent.value = null;
+  copied.value = false;
   accountRouter.reset();
 };
 </script>
 
 <template>
   <div
-    v-if="account.busy.value"
+    v-if="account.busy.value && account.sending.value"
+    class="flex flex-col items-center gap-4 py-2 text-center"
+  >
+    <div class="self-stretch text-left">
+      <h2 class="acct-title">Enviando</h2>
+      <p class="text-sm text-gray-600">
+        Para {{ tiny(form.receiver.value.trim()) }}
+      </p>
+    </div>
+    <span
+      aria-hidden="true"
+      class="block w-10 h-10 rounded-full border-4 border-gray-200 border-t-gray-900 animate-spin motion-reduce:animate-none"
+    />
+    <p class="text-sm font-medium text-gray-900">
+      A transação está sendo enviada para a rede
+    </p>
+    <dl
+      class="flex justify-between gap-2 w-full pt-4 border-t border-gray-200 text-sm"
+    >
+      <dt class="text-gray-600">{{ form.symbol.value }}</dt>
+      <dd class="font-semibold text-gray-900">{{ form.amountText.value }}</dd>
+    </dl>
+  </div>
+
+  <div
+    v-else-if="account.busy.value"
     class="flex flex-col items-center gap-3 py-2 text-center"
   >
     <div>
@@ -119,7 +147,8 @@ const handleDone = () => {
             class="acct-link"
             @click="copyHash"
           >
-            <CopyIcon aria-hidden="true" class="scale-75" />
+            <span v-if="copied" class="text-xs">Copiado</span>
+            <CopyIcon v-else aria-hidden="true" class="scale-75" />
           </button>
         </dd>
       </div>

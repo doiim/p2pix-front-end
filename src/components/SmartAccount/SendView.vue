@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import CopyIcon from '@/assets/copyPix.svg';
-import SendIcon from '@/assets/send.svg';
+import SendIcon from '@/assets/withdraw.svg';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useSendForm } from '@/composables/account/useSendForm';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
@@ -38,6 +38,20 @@ const receiverError = computed(() =>
     : '',
 );
 const canSend = computed(() => form.cta.value === 'SEND');
+const balanceText = (token?: string) =>
+  formatTokenAmount(account.balanceOf(token), account.decimalsOf(token));
+
+// A valid destination reads as 0x1234567890…12345678 until it is edited again.
+const receiverFocused = ref(false);
+const short = (value: string) => `${value.slice(0, 10)}…${value.slice(-8)}`;
+const receiverShown = computed(() =>
+  !receiverFocused.value && form.receiverAddress.value
+    ? short(form.receiverAddress.value)
+    : form.receiver.value,
+);
+const onReceiverInput = (event: Event) => {
+  form.receiver.value = (event.target as HTMLInputElement).value;
+};
 
 const handleConfirm = async () => {
   accountRouter.push('sendStatus');
@@ -100,6 +114,9 @@ const handleCancel = () => {
           >
             <img :src="opt.image" :alt="opt.symbol" class="h-5 w-5" />
             {{ opt.symbol }}
+            <span class="ml-auto pl-4 text-xs font-normal text-gray-500">
+              {{ balanceText(opt.token) }}
+            </span>
           </button>
         </template>
       </DropdownChip>
@@ -128,7 +145,7 @@ const handleCancel = () => {
     </div>
     <input
       id="send-receiver"
-      v-model="form.receiver.value"
+      :value="receiverShown"
       type="text"
       spellcheck="false"
       autocomplete="off"
@@ -136,6 +153,9 @@ const handleCancel = () => {
       :aria-invalid="!!receiverError"
       class="send-field font-mono text-sm outline-none"
       :class="{ 'is-invalid': receiverError }"
+      @input="onReceiverInput"
+      @focus="receiverFocused = true"
+      @blur="receiverFocused = false"
     />
     <p v-if="receiverError" class="text-xs text-red-700">
       {{ receiverError }}

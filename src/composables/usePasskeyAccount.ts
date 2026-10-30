@@ -89,6 +89,8 @@ const assertSendFunds = (params: SendParams, funds: Balances): void => {
 // Module-level state: the account page and every screen inside it share one
 // instance (same pattern as useUser). Balances live in the vue-query cache.
 const busy = ref(false);
+/** A send accepted by the bundler and waiting for its receipt. */
+const sending = ref(false);
 const error = ref<string | null>(null);
 // Every network, not just the selected one: funds left on another chain.
 const discovered = ref<DiscoveredBalances | null>(null);
@@ -228,6 +230,7 @@ export function usePasskeyAccount() {
               token: addressOf(context.network, params.token),
               amount: params.amount,
             },
+        () => (sending.value = true),
       );
       const { userOpHash } = receipt;
       if (!receipt.success) {
@@ -258,6 +261,7 @@ export function usePasskeyAccount() {
       return null;
     } finally {
       busy.value = false;
+      sending.value = false;
     }
   };
 
@@ -270,6 +274,7 @@ export function usePasskeyAccount() {
 
   return {
     busy,
+    sending,
     error,
     balancesLoaded,
     balances,

@@ -1,4 +1,10 @@
-import { erc20Abi, zeroAddress, type Address, type PublicClient } from 'viem';
+import {
+  erc20Abi,
+  zeroAddress,
+  type Address,
+  type Hex,
+  type PublicClient,
+} from 'viem';
 import type { UserOperationReceipt } from 'viem/account-abstraction';
 
 import { useUser } from '@/composables/useUser';
@@ -63,10 +69,12 @@ export const getEffectiveWalletAddress = async (
 const sendSponsored = async (
   aa: AaContext,
   calls: readonly AaCall[],
+  onSent?: (hash: Hex) => void,
 ): Promise<UserOperationReceipt> => {
   const hash = await aa.sponsoredClient.sendUserOperation({
     calls: [...calls],
   });
+  onSent?.(hash);
   return aa.sponsoredClient.waitForUserOperationReceipt({ hash });
 };
 
@@ -90,9 +98,11 @@ export const sendAaOperation = async (
   aa: AaContext,
   calls: readonly AaCall[],
   outflow?: AaOutflow,
+  /** Called once the operation is accepted by the bundler, before its receipt. */
+  onSent?: (hash: Hex) => void,
 ): Promise<UserOperationReceipt> => {
   const feeToken = aa.network.aa?.feeToken;
-  if (!feeToken || !aa.erc20Client) return sendSponsored(aa, calls);
+  if (!feeToken || !aa.erc20Client) return sendSponsored(aa, calls, onSent);
 
   const feeTokenAddress = aa.network.tokens[feeToken].address;
   const movedOut =
@@ -115,9 +125,10 @@ export const sendAaOperation = async (
     if (!(cause instanceof InsufficientFeeTokenBalanceError)) {
       console.error('ERC-20 paymaster quote failed; sponsoring.', cause);
     }
-    return sendSponsored(aa, calls);
+    return sendSponsored(aa, calls, onSent);
   }
 
   const hash = await sendPreparedErc20UserOperation(aa, quote);
+  onSent?.(hash);
   return aa.erc20Client.waitForUserOperationReceipt({ hash });
 };

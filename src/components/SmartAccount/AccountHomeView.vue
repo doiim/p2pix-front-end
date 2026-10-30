@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
 import { useConnection } from '@wagmi/vue';
 import DepositIcon from '@/assets/deposit.svg';
-import SendIcon from '@/assets/send.svg';
+import SendIcon from '@/assets/withdraw.svg';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useBackupPasskey } from '@/composables/useBackupPasskey';
