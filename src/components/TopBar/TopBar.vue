@@ -458,11 +458,11 @@ const handleMenuOptionClick = (option: MenuOption): void => {
           <transition name="dropdown">
             <div
               v-show="menuOpenToggle"
-              class="mt-10 absolute w-full text-gray-900 hidden md:inline-block"
+              class="mt-10 absolute right-0 min-w-[17rem] text-gray-900 hidden md:inline-block"
             >
-              <div class="pl-4 mt-2">
+              <div class="mt-2">
                 <div
-                  class="bg-white rounded-md z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
+                  class="bg-white rounded-lg z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip py-1"
                 >
                   <template
                     v-for="(option, index) in walletMenuOptions.filter(
@@ -631,7 +631,7 @@ header {
 }
 
 .redirect_button {
-  @apply py-5 px-4 text-gray-900 flex sm:font-semibold font-bold sm:text-xs text-sm justify-between;
+  @apply py-5 px-4 text-gray-900 flex sm:font-semibold font-bold sm:text-base text-sm justify-between;
 }
 
 .menu-button {
