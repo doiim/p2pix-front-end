@@ -29,7 +29,11 @@ const phrase = (entries: AllowlistEntry[], one: string, many: string) => {
 
 const title = computed(() => {
   const count = props.list.changeCount.value;
-  if (!count) return 'Lista fora da rede';
+  if (!count) {
+    const n = props.list.draft.value.length;
+    if (!n) return 'Lista vazia';
+    return `Reativar a lista com ${n} ${n === 1 ? 'endereço' : 'endereços'}`;
+  }
   return count === 1 ? '1 alteração a gravar' : `${count} alterações a gravar`;
 });
 

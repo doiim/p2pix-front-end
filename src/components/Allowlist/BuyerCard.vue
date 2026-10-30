@@ -53,14 +53,14 @@ defineEmits<{ remove: []; undo: [] }>();
       </span>
       <span v-else-if="status === 'new'" class="flex items-center gap-2">
         <span class="tag bg-amber-300 text-gray-900">Novo</span>
-        <span class="text-xs text-gray-500">entra ao gravar</span>
+        <span class="text-xs text-gray-500">entra ao gravar a lista</span>
       </span>
       <span v-else class="flex items-center gap-2 text-sm text-gray-700">
         <span
           class="h-2 w-2 rounded-full"
           :class="status === 'onchain' ? 'bg-emerald-500' : 'bg-gray-400'"
         />
-        {{ status === 'onchain' ? 'Na rede' : 'Fora da rede' }}
+        {{ status === 'onchain' ? 'Na rede' : 'Só neste navegador' }}
       </span>
 
       <button
@@ -75,7 +75,7 @@ defineEmits<{ remove: []; undo: [] }>();
         v-else
         type="button"
         class="icon-button"
-        :aria-label="`Tirar ${entry.nickname ?? entry.address} da lista`"
+        :aria-label="`Remover ${entry.nickname ?? entry.address} da lista`"
         @click="$emit('remove')"
       >
         <TrashIcon />

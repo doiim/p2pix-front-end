@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useQuery } from '@tanstack/vue-query';
 import { useConnection } from '@wagmi/vue';
 import DepositIcon from '@/assets/deposit.svg';
 import SendIcon from '@/assets/send.svg';
@@ -7,15 +8,13 @@ import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useBackupPasskey } from '@/composables/useBackupPasskey';
 import { useUser } from '@/composables/useUser';
+import { priceInBrz } from '@/blockchain/prices';
 import { TokenEnum } from '@/model/NetworkEnum';
+import { queryKeyRoots } from '@/queries/keys';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 import { formatBrlFixed } from '@/utils/reputation';
 import { exportPrivateKey, MAGIC_CONNECTOR_ID } from '@/wallet/magic';
-
-// Price in R$ cents per whole token. BRZ is pegged to the real; an asset
-// without a price shows no R$ value, and then the total is hidden too.
-const BRL_CENTS: Partial<Record<TokenEnum, bigint>> = { [TokenEnum.BRZ]: 100n };
 
 const account = usePasskeyAccount();
 const accountRouter = useAccountRouter();
@@ -38,26 +37,57 @@ const run = async (task: () => Promise<void>, done?: string) => {
   }
 };
 
-// Only the held assets.
+// BRZ base units per whole token, by symbol ('' = native); null = no price.
+// The cache lives in priceInBrz, so a refetch within 60 s costs nothing.
+const prices = useQuery({
+  queryKey: computed(() => [
+    ...queryKeyRoots.passkeyPrices,
+    user.network.value.id,
+  ]),
+  queryFn: async () => {
+    const owner = account.smartAccountAddress.value ?? undefined;
+    const entries = await Promise.all(
+      account.assets.value.map(
+        async (asset) =>
+          [
+            asset.token ?? '',
+            await priceInBrz(user.network.value, asset.token, owner),
+          ] as const,
+      ),
+    );
+    return new Map(entries);
+  },
+  enabled: account.balancesLoaded,
+  staleTime: 60_000,
+});
+
+// R$ cents of `amount`; BRZ is the real, so BRZ base units / 10^(brz - 2).
+const toCents = (amount: bigint, decimals: number, price: bigint) =>
+  (amount * price) /
+  10n ** BigInt(decimals + account.decimalsOf(TokenEnum.BRZ) - 2);
+
+// Only the held assets, in asset order (BRZ, swap tokens, native).
 const rows = computed(() =>
   account.assets.value
     .filter((asset) => account.balanceOf(asset.token) > 0n)
     .map((asset) => {
       const amount = account.balanceOf(asset.token);
       const decimals = account.decimalsOf(asset.token);
-      const price = asset.token && BRL_CENTS[asset.token];
+      const price = prices.data.value?.get(asset.token ?? '') ?? null;
       return {
         ...asset,
-        text: formatTokenAmount(amount, decimals),
-        cents: price ? (amount * price) / 10n ** BigInt(decimals) : null,
+        text: formatTokenAmount(amount, decimals, asset.token ? 2 : 6),
+        cents: price === null ? null : toCents(amount, decimals, price),
       };
     }),
 );
-const total = computed(() =>
-  rows.value.length && rows.value.every((row) => row.cents !== null)
-    ? rows.value.reduce((sum, row) => sum + (row.cents ?? 0n), 0n)
-    : null,
-);
+// Rows without a price are left out of the sum; no priced row, no total.
+const total = computed(() => {
+  const priced = rows.value.flatMap((row) =>
+    row.cents === null ? [] : [row.cents],
+  );
+  return priced.length ? priced.reduce((sum, cents) => sum + cents, 0n) : null;
+});
 
 // Funds the account holds on the networks other than the selected one.
 const elsewhere = computed(() =>

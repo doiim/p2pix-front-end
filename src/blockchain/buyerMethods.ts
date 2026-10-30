@@ -100,11 +100,14 @@ export const addLock = async (
   sellerAddress: Address,
   tokenAddress: Address,
   amount: number,
+  skipAllowlist = false,
 ): Promise<bigint> => {
   const from = await getSender();
   const { address, abi } = await getContract();
   const parsedAmount = parseEther(amount.toString());
-  const proof = await findAllowlistProof(sellerAddress, from.address);
+  const proof = skipAllowlist
+    ? []
+    : await findAllowlistProof(sellerAddress, from.address);
 
   // `lockID = ++lockCounter` is global, so a simulated return value belongs to
   // whichever lock lands first. Read the id our own tx actually wrote.

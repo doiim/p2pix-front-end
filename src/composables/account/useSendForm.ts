@@ -15,7 +15,7 @@ import {
 } from '@/composables/usePasskeyAccount';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { useUser } from '@/composables/useUser';
-import type { NetworkConfig, TokenEnum } from '@/model/NetworkEnum';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 
 type SendCta =
   | 'ADD_AMOUNT'
@@ -36,14 +36,14 @@ const parseAmount = (input: string, decimals: number): bigint | null => {
 // Module-level draft: the send and status screens are separate components on
 // the same stack and must see the same values. No token means the native coin,
 // so the draft starts on the token selected across the app.
-const token = ref<TokenEnum | undefined>(useUser().selectedToken.value);
+const token = ref<string | undefined>(useUser().selectedToken.value);
 const amountInput = ref('');
 const receiver = ref('');
 // Kept outside any screen: switching Comprar/Vender remounts the panel while
 // the passkey prompt is open, and the receipt must survive that.
 const lastSent = ref<
   | (SendResult & {
-      token?: TokenEnum;
+      token?: string;
       amountText: string;
       to: Address;
       network: NetworkConfig;
@@ -90,7 +90,7 @@ export function useSendForm() {
       ? ''
       : `${formatTokenAmount(amount.value, decimals.value)} ${symbol.value}`,
   );
-  const setToken = (next?: TokenEnum): void => {
+  const setToken = (next?: string): void => {
     if (token.value !== next) amountInput.value = '';
     token.value = next;
   };

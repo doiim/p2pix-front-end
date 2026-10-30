@@ -8,6 +8,7 @@ import { activityKey } from '@/queries/keys';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useUser } from '@/composables/useUser';
 import { readHistory } from './userOpHistory';
+import { readTokenTransfers } from '@/blockchain/transfers';
 
 export type ActivityItem = {
   id: string;
@@ -16,6 +17,9 @@ export type ActivityItem = {
   amount: bigint;
   /** Absent means the chain's native coin, or an unknown token (amount 0n). */
   token?: TokenEnum;
+  /** Set for tokens outside `TokenEnum` (swap tokens): overrides the lookup by `token`. */
+  symbol?: string;
+  decimals?: number;
   /** Milliseconds since epoch. */
   timestamp: number;
   href: string | null;
@@ -101,9 +105,51 @@ export function useAccountActivity() {
     }),
   );
 
-  const items = computed(() =>
-    [...local.value, ...remote.value].sort((a, b) => b.timestamp - a.timestamp),
+  // On-chain Transfer logs: a failure or partial range just shows fewer rows.
+  const transfersQuery = useQuery({
+    queryKey: computed(
+      () =>
+        [
+          ...activityKey(user.network.value.id, address.value),
+          'transfers',
+        ] as const,
+    ),
+    queryFn: () =>
+      readTokenTransfers(user.network.value, address.value as Address),
+    enabled: computed(() => Boolean(address.value)),
+    retry: false,
+  });
+
+  const transfers = computed(() =>
+    (transfersQuery.data.value?.rows ?? []).map(
+      (t): ActivityItem => ({
+        id: `${t.txHash}:${t.token}:${t.direction}`,
+        title: t.direction === 'in' ? 'Recebido' : 'Enviado',
+        direction: t.direction,
+        amount: t.amount,
+        symbol: t.tokenSymbol,
+        decimals: t.decimals,
+        token: Object.values(TokenEnum).find(
+          (k) =>
+            user.network.value.tokens[k].address.toLowerCase() ===
+            t.token.toLowerCase(),
+        ),
+        timestamp: t.timestamp,
+        href: account.explorerTxUrl(t.txHash),
+      }),
+    ),
   );
+
+  // The chain is the source of truth: drop local sends it already reports.
+  const items = computed(() => {
+    const onChain = new Set(transfers.value.map((t) => t.href));
+    const localOnly = local.value.filter(
+      (l) => !l.href || !onChain.has(l.href),
+    );
+    return [...localOnly, ...transfers.value, ...remote.value].sort(
+      (a, b) => b.timestamp - a.timestamp,
+    );
+  });
 
   const refresh = async (): Promise<void> => {
     const current = account.smartAccountAddress.value;
@@ -119,7 +165,7 @@ export function useAccountActivity() {
         href: e.txHash ? account.explorerTxUrl(e.txHash) : null,
       }),
     );
-    await query.refetch();
+    await Promise.all([query.refetch(), transfersQuery.refetch()]);
   };
 
   return {

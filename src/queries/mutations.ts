@@ -68,7 +68,14 @@ export const useAddLockMutation = () => {
       sellerAddress: Address;
       tokenAddress: Address;
       amount: number;
-    }) => addLock(args.sellerAddress, args.tokenAddress, args.amount),
+      skipAllowlist?: boolean;
+    }) =>
+      addLock(
+        args.sellerAddress,
+        args.tokenAddress,
+        args.amount,
+        args.skipAllowlist,
+      ),
     onSuccess: () => invalidateLocks(),
   });
 };

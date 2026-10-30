@@ -22,13 +22,20 @@ export type DiscoveredBalances = {
   failed: NetworkConfig[];
 };
 
-// Every ERC-20 the app knows on a network. The swap tokens join here once the
-// network config carries them.
-const watchedTokens = (network: NetworkConfig) =>
-  Object.entries(network.tokens).map(([symbol, { address }]) => ({
+// Every ERC-20 the app knows on a network: BRZ first, then the swap tokens in
+// config order.
+export const watchedTokens = (
+  network: NetworkConfig,
+): { symbol: string; address: Address }[] => {
+  const base = Object.entries(network.tokens).map(([symbol, { address }]) => ({
     symbol,
     address,
   }));
+  const swap = (network.swap?.tokens ?? []).filter(
+    (token) => !(token.symbol in network.tokens),
+  );
+  return [...base, ...swap.map(({ symbol, address }) => ({ symbol, address }))];
+};
 
 const readNetwork = async (
   network: NetworkConfig,

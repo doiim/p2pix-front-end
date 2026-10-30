@@ -15,9 +15,12 @@ const account = usePasskeyAccount();
 const user = useUser();
 const form = useSendForm();
 
-const options = account.assets;
+// Only what the account holds can be sent.
+const options = computed(() =>
+  account.assets.value.filter((opt) => account.balanceOf(opt.token) > 0n),
+);
 const selected = computed(() =>
-  options.value.find((opt) => opt.token === form.token.value),
+  account.assets.value.find((opt) => opt.token === form.token.value),
 );
 const maxText = computed(
   () =>

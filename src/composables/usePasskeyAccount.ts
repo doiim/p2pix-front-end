@@ -13,20 +13,21 @@ import {
 } from '@/blockchain/aa/operations';
 import {
   discoverBalances,
+  watchedTokens,
   type DiscoveredBalances,
 } from '@/blockchain/balanceDiscovery';
 import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
 import { useUser } from '@/composables/useUser';
-import { TokenEnum } from '@/model/NetworkEnum';
+import { TokenEnum, type NetworkConfig } from '@/model/NetworkEnum';
 import { queryKeyRoots } from '@/queries/keys';
 import { useWalletAddress } from '@/queries/wallet';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 
 export type SendParams = {
-  /** ERC-20 to move; absent means the chain's native coin. */
-  token?: TokenEnum;
+  /** Symbol of the ERC-20 to move (BRZ or a swap token); absent means the native coin. */
+  token?: string;
   amount: bigint;
   to: Address;
 };
@@ -42,6 +43,15 @@ type Balances = {
 const balanceAt = (tokens: TokenBalance[], address: Address) => {
   const needle = address.toLowerCase();
   return tokens.find((token) => token.address.toLowerCase() === needle);
+};
+
+const findAddress = (network: NetworkConfig, symbol: string) =>
+  watchedTokens(network).find((token) => token.symbol === symbol)?.address;
+
+const addressOf = (network: NetworkConfig, symbol: string): Address => {
+  const address = findAddress(network, symbol);
+  if (!address) throw new Error(`Token desconhecido: ${symbol}`);
+  return address;
 };
 
 const tokenTransfer = (
@@ -65,7 +75,7 @@ const assertSendFunds = (params: SendParams, funds: Balances): void => {
       ? funds.result.eth
       : (balanceAt(
           funds.result.tokens,
-          funds.context.network.tokens[params.token].address,
+          addressOf(funds.context.network, params.token),
         )?.balance ?? 0n);
   if (held < params.amount) {
     throw new Error(
@@ -104,7 +114,7 @@ export function usePasskeyAccount() {
     const result = await getTokenBalances(
       getPublicClient(),
       context.account.address,
-      Object.values(context.network.tokens).map((token) => token.address),
+      watchedTokens(context.network).map((token) => token.address),
     );
     return {
       context,
@@ -135,18 +145,23 @@ export function usePasskeyAccount() {
   const balancesLoaded = computed(() => Boolean(balancesQuery.data.value));
 
   // No token means the chain's native coin, which has its own read.
-  const tokenRead = (token: TokenEnum) =>
-    balanceAt(balances.value, user.network.value.tokens[token].address);
-  const symbolOf = (token?: TokenEnum): string =>
+  const tokenRead = (token: string) => {
+    const address = findAddress(user.network.value, token);
+    return address && balanceAt(balances.value, address);
+  };
+  const symbolOf = (token?: string): string =>
     token ?? user.network.value.nativeCurrency.symbol;
-  const decimalsOf = (token?: TokenEnum): number =>
-    (token && tokenRead(token)?.decimals) ??
+  const decimalsOf = (token?: string): number =>
+    (token === undefined ? undefined : tokenRead(token)?.decimals) ??
     user.network.value.nativeCurrency.decimals;
-  const balanceOf = (token?: TokenEnum): bigint =>
+  const balanceOf = (token?: string): bigint =>
     token ? (tokenRead(token)?.balance ?? 0n) : ethBalance.value;
-  // The configured ERC-20s, then the native coin (no token).
+  // BRZ, the swap tokens in config order, then the native coin (no token).
   const assets = computed(() =>
-    [...Object.values(TokenEnum), undefined].map((token) => ({
+    [
+      ...watchedTokens(user.network.value).map(({ symbol }) => symbol),
+      undefined,
+    ].map((token) => ({
       token,
       symbol: symbolOf(token),
       image: token
@@ -197,7 +212,7 @@ export function usePasskeyAccount() {
           ? [{ to: params.to, value: params.amount, data: '0x' }]
           : [
               tokenTransfer(
-                context.network.tokens[params.token].address,
+                addressOf(context.network, params.token),
                 params.to,
                 params.amount,
               ),
@@ -210,7 +225,7 @@ export function usePasskeyAccount() {
         params.token === undefined
           ? undefined
           : {
-              token: context.network.tokens[params.token].address,
+              token: addressOf(context.network, params.token),
               amount: params.amount,
             },
       );
@@ -219,16 +234,21 @@ export function usePasskeyAccount() {
         throw new Error(`Operação falhou na rede: ${userOpHash}`);
       }
       const txHash = receipt.receipt.transactionHash;
-      appendHistory({
-        id: userOpHash,
-        token: params.token,
-        amount: params.amount.toString(),
-        to: params.to,
-        from: context.account.address,
-        chainId: context.network.id,
-        timestamp: Date.now(),
-        txHash,
-      });
+      // ponytail: history only knows TokenEnum; a swap-token send is not logged
+      // (it would read as native coin); widen the entry type when Activity shows swap tokens.
+      const logged = Object.values(TokenEnum).find((t) => t === params.token);
+      if (params.token === undefined || logged) {
+        appendHistory({
+          id: userOpHash,
+          token: logged,
+          amount: params.amount.toString(),
+          to: params.to,
+          from: context.account.address,
+          chainId: context.network.id,
+          timestamp: Date.now(),
+          txHash,
+        });
+      }
       await refreshBalances();
       void refreshDiscovered();
       return { userOpHash, txHash };

@@ -115,10 +115,13 @@ const deactivate = async () => {
         <ConfirmListCard
           v-if="list.reviewing.value"
           :title="
-            list.draft.value.length
-              ? 'Gravar a nova lista'
-              : 'Desativar a lista'
+            !list.draft.value.length
+              ? 'Desativar a lista'
+              : list.isActive.value
+                ? 'Gravar a nova lista'
+                : 'Ativar a lista'
           "
+          :count="list.draft.value.length"
           :rows="saveRows"
           :root="list.draftRoot.value"
           :busy="list.busy.value"
@@ -148,6 +151,7 @@ const deactivate = async () => {
       <div class="w-full max-w-xl">
         <ConfirmListCard
           title="Desativar a lista"
+          :count="0"
           :rows="deactivateRows"
           :root="zeroHash"
           :busy="list.busy.value"

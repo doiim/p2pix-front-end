@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue';
 import type { ChainContract, Hex } from 'viem';
 import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import ChevronDown from '@/assets/chevronDown.svg';
 import InfoIcon from '@/assets/info.svg';
@@ -15,10 +16,13 @@ defineProps<{
   /** Root `setRoot` will write. */
   root: Hex;
   busy: boolean;
+  /** Addresses in the list `setRoot` will write. */
+  count: number;
 }>();
 defineEmits<{ back: []; sign: [] }>();
 
 const user = useUser();
+const walletAddress = useWalletAddress();
 const details = ref(false);
 const contract = computed(
   () => (user.network.value.contracts?.p2pix as ChainContract).address,
@@ -64,6 +68,18 @@ const contract = computed(
       </button>
       <dl v-if="details" class="flex flex-col gap-2 px-4 pb-4 text-sm">
         <div>
+          <dt class="text-gray-500">Rede</dt>
+          <dd>{{ user.network.value.name }}</dd>
+        </div>
+        <div>
+          <dt class="text-gray-500">Endereço</dt>
+          <dd class="font-mono break-all">{{ walletAddress }}</dd>
+        </div>
+        <div>
+          <dt class="text-gray-500">Lista</dt>
+          <dd>{{ count === 1 ? '1 endereço' : `${count} endereços` }}</dd>
+        </div>
+        <div>
           <dt class="text-gray-500">Função</dt>
           <dd class="font-mono">setRoot</dd>
         </div>
@@ -75,6 +91,9 @@ const contract = computed(
           <dt class="text-gray-500">Nova raiz</dt>
           <dd class="font-mono break-all">{{ root }}</dd>
         </div>
+        <p class="text-gray-600">
+          Na carteira, confira se o contrato, a função e a raiz são estes.
+        </p>
       </dl>
     </div>
 

@@ -25,7 +25,7 @@ const openId = ref<string | null>(null);
 const amountText = (item: ActivityItem): string =>
   item.amount === 0n
     ? ''
-    : `${SIGN[item.direction]}${formatTokenAmount(item.amount, account.decimalsOf(item.token))} ${account.symbolOf(item.token)}`;
+    : `${SIGN[item.direction]}${formatTokenAmount(item.amount, item.decimals ?? account.decimalsOf(item.token))} ${item.symbol ?? account.symbolOf(item.token)}`;
 
 const dateText = (ts: number): string =>
   new Date(ts)
@@ -38,8 +38,8 @@ const dateText = (ts: number): string =>
     .replace(', ', ' · ');
 
 const imageOf = (item: ActivityItem): string =>
-  item.token
-    ? getTokenImage(item.token)
+  item.symbol || item.token
+    ? getTokenImage(item.symbol ?? item.token ?? '')
     : getNetworkImage(user.network.value.name);
 
 const toggle = (id: string) => {

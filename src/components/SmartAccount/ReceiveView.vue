@@ -18,7 +18,7 @@ const copyAddress = useCopyAddress();
 const user = useUser();
 const qrSvg = ref('');
 
-// One address receives every configured token and the native coin.
+// One address receives every token the network knows and the native coin.
 const accepted = account.assets;
 
 const address = computed(() => account.smartAccountAddress.value ?? '');
@@ -73,7 +73,7 @@ watch(
       />
     </div>
     <div class="flex flex-col items-center gap-1 text-center">
-      <span class="acct-label">Endereço da sua conta</span>
+      <span class="acct-label">Endereço da conta</span>
       <span class="font-mono text-xs text-gray-500 break-all">
         <strong class="font-bold text-gray-900">{{
           address.slice(0, 10)
@@ -90,7 +90,7 @@ watch(
     </button>
   </template>
   <div class="flex flex-col gap-2">
-    <span class="acct-label">Tokens aceitos neste endereço</span>
+    <span class="acct-label">Tokens aceitos nesta rede</span>
     <div class="flex flex-col gap-1 p-3 border border-gray-200 rounded-lg">
       <span class="flex -space-x-1">
         <img

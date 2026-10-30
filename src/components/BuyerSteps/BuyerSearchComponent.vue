@@ -6,6 +6,7 @@ import { useNetworkDepositsQuery } from '@/queries/deposits';
 import { useWalletAddress } from '@/queries/wallet';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
+import AllowlistBanner from '@/components/BuyerSteps/Reputation/AllowlistBanner.vue';
 import ReputationChecking from '@/components/BuyerSteps/Reputation/ReputationChecking.vue';
 import ReputationDetailsPanel from '@/components/BuyerSteps/Reputation/ReputationDetailsPanel.vue';
 import ReputationLimitRow from '@/components/BuyerSteps/Reputation/ReputationLimitRow.vue';
@@ -151,7 +152,12 @@ const maxOfferCents = computed(() => {
 
 // On the seller's on-chain allowlist the limit does not apply: `lock` sends the proof. `null` while the
 // check runs, which gives no verdict, like a reputation read in flight.
-const allowlisted = ref<boolean | null>(false);
+const proofFound = ref<boolean | null>(false);
+// "Comprar sem o link": behave as if the seller's allowlist did not exist, and send no proof.
+const ignoreAllowlist = ref(false);
+const allowlisted = computed(() =>
+  ignoreAllowlist.value ? false : proofFound.value,
+);
 watch(
   () => [selectedDeposit.value?.seller, walletAddress.value] as const,
   async ([seller, buyer], _, onCleanup) => {
@@ -159,10 +165,10 @@ watch(
     onCleanup(() => {
       stale = true;
     });
-    allowlisted.value = seller && buyer ? null : false;
+    proofFound.value = seller && buyer ? null : false;
     if (!seller || !buyer) return;
     const proof = await findAllowlistProof(seller, buyer);
-    if (!stale) allowlisted.value = proof.length > 0;
+    if (!stale) proofFound.value = proof.length > 0;
   },
   { immediate: true },
 );
@@ -253,6 +259,14 @@ watch(
   { immediate: true },
 );
 
+// A new seller is a new allowlist: the opt-out was for the previous one.
+watch(
+  () => selectedDeposit.value?.seller,
+  () => {
+    ignoreAllowlist.value = false;
+  },
+);
+
 watch(amountText, () => {
   refused.value = false;
 });
@@ -291,6 +305,7 @@ const emitConfirmButton = (checkedWithin: boolean): void => {
   const press = {
     amount: lockValue.value,
     checkedWithin,
+    skipAllowlist: ignoreAllowlist.value,
   };
   emit('tokenBuy', deposit, press, swapIntent());
 };
@@ -425,6 +440,18 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
           />
         </template>
       </template>
+      <AllowlistBanner
+        v-if="
+          proofFound === true &&
+          !ignoreAllowlist &&
+          !loadingNetworkLiquidity &&
+          selectedDeposit
+        "
+        :seller="selectedDeposit.seller"
+        :network-name="network.name"
+        :limit-tokens="reputation.snapshot.value?.limitTokens ?? null"
+        @ignore="ignoreAllowlist = true"
+      />
       <div
         class="flex justify-center items-center"
         v-if="loadingNetworkLiquidity"

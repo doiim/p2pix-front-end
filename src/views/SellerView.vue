@@ -6,7 +6,6 @@ import SellerComponent from '@/components/SellerSteps/SellerComponent.vue';
 import AccountLayout from '@/components/SmartAccount/AccountLayout.vue';
 import ActivityTab from '@/components/SmartAccount/ActivityTab.vue';
 import OfferTabs from '@/components/SmartAccount/OfferTabs.vue';
-import SendNetwork from '@/components/SellerSteps/SendNetwork.vue';
 import SwapOrderStatus from '@/components/Swap/SwapOrderStatus.vue';
 import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import { useUser } from '@/composables/useUser';
@@ -24,7 +23,6 @@ enum Step {
   Search,
   Sell,
   Swap,
-  Network,
 }
 
 const user = useUser();
@@ -50,8 +48,12 @@ const brzAddress = computed(
 
 const approveMutation = useMutation({ mutationFn: approveTokens });
 const addDepositMutation = useAddDepositMutation();
+// Covers the gap between the approve and deposit mutations.
+const sending = ref<boolean>(false);
+const defaultMessage = 'A transação está sendo enviada para a rede.';
 const loading = computed(
   () =>
+    sending.value ||
     approveMutation.isPending.value ||
     addDepositMutation.isPending.value ||
     swapStarting.value,
@@ -63,12 +65,28 @@ const approveOffer = async (args: Participant, paySymbol?: string) => {
     ? findSwapToken(user.network.value, paySymbol)
     : undefined;
   if (token) return startSwap(args, token);
+  await sendOffer(args);
+};
+
+/**
+ * Approve (skipped when the allowance covers the offer, and on the smart
+ * account rail where the deposit UserOperation carries the approval), then
+ * deposit.
+ */
+const sendOffer = async (args: Participant) => {
+  sending.value = true;
   try {
+    loadingMessage.value = 'Aprovando tokens…';
     await approveMutation.mutateAsync(args);
-    flowStep.value = Step.Network;
+    loadingMessage.value = 'Enviando oferta para a rede…';
+    await addDepositMutation.mutateAsync();
+    showAlert.value = true;
   } catch (err) {
     console.log(err);
+  } finally {
     flowStep.value = Step.Sell;
+    sending.value = false;
+    loadingMessage.value = defaultMessage;
   }
 };
 
@@ -108,17 +126,6 @@ const keepToken = (uid: Hex) =>
 const swapFilled = () => {
   if (swap.value) approveOffer(swap.value.participant);
 };
-
-const sendNetwork = async () => {
-  try {
-    await addDepositMutation.mutateAsync();
-    flowStep.value = Step.Sell;
-    showAlert.value = true;
-  } catch (err) {
-    console.log(err);
-    flowStep.value = Step.Network;
-  }
-};
 </script>
 
 <template>
@@ -157,19 +164,6 @@ const sendNetwork = async () => {
         </button>
       </div>
       <LoadingComponent v-if="loading" :message="loadingMessage" />
-    </div>
-    <div v-if="flowStep == Step.Network">
-      <SendNetwork
-        :sellerId="String(user.sellerId.value)"
-        :offer="Number(user.seller.value.offer)"
-        :selected-token="user.selectedToken.value"
-        v-if="!loading"
-        @send-network="sendNetwork"
-      />
-      <LoadingComponent
-        v-if="loading"
-        :message="'A transação está sendo enviada para a rede.'"
-      />
     </div>
   </div>
 </template>

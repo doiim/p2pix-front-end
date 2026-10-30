@@ -98,6 +98,7 @@ const confirmBuyClick = async (
       sellerAddress: selectedDeposit.seller,
       tokenAddress: selectedDeposit.token,
       amount: press.amount,
+      skipAllowlist: press.skipAllowlist,
     });
     lockID.value = String(newLockID);
   } catch (err) {

@@ -17,6 +17,7 @@ export const queryKeyRoots = {
   participantId: ['participant-id'],
   aaAddress: ['aa-address'],
   passkeyBalances: ['passkey-balances'],
+  passkeyPrices: ['passkey-prices'],
   backupPasskey: ['backup-passkey'],
   solicitation: ['solicitation'],
   pixProof: ['pix-proof'],
