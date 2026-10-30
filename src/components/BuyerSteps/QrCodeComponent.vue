@@ -1,26 +1,13 @@
-<script lang="ts">
-// Module scope: the charge survives a remount, so a release that reverts
-// (HomeView goes back to Step.Buy) reuses the solicitation already created for
-// this lock instead of charging the buyer's Pix twice. Map<lockID, charge>;
-// one entry per lock bought in this page load.
-const solicitations = new Map<string, import('@/utils/bbPay').Solicitation>();
-</script>
-
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue';
+import { computed, onUnmounted, ref, watch } from 'vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import CustomModal from '@/components/ui/CustomModal.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
-import {
-  createSolicitation,
-  getSolicitation,
-  type Offer,
-  type Solicitation,
-} from '@/utils/bbPay';
+import { type Offer } from '@/utils/bbPay';
 import type { PixProof } from '@/utils/pixProof';
-import { getParticipantID } from '@/blockchain/events';
-import { getUnreleasedLockById } from '@/blockchain/events';
 import { useUser } from '@/composables/useUser';
+import { useLockQuery, useParticipantIdQuery } from '@/queries/wallet';
+import { useLockSolicitationQuery, usePixProofQuery } from '@/queries/bbPay';
 import QRCode from 'qrcode';
 
 // Props
@@ -30,15 +17,45 @@ interface Props {
 
 const props = defineProps<Props>();
 
+const user = useUser();
+const { network } = user;
+
 const qrCode = ref<string>('');
 const qrCodeSvg = ref<string>('');
 const showWarnModal = ref<boolean>(true);
-const proof = ref<PixProof | null>(null);
-const solicitationData = ref<Solicitation | null>(null);
 const submitting = ref<boolean>(false);
-let pollingStopped = false;
 const copyFeedback = ref<boolean>(false);
 const copyFeedbackTimeout = ref<NodeJS.Timeout | null>(null);
+
+// The lock feeds the PIX target, which feeds the solicitation; each stage is
+// its own cache entry, so re-entering this screen reuses what already resolved.
+const lockQuery = useLockQuery(
+  network,
+  computed(() => props.lockID),
+);
+const sellerAddress = computed(() => lockQuery.data.value?.sellerAddress);
+const tokenAddress = computed(() => lockQuery.data.value?.tokenAddress);
+const participantQuery = useParticipantIdQuery(
+  network,
+  sellerAddress,
+  tokenAddress,
+);
+const offer = computed<Offer | null>(() => {
+  const lock = lockQuery.data.value;
+  const participantId = participantQuery.data.value;
+  if (!lock || !participantId) return null;
+  return {
+    amount: lock.amount,
+    sellerId: participantId,
+    lockID: BigInt(props.lockID),
+    chainId: network.value.id,
+  };
+});
+const solicitationQuery = useLockSolicitationQuery(offer);
+const proofQuery = usePixProofQuery(
+  computed(() => solicitationQuery.data.value?.numeroSolicitacao ?? null),
+);
+const proof = computed(() => proofQuery.data.value ?? null);
 
 // Function to generate QR code SVG
 const generateQrCodeSvg = async (text: string) => {
@@ -61,43 +78,16 @@ const generateQrCodeSvg = async (text: string) => {
 // Emits
 const emit = defineEmits<{ pixValidated: [proof: PixProof] }>();
 
-const POLL_INTERVAL_MS = 10_000;
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-// Polls the prover until it answers with the proof of Pix payment. One
-// request at a time: a slow answer never overlaps the next poll.
-const pollForProof = async (numeroSolicitacao: string) => {
-  while (!pollingStopped && !proof.value) {
-    try {
-      proof.value = await getSolicitation(numeroSolicitacao);
-    } catch (error) {
-      console.error('Error checking solicitation status:', error);
-    }
-    if (!proof.value) await sleep(POLL_INTERVAL_MS);
-  }
-};
-
-// The pinned proof can be older than the contract's freshness window
+// The polled proof can be older than the contract's freshness window
 // (`proofMaxAgeMs`), which makes `release` revert ProofExpired. Re-read it at
-// submit time and emit only that: a stale proof is never submitted, and while
-// the re-read runs the button keeps the validating state.
+// submit time and emit only that; a `null` answer resumes the polling.
 const submitProof = async () => {
-  const numeroSolicitacao = solicitationData.value?.numeroSolicitacao;
-  if (!numeroSolicitacao || submitting.value) return;
-
+  if (submitting.value) return;
   submitting.value = true;
   try {
-    const latest = await getSolicitation(numeroSolicitacao);
-    if (!latest) {
-      // Prover has no proof to give yet (202/402/503): drop the stale one and
-      // resume polling so the button re-enables only on a fresh proof.
-      proof.value = null;
-      void pollForProof(numeroSolicitacao);
-      return;
-    }
-    emit('pixValidated', latest);
-  } catch (error) {
-    console.error('Error refreshing proof:', error);
+    const { data, error } = await proofQuery.refetch();
+    if (error) console.error('Error refreshing proof:', error);
+    else if (data) emit('pixValidated', data);
   } finally {
     submitting.value = false;
   }
@@ -125,55 +115,24 @@ const copyToClipboard = async () => {
   }
 };
 
-onMounted(async () => {
-  // A remount for a lock that already has a charge re-renders that one: the
-  // fiat leg may already be paid, so creating another charge would double-charge.
-  const cached = solicitations.get(props.lockID);
+// `immediate` matters: a remount for a lock already charged gets the cached
+// charge during setup, so a plain watcher would never render its QR code.
+watch(
+  () => solicitationQuery.data.value?.textoQrCode,
+  async (text) => {
+    if (!text) return;
+    qrCode.value = text;
+    await generateQrCodeSvg(text);
+  },
+  { immediate: true },
+);
 
-  if (cached) {
-    solicitationData.value = cached;
-
-    if (cached.textoQrCode) {
-      qrCode.value = cached.textoQrCode;
-      await generateQrCodeSvg(qrCode.value);
-    }
-
-    void pollForProof(cached.numeroSolicitacao);
-    return;
-  }
-
-  try {
-    const { tokenAddress, sellerAddress, amount } = await getUnreleasedLockById(
-      BigInt(props.lockID),
-    );
-
-    const participantId = await getParticipantID(sellerAddress, tokenAddress);
-
-    const offer: Offer = {
-      amount,
-      sellerId: participantId,
-      lockID: BigInt(props.lockID),
-      chainId: useUser().network.value.id,
-    };
-
-    const response = await createSolicitation(offer);
-    solicitations.set(props.lockID, response);
-    solicitationData.value = response;
-
-    if (response.textoQrCode) {
-      qrCode.value = response.textoQrCode;
-      await generateQrCodeSvg(qrCode.value);
-    }
-
-    void pollForProof(response.numeroSolicitacao);
-  } catch (error) {
-    console.error('Error creating solicitation:', error);
-  }
+watch(solicitationQuery.error, (error) => {
+  if (error) console.error('Error creating solicitation:', error);
 });
 
-// Stop polling on component unmount
+// Clean up timeout on component unmount
 onUnmounted(() => {
-  pollingStopped = true;
   if (copyFeedbackTimeout.value) {
     clearTimeout(copyFeedbackTimeout.value);
     copyFeedbackTimeout.value = null;

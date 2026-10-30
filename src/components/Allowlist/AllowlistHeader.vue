@@ -3,6 +3,7 @@ import { computed, ref } from 'vue';
 import type { ChainContract } from 'viem';
 import { useClipboard } from '@vueuse/core';
 import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import type { TrustedBuyers } from '@/composables/useTrustedBuyers';
 import { shortHex } from '@/utils/allowlist';
 import ChevronDown from '@/assets/chevronDown.svg';
@@ -13,6 +14,7 @@ const props = defineProps<{ list: TrustedBuyers }>();
 defineEmits<{ deactivate: [] }>();
 
 const user = useUser();
+const walletAddress = useWalletAddress();
 const open = ref<'how' | 'check' | null>(null);
 const toggle = (panel: 'how' | 'check') =>
   (open.value = open.value === panel ? null : panel);
@@ -23,7 +25,7 @@ const contract = computed(
 const explorer = computed(() => user.network.value.blockExplorers?.default.url);
 const castCommand = computed(
   () =>
-    `cast call ${contract.value} "sellerAllowList(address)(bytes32)" ${user.walletAddress.value} --rpc-url <SEU_RPC>`,
+    `cast call ${contract.value} "sellerAllowList(address)(bytes32)" ${walletAddress.value} --rpc-url <SEU_RPC>`,
 );
 const { copy, copied, isSupported } = useClipboard({ legacy: true });
 

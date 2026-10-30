@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useConnection } from '@wagmi/vue';
 import DepositIcon from '@/assets/deposit.svg';
 import SendIcon from '@/assets/send.svg';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
+import { useBackupPasskey } from '@/composables/useBackupPasskey';
 import { useUser } from '@/composables/useUser';
 import { TokenEnum } from '@/model/NetworkEnum';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 import { formatBrlFixed } from '@/utils/reputation';
+import { exportPrivateKey, MAGIC_CONNECTOR_ID } from '@/wallet/magic';
 
 // Price in R$ cents per whole token. BRZ is pegged to the real; an asset
 // without a price shows no R$ value, and then the total is hidden too.
@@ -16,7 +19,24 @@ const BRL_CENTS: Partial<Record<TokenEnum, bigint>> = { [TokenEnum.BRZ]: 100n };
 
 const account = usePasskeyAccount();
 const accountRouter = useAccountRouter();
+const backup = useBackupPasskey();
 const user = useUser();
+const connection = useConnection();
+const isMagic = computed(
+  () => connection.connector.value?.id === MAGIC_CONNECTOR_ID,
+);
+
+const run = async (task: () => Promise<void>, done?: string) => {
+  try {
+    await task();
+    if (done) user.showToast('success', done);
+  } catch (cause) {
+    user.showToast(
+      'error',
+      cause instanceof Error ? cause.message : 'Algo deu errado',
+    );
+  }
+};
 
 // Only the held assets.
 const rows = computed(() =>
@@ -148,5 +168,37 @@ const failedNetworks = computed(() =>
     <p v-if="failedNetworks.length" class="pt-2 text-sm text-red-500">
       Não foi possível ler o saldo de: {{ failedNetworks.join(', ') }}
     </p>
+  </div>
+  <div
+    v-if="isMagic"
+    class="flex flex-col gap-2 pt-2 border-t border-gray-200 text-xs"
+  >
+    <p v-if="backup.needsBackup.value" class="text-amber-700">
+      Sua conta ainda não tem passkey de backup nesta rede (cada rede precisa da
+      sua).
+    </p>
+    <div class="flex flex-wrap gap-x-4 gap-y-2">
+      <button
+        v-if="backup.needsBackup.value"
+        type="button"
+        class="acct-link"
+        :disabled="backup.installing.value"
+        @click="
+          run(
+            backup.install,
+            `Passkey de backup adicionada na rede ${user.network.value.name}.`,
+          )
+        "
+      >
+        {{
+          backup.installing.value
+            ? 'Adicionando passkey…'
+            : 'Adicionar passkey de backup'
+        }}
+      </button>
+      <button type="button" class="acct-link" @click="run(exportPrivateKey)">
+        Exportar chave
+      </button>
+    </div>
   </div>
 </template>

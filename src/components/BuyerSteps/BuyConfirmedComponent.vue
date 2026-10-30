@@ -1,20 +1,13 @@
 <script setup lang="ts">
-import { withdrawDeposit } from '@/blockchain/buyerMethods';
 import {
   getCurrentAccount,
   getPublicClient,
   getWalletClient,
 } from '@/blockchain/provider';
-import {
-  getSellerLockState,
-  listAllTransactionByWalletAddress,
-  listValidDepositTransactionsByWalletAddress,
-} from '@/blockchain/wallet';
+import CustomAlert from '@/components/ui/CustomAlert.vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
-import type { ValidDeposit } from '@/model/ValidDeposit';
-import type { WalletTransaction } from '@/model/WalletTransaction';
 import { useUser } from '@/composables/useUser';
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import ListingComponent from '@/components/ListingComponent/ListingComponent.vue';
 import ReputationNewLimitLine from '@/components/BuyerSteps/Reputation/ReputationNewLimitLine.vue';
 import type { LimitChange } from '@/utils/reputation';
@@ -23,69 +16,70 @@ import { cancelSwap, requoteSwap } from '@/blockchain/swap';
 import { findSwapToken } from '@/model/BuyToken';
 import { TokenEnum } from '@/model/NetworkEnum';
 import { erc20Abi, UserRejectedRequestError, type Hex } from 'viem';
+import {
+  useSellerLockStateQuery,
+  useWalletDepositsQuery,
+  useWalletAddress,
+  useWalletTransactionsQuery,
+} from '@/queries/wallet';
+import { useWithdrawDepositMutation } from '@/queries/mutations';
 
 // props
 const props = defineProps<{
   tokenAmount: number | undefined;
-  isCurrentStep: boolean;
   newLimit: LimitChange | null;
   /** Present when the buyer asked for another token after the release. */
   swap?: { uid: Hex | null; token: string };
 }>();
 
 const user = useUser();
-const { walletAddress } = useUser();
+const { network, selectedToken } = user;
+const walletAddress = useWalletAddress();
 
-const lastWalletTransactions = ref<WalletTransaction[]>([]);
-const depositList = ref<ValidDeposit[]>([]);
-const activeLockAmount = ref<number>(0);
+const alertType = ref<'withdraw' | 'withdrawError' | null>(null);
 const isWatchingToken = ref(false);
 const watchTokenAlert = ref<{
   type: 'success' | 'error';
   message: string;
 } | null>(null);
 
-// methods
+const depositsQuery = useWalletDepositsQuery(
+  network,
+  selectedToken,
+  walletAddress,
+);
+const transactionsQuery = useWalletTransactionsQuery(network, walletAddress);
+const lockStateQuery = useSellerLockStateQuery(network, walletAddress);
+const withdrawMutation = useWithdrawDepositMutation();
 
-const getWalletTransactions = async () => {
-  user.setLoadingWalletTransactions(true);
-  if (walletAddress.value) {
-    const walletDeposits = await listValidDepositTransactionsByWalletAddress(
-      walletAddress.value,
-    );
-
-    const allUserTransactions = await listAllTransactionByWalletAddress(
-      walletAddress.value,
-    );
-
-    activeLockAmount.value = (
-      await getSellerLockState(walletAddress.value)
-    ).activeLockAmount;
-
-    if (walletDeposits) {
-      depositList.value = walletDeposits;
-    }
-    if (allUserTransactions) {
-      lastWalletTransactions.value = allUserTransactions;
-    }
-  }
-  user.setLoadingWalletTransactions(false);
-};
+const depositList = computed(() => depositsQuery.data.value ?? []);
+const lastWalletTransactions = computed(
+  () => transactionsQuery.data.value ?? [],
+);
+const activeLockAmount = computed(
+  () => lockStateQuery.data.value?.activeLockAmount ?? 0,
+);
+const loadingWalletTransactions = computed(
+  () =>
+    depositsQuery.isPending.value ||
+    transactionsQuery.isPending.value ||
+    lockStateQuery.isPending.value,
+);
 
 const callWithdraw = async (amount: string) => {
-  if (amount) {
-    user.setLoadingWalletTransactions(true);
-    const withdraw = await withdrawDeposit(
+  if (!amount || !walletAddress.value) return;
+
+  try {
+    const withdrawn = await withdrawMutation.mutateAsync({
       amount,
-      user.network.value.tokens[user.selectedToken.value].address,
-    );
-    if (withdraw) {
-      console.log('Saque realizado!');
-      await getWalletTransactions();
-    } else {
-      console.log('Não foi possível realizar o saque!');
-    }
-    user.setLoadingWalletTransactions(false);
+      seller: walletAddress.value,
+      network: network.value,
+      token: network.value.tokens[selectedToken.value].address,
+    });
+    alertType.value = withdrawn ? 'withdraw' : 'withdrawError';
+  } catch (error) {
+    alertType.value = 'withdrawError';
+    console.error('Não foi possível realizar o saque!', error);
   }
 };
 
@@ -178,21 +172,29 @@ const brzAddress = computed(
 const requoteBought = () => requoteSwap(props.swap?.token ?? '');
 const keepBrz = (uid: Hex) => cancelSwap(uid, brzAddress.value);
 
-// observer
-// Not `watch(props)`: the late `newLimit` update must not re-run the subgraph and RPC reads.
-watch(
-  [() => props.tokenAmount, () => props.isCurrentStep],
-  async (): Promise<void> => {
-    if (props.isCurrentStep) await getWalletTransactions();
-  },
-);
-
-onMounted(async () => {
-  await getWalletTransactions();
+// The buy flow re-enters this step after a purchase, so refresh what the
+// wallet shows instead of waiting for staleTime to expire. The component is
+// mounted fresh each time the flow reaches this step, so mounting is the
+// event to hook — a watcher on a prop that is already true at mount never
+// runs. `cancelRefetch: false` lets the initial fetch vue-query already
+// started during setup finish: a cold mount issues exactly one request per
+// query instead of refetch() cancelling and re-issuing it.
+onMounted(() => {
+  void Promise.all([
+    depositsQuery.refetch({ cancelRefetch: false }),
+    transactionsQuery.refetch({ cancelRefetch: false }),
+    lockStateQuery.refetch({ cancelRefetch: false }),
+  ]);
 });
 </script>
 
 <template>
+  <CustomAlert
+    v-if="alertType"
+    :key="alertType"
+    :type="alertType"
+    @close-alert="alertType = null"
+  />
   <div class="page">
     <div class="text-container">
       <span class="text font-extrabold sm:text-5xl text-xl max-w-[50rem]"
@@ -263,6 +265,7 @@ onMounted(async () => {
         :valid-deposits="depositList"
         :wallet-transactions="lastWalletTransactions"
         :active-lock-amount="activeLockAmount"
+        :loading="loadingWalletTransactions"
         @deposit-withdrawn="callWithdraw"
       ></ListingComponent>
     </div>

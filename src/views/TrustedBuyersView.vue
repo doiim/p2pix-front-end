@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue';
 import { zeroHash } from 'viem';
-import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import { useTrustedBuyers } from '@/composables/useTrustedBuyers';
 import { getCurrentAccount } from '@/blockchain/provider';
 import { entryLabel } from '@/utils/allowlistStorage';
@@ -15,7 +15,7 @@ import ReceivedListsCard from '@/components/Allowlist/ReceivedListsCard.vue';
 import CloseIcon from '@/assets/closeAlertIcon.svg';
 import router from '@/router/index';
 
-const user = useUser();
+const walletAddress = useWalletAddress();
 const list = useTrustedBuyers();
 const confirmDeactivate = ref(false);
 
@@ -23,7 +23,7 @@ onMounted(() => {
   // walletAddress is set a tick after mount on reload; the connector is not.
   if (!getCurrentAccount().address) router.push({ name: 'home' });
 });
-watch(user.walletAddress, (address) => {
+watch(walletAddress, (address) => {
   if (!address) router.push({ name: 'home' });
 });
 

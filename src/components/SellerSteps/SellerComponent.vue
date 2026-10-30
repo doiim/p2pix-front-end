@@ -3,6 +3,7 @@ import { ref, computed, watch } from 'vue';
 import { onClickOutside } from '@vueuse/core';
 import { formatUnits, parseEther, zeroAddress } from 'viem';
 import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import TokenSelector from '@/components/Swap/TokenSelector.vue';
 import { postProcessKey } from '@/utils/pixKeyFormat';
@@ -29,7 +30,8 @@ const formRef = ref<HTMLFormElement | null>(null);
 
 // Reactive state
 const user = useUser();
-const { walletAddress, selectedToken } = user;
+const { selectedToken } = user;
+const walletAddress = useWalletAddress();
 
 const offer = ref<string>('');
 const identification = ref<string>('');

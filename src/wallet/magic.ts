@@ -185,6 +185,14 @@ export async function loginWithGoogle(redirectURI: string): Promise<void> {
   });
 }
 
+/**
+ * Opens Magic's own reveal dashboard: the key is shown inside Magic's iframe
+ * and never reaches the app. Works on any network the app offers.
+ */
+export async function exportPrivateKey(): Promise<void> {
+  await (await getMagic()).user.revealEVMPrivateKey();
+}
+
 const OAUTH_PARAMS = ['magic_credential', 'state', 'code', 'scope'];
 
 function hasOAuthResult(search: string): boolean {

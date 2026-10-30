@@ -2,6 +2,7 @@ import { computed, ref, watch } from 'vue';
 import { zeroHash, type Address, type Hex } from 'viem';
 import { isPasskeyCancelled } from '@doiim/passkeys';
 import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import { readAllowlistRoot, writeAllowlistRoot } from '@/blockchain/allowlist';
 import { addressError, allowlistRoot, sameAddress } from '@/utils/allowlist';
 import {
@@ -27,6 +28,7 @@ const hasAddress = (entries: readonly AllowlistEntry[], address: string) =>
  */
 export function useTrustedBuyers() {
   const user = useUser();
+  const walletAddress = useWalletAddress();
 
   /** `null` while reading, or when the read failed. */
   const onChainRoot = ref<Hex | null>(null);
@@ -85,7 +87,7 @@ export function useTrustedBuyers() {
 
   const load = async () => {
     const id = ++loadId;
-    const owner = user.walletAddress.value;
+    const owner = walletAddress.value;
     onChainRoot.value = null;
     readFailed.value = false;
     startedFresh.value = false;
@@ -102,7 +104,7 @@ export function useTrustedBuyers() {
     readFailed.value = root === null;
   };
 
-  watch([user.walletAddress, () => user.network.value.id], () => void load(), {
+  watch([walletAddress, () => user.network.value.id], () => void load(), {
     immediate: true,
   });
 
@@ -111,10 +113,7 @@ export function useTrustedBuyers() {
     const address = text.trim();
     const error = addressError(address);
     if (error) return error;
-    if (
-      user.walletAddress.value &&
-      sameAddress(address, user.walletAddress.value)
-    ) {
+    if (walletAddress.value && sameAddress(address, walletAddress.value)) {
       return 'Esse é o seu próprio endereço.';
     }
     const label = nickname.trim();
@@ -166,7 +165,7 @@ export function useTrustedBuyers() {
   };
 
   const save = async () => {
-    const owner = user.walletAddress.value;
+    const owner = walletAddress.value;
     if (!owner) return;
     const entries = draft.value;
     if (!(await commitRoot(allowlistRoot(addressesOf(entries))))) return;
@@ -194,7 +193,7 @@ export function useTrustedBuyers() {
 
   /** Restores the file when it is the on-chain list, else loads it as edits. */
   const importFile = (text: string, fileName: string): string | undefined => {
-    const owner = user.walletAddress.value;
+    const owner = walletAddress.value;
     const file = parseAllowlistFile(text);
     if (!owner) return undefined;
     if (!file) return 'Arquivo inválido. Use o .json baixado nesta página.';
@@ -229,7 +228,7 @@ export function useTrustedBuyers() {
 
   /** Prefers the list that is on-chain, since that is the one buyers need. */
   const download = () => {
-    const owner = user.walletAddress.value;
+    const owner = walletAddress.value;
     if (!owner) return;
     const entries = savedOnChain.value ? saved.value : draft.value;
     downloadAllowlistFile(

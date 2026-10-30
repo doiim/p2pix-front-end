@@ -1,51 +1,48 @@
-import { useUser } from '@/composables/useUser';
 import { formatEther, isAddress, toHex } from 'viem';
 import type { Address } from 'viem';
-import { Networks } from '@/config/networks';
 import { getContract, getPublicClient } from './provider';
 import { toLock } from './buyerMethods';
 import { p2PixAbi } from './abi';
+import { Networks } from '@/config/networks';
 import type { ValidDeposit } from '@/model/ValidDeposit';
-import type { NetworkConfig } from '@/model/NetworkEnum';
+import type { NetworkConfig, TokenEnum } from '@/model/NetworkEnum';
 import { escapeForGraphQL } from '@/utils/escapeForGraphQL';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
-import { ChainContract } from 'viem';
+import type { ChainContract } from 'viem';
 
-const getNetworksLiquidity = async (): Promise<void> => {
-  const user = useUser();
-  user.setLoadingNetworkLiquidity(true);
+export type NetworksLiquidity = {
+  deposits: ValidDeposit[];
+  failedNetworks: NetworkConfig[];
+};
 
-  try {
-    // Each network is read with its own token, client and subgraph, and one
-    // network failing must neither block the others nor read as zero liquidity.
-    const results = await Promise.allSettled(
-      Networks.map(async (network) =>
-        getValidDeposits(
-          network.tokens[user.selectedToken.value].address,
-          network,
-        ),
-      ),
-    );
+/**
+ * Deposits visible on every configured network for the selected `token`.
+ * Each network is read with its own token, client and subgraph, and one
+ * network failing must neither block the others nor read as zero liquidity:
+ * the failures are returned so the buy screen can name them.
+ */
+const getNetworksLiquidity = async (
+  token: TokenEnum,
+): Promise<NetworksLiquidity> => {
+  const results = await Promise.allSettled(
+    Networks.map((network) =>
+      getValidDeposits(network.tokens[token].address, network),
+    ),
+  );
 
-    const failedNetworks = Networks.filter((network, index) => {
-      const result = results[index];
-      if (result.status === 'fulfilled') return false;
-      console.error(
-        `[liquidity] could not read ${network.name}`,
-        result.reason,
-      );
-      return true;
-    });
+  const failedNetworks = Networks.filter((network, index) => {
+    const result = results[index];
+    if (result.status === 'fulfilled') return false;
+    console.error(`[liquidity] could not read ${network.name}`, result.reason);
+    return true;
+  });
 
-    user.setDepositsValidList(
-      results.flatMap((result) =>
-        result.status === 'fulfilled' ? result.value : [],
-      ),
-    );
-    user.setFailedLiquidityNetworks(failedNetworks);
-  } finally {
-    user.setLoadingNetworkLiquidity(false);
-  }
+  return {
+    deposits: results.flatMap((result) =>
+      result.status === 'fulfilled' ? result.value : [],
+    ),
+    failedNetworks,
+  };
 };
 
 const getParticipantID = async (
@@ -148,7 +145,7 @@ const getValidDeposits = async (
   sellersList.forEach((seller, index) => {
     const mappedBalance = balanceResults[index];
 
-    if (!mappedBalance.error && mappedBalance.result) {
+    if (mappedBalance && !mappedBalance.error && mappedBalance.result) {
       const validDeposit: ValidDeposit = {
         token,
         blockNumber: 0,

@@ -2,6 +2,7 @@
 import { ref, watch } from 'vue';
 import type { Hex } from 'viem';
 import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import { useCopyAddress } from '@/composables/account/useAccountRouter';
 import { readAllowlistRoot } from '@/blockchain/allowlist';
 import { isOnAllowlist, sameAddress, shortHex } from '@/utils/allowlist';
@@ -17,7 +18,8 @@ import CopyIcon from '@/assets/copyPix.svg';
 import StatusBadge from '@/components/ui/StatusBadge.vue';
 
 const user = useUser();
-const copyAddress = useCopyAddress(user.walletAddress);
+const walletAddress = useWalletAddress();
+const copyAddress = useCopyAddress(walletAddress);
 
 const lists = ref<ReceivedAllowlist[]>(readReceivedAllowlists());
 /** On-chain root per seller, keyed by lowercase address. */
@@ -42,8 +44,8 @@ watch([() => user.network.value.id, lists], () => void loadRoots(), {
 });
 
 const includesMe = (list: ReceivedAllowlist): boolean =>
-  !!user.walletAddress.value &&
-  isOnAllowlist(addressesOf(list.entries), user.walletAddress.value);
+  !!walletAddress.value &&
+  isOnAllowlist(addressesOf(list.entries), walletAddress.value);
 
 const networkStatus = (list: ReceivedAllowlist) => {
   if (list.chainId !== user.network.value.id) return 'Outra rede';
@@ -108,7 +110,7 @@ const remove = (target: ReceivedAllowlist) =>
       </p>
       <div class="flex items-center gap-2 rounded-lg bg-gray-100 p-3">
         <span class="flex-1 break-all font-mono text-sm">
-          {{ user.walletAddress.value }}
+          {{ walletAddress }}
         </span>
         <button
           type="button"

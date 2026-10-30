@@ -15,6 +15,7 @@ const props = withDefaults(
     validDeposits: ValidDeposit[];
     walletTransactions: WalletTransaction[];
     activeLockAmount: number;
+    loading: boolean;
     expiredLocksCount?: number;
     sweeping?: boolean;
   }>(),
@@ -22,8 +23,6 @@ const props = withDefaults(
 );
 
 const emit = defineEmits(['depositWithdrawn', 'sweepExpired']);
-
-const { loadingWalletTransactions } = user;
 
 const itemsToShow = ref<WalletTransaction[]>([]);
 
@@ -67,7 +66,7 @@ showInitialItems();
 <template>
   <div
     class="main-container max-w-md flex justify-center items-center min-h-[200px] w-16 h-16"
-    v-if="loadingWalletTransactions"
+    v-if="props.loading"
   >
     Carregando ofertas...
     <SpinnerComponent width="8" height="8"></SpinnerComponent>

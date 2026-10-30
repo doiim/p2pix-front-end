@@ -7,6 +7,7 @@ import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useUser } from '@/composables/useUser';
 import AccountHomeView from './AccountHomeView.vue';
 import ReceiveView from './ReceiveView.vue';
+import RecoveryView from './RecoveryView.vue';
 import SendView from './SendView.vue';
 import SendStatusView from './SendStatusView.vue';
 
@@ -20,10 +21,13 @@ const views: Record<typeof accountRouter.current.value, Component> = {
   receive: ReceiveView,
   send: SendView,
   sendStatus: SendStatusView,
+  recovery: RecoveryView,
 };
 const activeView = computed(() => views[accountRouter.current.value]);
 
 const refresh = async () => {
+  // Recovery opens the card with no wallet connected: there is nothing to read.
+  if (!account.isReady.value) return;
   await account.refreshBalances();
   if (account.error.value)
     user.showToast('error', 'Não foi possível ler o saldo.');
@@ -44,7 +48,9 @@ onMounted(() => void refresh());
 
 // TopBar owns network switching and disconnect; start over on either. A send
 // in flight keeps its screen, or Enviar would be offered again before it ends.
-watch([() => user.network.value.id, user.walletAddress], () => {
+watch([() => user.network.value.id, account.smartAccountAddress], () => {
+  // Recovery runs with no wallet, and its login may switch the network itself.
+  if (accountRouter.current.value === 'recovery') return;
   account.reset();
   void refresh();
   if (account.busy.value) return;

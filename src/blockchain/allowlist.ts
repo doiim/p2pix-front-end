@@ -1,10 +1,6 @@
 import { encodeFunctionData, zeroHash, type Address, type Hex } from 'viem';
 import { getContract } from './provider';
-import {
-  feeTokenAddress,
-  getActiveAaContext,
-  sendAaOperation,
-} from './aa/operations';
+import { getActiveAaContext, sendAaOperation } from './aa/operations';
 import type { AaCall } from './aa/types';
 import { allowlistProof, allowlistRoot, sameAddress } from '@/utils/allowlist';
 import {
@@ -39,7 +35,7 @@ export const writeAllowlistRoot = async (root: Hex): Promise<void> => {
         args: [aa.account.address, root],
       }),
     };
-    const receipt = await sendAaOperation(aa, [call], feeTokenAddress(aa));
+    const receipt = await sendAaOperation(aa, [call]);
     if (!receipt.success) {
       throw new Error(`AA setRoot failed: ${receipt.receipt.transactionHash}`);
     }

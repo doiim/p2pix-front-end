@@ -2,7 +2,9 @@ import { computed, ref } from 'vue';
 import type { Address } from 'viem';
 
 import { TokenEnum } from '@/model/NetworkEnum';
-import { useGraphQL, type Transaction } from '@/composables/useGraphQL';
+import { useQuery } from '@tanstack/vue-query';
+import { fetchActivity, type Transaction } from '@/queries/graphql';
+import { activityKey } from '@/queries/keys';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useUser } from '@/composables/useUser';
 import { readHistory } from './userOpHistory';
@@ -59,8 +61,17 @@ const groupByMonth = (items: ActivityItem[]): ActivityGroup[] => {
 export function useAccountActivity() {
   const user = useUser();
   const account = usePasskeyAccount();
-  const graph = useGraphQL(user.network);
-  const items = ref<ActivityItem[]>([]);
+  const local = ref<ActivityItem[]>([]);
+
+  const address = computed(
+    () => account.smartAccountAddress.value?.toLowerCase() ?? null,
+  );
+  // Same cache family as the explorer feed, scoped to the smart account.
+  const query = useQuery({
+    queryKey: computed(() => activityKey(user.network.value.id, address.value)),
+    queryFn: () => fetchActivity(user.network.value, address.value),
+    enabled: computed(() => Boolean(address.value)),
+  });
 
   /** Deposits name their ERC-20 by address; lock/release/return carry none,
    * so they can only be the network's token when it has exactly one. */
@@ -75,23 +86,8 @@ export function useAccountActivity() {
     );
   };
 
-  const refresh = async (): Promise<void> => {
-    const address = account.smartAccountAddress.value;
-    if (!address) return;
-    const local = readHistory(user.network.value.id, address).map(
-      (e): ActivityItem => ({
-        id: e.id,
-        title: 'Enviado',
-        direction: 'out',
-        amount: BigInt(e.amount),
-        token: e.token,
-        timestamp: e.timestamp,
-        href: e.txHash ? account.explorerTxUrl(e.txHash) : null,
-      }),
-    );
-    items.value = local;
-    await graph.fetchUserActivity(address.toLowerCase());
-    const remote = graph.transactions.value.map((tx): ActivityItem => {
+  const remote = computed(() =>
+    (query.data.value ?? []).map((tx): ActivityItem => {
       const token = tokenAt(tx.token);
       return {
         id: tx.id,
@@ -102,16 +98,34 @@ export function useAccountActivity() {
         timestamp: Number(tx.blockTimestamp) * 1000,
         href: account.explorerTxUrl(tx.transactionHash as Address),
       };
-    });
-    items.value = [...local, ...remote].sort(
-      (a, b) => b.timestamp - a.timestamp,
+    }),
+  );
+
+  const items = computed(() =>
+    [...local.value, ...remote.value].sort((a, b) => b.timestamp - a.timestamp),
+  );
+
+  const refresh = async (): Promise<void> => {
+    const current = account.smartAccountAddress.value;
+    if (!current) return;
+    local.value = readHistory(user.network.value.id, current).map(
+      (e): ActivityItem => ({
+        id: e.id,
+        title: 'Enviado',
+        direction: 'out',
+        amount: BigInt(e.amount),
+        token: e.token,
+        timestamp: e.timestamp,
+        href: e.txHash ? account.explorerTxUrl(e.txHash) : null,
+      }),
     );
+    await query.refetch();
   };
 
   return {
     groups: computed(() => groupByMonth(items.value)),
     isEmpty: computed(() => items.value.length === 0),
-    error: graph.error,
+    error: computed(() => query.error.value?.message ?? null),
     refresh,
   };
 }

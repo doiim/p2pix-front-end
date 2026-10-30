@@ -17,6 +17,8 @@ export type AaContext = {
    * the network sets no `AaConfig.feeToken` (sponsorship only).
    */
   erc20Client?: SmartAccountClient;
+  /** No paymaster: the account pays its own gas in native ETH. */
+  selfPayClient: SmartAccountClient;
   network: NetworkConfig;
   pimlicoClient: PimlicoClient;
 };

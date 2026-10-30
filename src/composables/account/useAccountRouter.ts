@@ -4,7 +4,12 @@ import { useClipboard } from '@vueuse/core';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useUser } from '@/composables/useUser';
 
-export type AccountView = 'account' | 'send' | 'sendStatus' | 'receive';
+export type AccountView =
+  | 'account'
+  | 'send'
+  | 'sendStatus'
+  | 'receive'
+  | 'recovery';
 
 // Module-level: every screen in the card shares one stack.
 const stack = ref<AccountView[]>(['account']);

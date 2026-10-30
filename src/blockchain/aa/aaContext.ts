@@ -87,11 +87,11 @@ const createKernelAccount = async (
   });
 };
 
-const createContext = async (
-  runtime: AaRuntime,
+/** Sending rail (bundler + both paymasters) for an already-built account. */
+export const createAaContext = async (
+  { network, publicClient }: Pick<AaRuntime, 'network' | 'publicClient'>,
   account: SmartAccount,
 ): Promise<AaContext> => {
-  const { network, publicClient } = runtime;
   const bundlerUrl = network.aa?.bundlerUrl;
   const sponsorshipPolicy = sponsorshipPolicyId();
   // Callers already checked isAaAvailable; this narrows the types.
@@ -119,6 +119,13 @@ const createContext = async (
     account,
     network,
     pimlicoClient,
+    selfPayClient: createSmartAccountClient({
+      account,
+      chain: network,
+      bundlerTransport: http(bundlerUrl),
+      client: publicClient,
+      userOperation: { estimateFeesPerGas },
+    }),
     sponsoredClient: createSmartAccountClient({
       ...base,
       paymasterContext: { sponsorshipPolicyId: sponsorshipPolicy },
@@ -170,6 +177,6 @@ export const getAaContextForRuntime = async (
   return cachePromise(
     aaContextCache,
     `${runtime.network.id}:${runtime.ownerKind}:${account.address.toLowerCase()}`,
-    () => createContext(runtime, account),
+    () => createAaContext(runtime, account),
   );
 };

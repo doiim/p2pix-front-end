@@ -19,7 +19,7 @@
     "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
-    "@doiim/passkeys": "0.5.0-alpha.0",
+    "@doiim/passkeys": "0.6.0-alpha.1",
     "@magic-ext/oauth2": "15.14.0",
     "@tanstack/vue-query": "^5.100.8",
     "@vueuse/core": "^14.3.0",

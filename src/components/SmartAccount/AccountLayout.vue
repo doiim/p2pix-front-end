@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
+import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import AccountCard from './AccountCard.vue';
 
 defineProps<{ selling: boolean }>();
 
 const account = usePasskeyAccount();
+const accountRouter = useAccountRouter();
 </script>
 
 <template>
@@ -35,7 +37,11 @@ const account = usePasskeyAccount();
       <div class="flex flex-col items-center w-full md:max-w-[30.25rem]">
         <slot />
       </div>
-      <AccountCard v-if="account.isReady.value" />
+      <AccountCard
+        v-if="
+          account.isReady.value || accountRouter.current.value === 'recovery'
+        "
+      />
     </div>
   </div>
 </template>

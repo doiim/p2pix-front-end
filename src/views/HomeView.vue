@@ -5,21 +5,24 @@ import ActivityTab from '@/components/SmartAccount/ActivityTab.vue';
 import OfferTabs from '@/components/SmartAccount/OfferTabs.vue';
 import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import BuyConfirmedComponent from '@/components/BuyerSteps/BuyConfirmedComponent.vue';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, computed } from 'vue';
 import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import QrCodeComponent from '@/components/BuyerSteps/QrCodeComponent.vue';
-import {
-  addLock,
-  releaseLock,
-  LockIdUnrecoverableError,
-} from '@/blockchain/buyerMethods';
-import { updateWalletStatus, checkUnreleasedLock } from '@/blockchain/wallet';
+import { LockIdUnrecoverableError } from '@/blockchain/buyerMethods';
+import { checkUnreleasedLock } from '@/blockchain/wallet';
 import { isAmountNotAllowedError } from '@/blockchain/reputation';
 import { useReputation } from '@/composables/useReputation';
 import type { BuyPress, LimitChange } from '@/utils/reputation';
-import { getNetworksLiquidity } from '@/blockchain/events';
-import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
+import {
+  invalidateLocks,
+  useAddLockMutation,
+  useReleaseLockMutation,
+} from '@/queries/mutations';
+import { queryClient } from '@/queries/client';
+import { lockKey, queryKeyRoots } from '@/queries/keys';
+import type { ValidDeposit } from '@/model/ValidDeposit';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import {
   loadSwapIntent,
@@ -44,12 +47,20 @@ user.setSellerView(false);
 const reputation = useReputation();
 
 // States
-const { loadingLock, walletAddress, network } = user;
+const { network } = user;
+const walletAddress = useWalletAddress();
+const addLockMutation = useAddLockMutation();
+const releaseLockMutation = useReleaseLockMutation();
+const loadingLock = computed(() => addLockMutation.isPending.value);
+// The swap release bypasses the mutation, so it has its own flag.
+const swapReleasing = ref(false);
+const loadingRelease = computed(
+  () => releaseLockMutation.isPending.value || swapReleasing.value,
+);
 const flowStep = ref<Step>(Step.Search);
 const sellerAddress = ref<Address>();
 const tokenAmount = ref<number>();
 const lockID = ref<string>('');
-const loadingRelease = ref<boolean>(false);
 const showModal = ref<boolean>(false);
 const showBuyAlert = ref<boolean>(false);
 const showLockRecoveryAlert = ref<boolean>(false);
@@ -74,9 +85,7 @@ const confirmBuyClick = async (
   searchRefusal.value = null;
   tokenAmount.value = press.amount;
   swapResult.value = undefined;
-
   flowStep.value = Step.Buy;
-  user.setLoadingLock(true);
 
   // Reset any lockID left over from a previous purchase so that, if addLock
   // throws LockIdUnrecoverableError and checkForUnreleasedLocks does not
@@ -84,43 +93,44 @@ const confirmBuyClick = async (
   // stale id from purchase #1 for a successful recovery of purchase #2.
   lockID.value = '';
 
-  await addLock(selectedDeposit.seller, selectedDeposit.token, press.amount)
-    .then((_lockID) => {
-      lockID.value = String(_lockID);
-    })
-    .catch(async (err) => {
-      console.error(err);
-      if (err instanceof LockIdUnrecoverableError) {
-        // The lock is funded on-chain: look it up instead of abandoning it.
-        await checkForUnreleasedLocks().catch(console.error);
-        if (lockID.value) {
-          showModal.value = false;
-        } else {
-          // Without an id there is nothing for the QR step to render, so go
-          // back to the search screen and say the lock is out there.
-          flowStep.value = Step.Search;
-          showLockRecoveryAlert.value = true;
-        }
-        return;
-      }
-      if (isAmountNotAllowedError(err)) {
-        // Re-read while the loading screen is up, so the search step opens with the limit the
-        // contract applied; at most 4 s, since nothing is being sent. A slower read keeps running
-        // and the search step shows it land ("Verificando seu limite…", then R3).
-        await reputation.refresh({ timeoutMs: 4000 });
-        searchRefusal.value = press;
-      }
-      flowStep.value = Step.Search;
+  try {
+    const newLockID = await addLockMutation.mutateAsync({
+      sellerAddress: selectedDeposit.seller,
+      tokenAddress: selectedDeposit.token,
+      amount: press.amount,
     });
-
-  if (swapIntent && lockID.value) saveSwapIntent(lockID.value, swapIntent);
-  user.setLoadingLock(false);
+    lockID.value = String(newLockID);
+  } catch (err) {
+    console.error(err);
+    if (err instanceof LockIdUnrecoverableError) {
+      // The lock is funded on-chain: look it up instead of abandoning it.
+      await checkForUnreleasedLocks().catch(console.error);
+      if (lockID.value) {
+        showModal.value = false;
+      } else {
+        // Without an id there is nothing for the QR step to render, so go
+        // back to the search screen and say the lock is out there.
+        flowStep.value = Step.Search;
+        showLockRecoveryAlert.value = true;
+      }
+      return;
+    }
+    if (isAmountNotAllowedError(err)) {
+      // Re-read while the loading screen is up, so the search step opens with the limit the
+      // contract applied; at most 4 s, since nothing is being sent. A slower read keeps running
+      // and the search step shows it land ("Verificando seu limite…", then R3).
+      await reputation.refresh({ timeoutMs: 4000 });
+      searchRefusal.value = press;
+    }
+    flowStep.value = Step.Search;
+  } finally {
+    if (swapIntent && lockID.value) saveSwapIntent(lockID.value, swapIntent);
+  }
 };
 
 const releaseTransaction = async (proof: PixProof) => {
   flowStep.value = Step.List;
   showBuyAlert.value = true;
-  loadingRelease.value = true;
   newLimit.value = null;
   const beforeTokens = reputation.snapshot.value?.limitTokens ?? null;
   const networkName = network.value.name;
@@ -133,14 +143,24 @@ const releaseTransaction = async (proof: PixProof) => {
           buy: intent.token,
         })
       : null;
-    const released = intent
-      ? await releaseAndSwap(BigInt(lockID.value), proof, intent)
-      : {
-          uid: null,
-          blockNumber: (await releaseLock(BigInt(lockID.value), proof))
-            .blockNumber,
-        };
-    if (intent) swapResult.value = { uid: released.uid, token: intent.token };
+    let released: { uid: Hex | null; blockNumber: bigint };
+    if (intent) {
+      swapReleasing.value = true;
+      try {
+        released = await releaseAndSwap(BigInt(lockID.value), proof, intent);
+      } finally {
+        swapReleasing.value = false;
+      }
+      // The swap path bypasses the release mutation, so invalidate here.
+      invalidateLocks();
+      swapResult.value = { uid: released.uid, token: intent.token };
+    } else {
+      const receipt = await releaseLockMutation.mutateAsync({
+        lockID: BigInt(lockID.value),
+        proof,
+      });
+      released = { uid: null, blockNumber: receipt.blockNumber };
+    }
     // Not awaited: the screen shows now and the line appears once the read lands. refresh() never rejects.
     void reputation.refresh({ minBlock: released.blockNumber }).then((read) => {
       newLimit.value =
@@ -154,25 +174,25 @@ const releaseTransaction = async (proof: PixProof) => {
             }
           : null;
     });
-
-    try {
-      await updateWalletStatus();
-    } catch (err) {
-      // Address/balance were cleared; the release itself already succeeded.
-      console.error(err);
-    }
   } catch (err) {
     console.log(err);
     showBuyAlert.value = false;
     flowStep.value = Step.Buy;
-  } finally {
-    loadingRelease.value = false;
   }
 };
 
 const checkForUnreleasedLocks = async (): Promise<void> => {
-  if (!walletAddress.value) throw new Error('Wallet not connected');
-  const lock = await checkUnreleasedLock(walletAddress.value);
+  const address = walletAddress.value;
+  if (!address) throw new Error('Carteira não conectada');
+  const lock = await queryClient.fetchQuery({
+    queryKey: [...queryKeyRoots.unreleasedLock, network.value.id, address],
+    queryFn: () => checkUnreleasedLock(address, network.value),
+    // This is the recovery read after a funded-but-id-less lock, so it has to
+    // reach the chain: with the default staleTime a warm entry (the check that
+    // ran when the address was resolved) would be returned as-is and the id
+    // would never be found.
+    staleTime: 0,
+  });
   if (lock) {
     lockID.value = String(lock.lockID);
     tokenAmount.value = lock.amount;
@@ -185,7 +205,10 @@ const checkForUnreleasedLocks = async (): Promise<void> => {
 };
 
 if (paramLockID) {
-  const lockToRedirect = await getUnreleasedLockById(paramLockID);
+  const lockToRedirect = await queryClient.fetchQuery({
+    queryKey: lockKey(network.value.id, paramLockID),
+    queryFn: () => getUnreleasedLockById(BigInt(paramLockID)),
+  });
   if (lockToRedirect) {
     lockID.value = String(lockToRedirect.lockID);
     tokenAmount.value = lockToRedirect.amount;
@@ -196,10 +219,10 @@ if (paramLockID) {
   }
 } else {
   watch(walletAddress, async () => {
-    // A cleared address means updateWalletStatus either disconnected or failed
-    // to resolve the smart-account address; either way there is no lock to
-    // look up, so return early instead of running the query and surfacing a
-    // spurious 'Wallet not connected' error from the watcher.
+    // A cleared address means the effective-address resolution either
+    // disconnected or failed; either way there is no lock to look up, so
+    // return early instead of running the query and surfacing a spurious
+    // 'Carteira não conectada' error from the watcher.
     if (!walletAddress.value) return;
     await checkForUnreleasedLocks().catch(console.error);
   });
@@ -211,7 +234,6 @@ if (paramLockID) {
 }
 
 onMounted(async () => {
-  await getNetworksLiquidity();
   if (walletAddress.value && !paramLockID) await checkForUnreleasedLocks();
 });
 </script>
@@ -257,7 +279,6 @@ onMounted(async () => {
       <div class="flex flex-col gap-10" v-if="!loadingRelease">
         <BuyConfirmedComponent
           :tokenAmount="tokenAmount"
-          :is-current-step="flowStep == Step.List"
           :new-limit="newLimit"
           :swap="swapResult"
           @make-another-transaction="flowStep = Step.Search"

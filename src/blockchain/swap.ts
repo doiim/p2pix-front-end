@@ -37,7 +37,6 @@ import {
   type OrderState,
 } from '@/utils/cowApi';
 import { useUser } from '@/composables/useUser';
-import { MIN_FEE_BALANCE_WEI_DEFAULT } from '@/config/aa';
 import {
   TokenEnum,
   type NetworkConfig,
@@ -72,7 +71,7 @@ export const quoteLock = async (intent: SwapIntent, from: Address) => {
   return {
     lockAmount: lockAmountFor(
       real.sellAmount + real.feeAmount,
-      feeReserve(ctx.network),
+      FEE_RESERVE_WEI,
     ),
     impactBps,
   };
@@ -247,7 +246,7 @@ export const requoteSwap = async (symbol: string): Promise<Hex> => {
     functionName: 'balanceOf',
     args: [owner],
   });
-  const sellAmount = balance - feeReserve(ctx.network);
+  const sellAmount = balance - FEE_RESERVE_WEI;
   if (sellAmount <= 0n) throw new Error('No BRZ left to swap');
 
   const q = await quote(ctx.swap, {
@@ -280,7 +279,6 @@ export const cancelSwap = async (
     const receipt = await sendAaOperation(
       aa,
       cancelPresignCalls(await contractsOf(ctx), sellToken, uid),
-      sellToken,
     );
     if (!receipt.success) {
       throw new Error(`AA cancel failed: ${receipt.receipt.transactionHash}`);
@@ -341,9 +339,11 @@ const swapContext = (): SwapContext => {
 
 const brz = (network: NetworkConfig) => network.tokens[TokenEnum.BRZ].address;
 
-/** BRZ kept back for the paymaster's charge on the smart-account rail. */
-const feeReserve = (network: NetworkConfig) =>
-  network.aa?.minFeeBalance ?? MIN_FEE_BALANCE_WEI_DEFAULT;
+/**
+ * BRZ kept back for the paymaster's charge on the smart-account rail: 0.1 BRZ.
+ * (`aa.minFeeBalance` is gone with #66's single `aa.feeToken`; same value.)
+ */
+const FEE_RESERVE_WEI = 100000000000000000n;
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
@@ -420,7 +420,7 @@ const priceBuyOrder = async (
   owner: Address,
   released: bigint,
 ): Promise<CowOrder | null> => {
-  const sellLimit = released - feeReserve(ctx.network);
+  const sellLimit = released - FEE_RESERVE_WEI;
   const target = await resolve(ctx, intent);
   const q = await quote(ctx.swap, {
     sellToken: brz(ctx.network),
@@ -467,7 +467,7 @@ const placeAa = async (
   const receipt = await sendAaOperation(
     aa,
     presignCalls(await contractsOf(ctx), order, uid),
-    order.sellToken,
+    { token: order.sellToken, amount: order.sellAmount },
   );
   if (!receipt.success) {
     throw new Error(`AA presign failed: ${receipt.receipt.transactionHash}`);

@@ -10,8 +10,10 @@ import SendNetwork from '@/components/SellerSteps/SendNetwork.vue';
 import SwapOrderStatus from '@/components/Swap/SwapOrderStatus.vue';
 import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import { useUser } from '@/composables/useUser';
-import { approveTokens, addDeposit } from '@/blockchain/sellerMethods';
+import { useMutation } from '@tanstack/vue-query';
+import { approveTokens } from '@/blockchain/sellerMethods';
 import { buyBrz, cancelSwap, separatePrompts } from '@/blockchain/swap';
+import { useAddDepositMutation } from '@/queries/mutations';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import { findSwapToken } from '@/model/BuyToken';
 import { TokenEnum, type SwapToken } from '@/model/NetworkEnum';
@@ -29,7 +31,8 @@ const user = useUser();
 user.setSellerView(true);
 
 const flowStep = ref<Step>(Step.Sell);
-const loading = ref<boolean>(false);
+// The swap order is sent outside the mutations, so it has its own flag.
+const swapStarting = ref<boolean>(false);
 const loadingMessage = ref<string>(
   'A transação está sendo enviada para a rede.',
 );
@@ -45,21 +48,27 @@ const brzAddress = computed(
   () => user.network.value.tokens[TokenEnum.BRZ].address,
 );
 
+const approveMutation = useMutation({ mutationFn: approveTokens });
+const addDepositMutation = useAddDepositMutation();
+const loading = computed(
+  () =>
+    approveMutation.isPending.value ||
+    addDepositMutation.isPending.value ||
+    swapStarting.value,
+);
+
 // Verificar tipagem
 const approveOffer = async (args: Participant, paySymbol?: string) => {
   const token = paySymbol
     ? findSwapToken(user.network.value, paySymbol)
     : undefined;
   if (token) return startSwap(args, token);
-  loading.value = true;
   try {
-    await approveTokens(args);
+    await approveMutation.mutateAsync(args);
     flowStep.value = Step.Network;
-    loading.value = false;
   } catch (err) {
     console.log(err);
     flowStep.value = Step.Sell;
-    loading.value = false;
   }
 };
 
@@ -72,14 +81,14 @@ const startSwap = async (args: Participant, token: SwapToken) => {
     }) ?? 'A ordem de troca está sendo enviada.';
   // The deposit cannot ride in the order: it needs the BRZ the order delivers.
   loadingMessage.value = `${notice} Quando a troca executar, a carteira ainda pede a aprovação e o depósito do ${TokenEnum.BRZ}.`;
-  loading.value = true;
+  swapStarting.value = true;
   const uid = await buySwapBrz(args, token).catch((cause) => {
     console.error('[swap] sell-side order failed', cause);
     return null;
   });
   swap.value = { participant: args, token, uid };
   flowStep.value = Step.Swap;
-  loading.value = false;
+  swapStarting.value = false;
   loadingMessage.value = 'A transação está sendo enviada para a rede.';
 };
 
@@ -101,18 +110,13 @@ const swapFilled = () => {
 };
 
 const sendNetwork = async () => {
-  loading.value = true;
   try {
-    if (user.seller.value) {
-      await addDeposit();
-      flowStep.value = Step.Sell;
-      loading.value = false;
-      showAlert.value = true;
-    }
+    await addDepositMutation.mutateAsync();
+    flowStep.value = Step.Sell;
+    showAlert.value = true;
   } catch (err) {
     console.log(err);
     flowStep.value = Step.Network;
-    loading.value = false;
   }
 };
 </script>
