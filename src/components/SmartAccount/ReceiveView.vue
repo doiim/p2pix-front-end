@@ -91,7 +91,7 @@ watch(
     </div>
     <div class="flex flex-col items-center gap-1 text-center">
       <span class="acct-label">Endereço da sua conta</span>
-      <span class="font-mono text-xs text-gray-500 break-all">
+      <span class="font-mono text-sm text-gray-500 break-all">
         <strong class="font-bold text-gray-900">{{
           address.slice(0, 10)
         }}</strong

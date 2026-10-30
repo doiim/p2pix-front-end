@@ -14,6 +14,7 @@ import GithubIcon from '@/assets/githubIcon.svg';
 import type { NetworkConfig } from '@/model/NetworkEnum';
 import { resetAaAccountCache } from '@/blockchain/aa/operations';
 import { useWalletAddress } from '@/queries/wallet';
+import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { shortAddress } from '@/utils/shortAddress';
 
 interface MenuOption {
@@ -30,6 +31,8 @@ interface MenuOption {
 
 const user = useUser();
 const { sellerView, network } = user;
+// With the account panel, Comprar/Vender are tabs on the offer card (design 2A1).
+const account = usePasskeyAccount();
 
 const menuOpenToggle = ref<boolean>(false);
 const infoMenuOpenToggle = ref<boolean>(false);
@@ -317,6 +320,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
         </transition>
       </div>
       <RouterLink
+        v-if="!account.isReady.value"
         :to="sellerView ? '/' : '/seller'"
         class="default-button whitespace-nowrap w-40 sm:w-44 md:w-36 hidden md:inline-block"
       >

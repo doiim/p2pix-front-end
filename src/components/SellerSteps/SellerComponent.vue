@@ -290,7 +290,7 @@ const handleSubmit = (e: Event): void => {
         autocomplete="off"
         class="border-none outline-none text-sm text-gray-900 w-full"
         :class="{ 'text-xl font-medium': bankSearchQuery }"
-        placeholder="Buscar banco (nome, código ou ISPB)"
+        placeholder="Buscar banco"
         @focus="showBankList = true"
         @input="handleBankInput"
         @keydown="handleBankKeydown"
@@ -399,7 +399,7 @@ const handleSubmit = (e: Event): void => {
       v-if="walletAddress && allowlistRoot !== null"
       class="flex items-center justify-between gap-3 w-full bg-white sm:px-10 px-6 py-3 rounded-lg"
     >
-      <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
+      <div class="flex flex-col items-start min-w-0">
         <span class="inline-flex items-center gap-1">
           <span
             id="allowlist-title"
@@ -417,7 +417,7 @@ const handleSubmit = (e: Event): void => {
         </span>
         <button
           type="button"
-          class="inline-flex items-center gap-1.5 min-h-11 text-sm font-semibold text-gray-900 cursor-pointer"
+          class="inline-flex items-center gap-1.5 py-1 text-sm font-semibold text-gray-900 cursor-pointer"
           aria-label="Editar lista de compradores confiáveis"
           @click="editAllowlist"
         >
