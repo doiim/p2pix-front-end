@@ -146,10 +146,15 @@ export async function readTokenTransfers(
   const symbols = new Map(known.map((t) => [lower(t.address), t.symbol]));
   const client = getPublicClient(network.id);
   const skip = new Set(
-    [p2pixAddress(network), network.swap?.settlement, zeroAddress]
+    [p2pixAddress(network), zeroAddress]
       .filter((a): a is Address => Boolean(a))
       .map(lower),
   );
+  // A CoW swap moves the sold token to the settlement contract and the bought
+  // token back: show only what arrived, the subgraph already covers the sale.
+  const settlement = network.swap?.settlement
+    ? lower(network.swap.settlement)
+    : null;
 
   const latest = await client.getBlockNumber();
   const { logs, partial } = await collectLogs(
@@ -167,8 +172,9 @@ export async function readTokenTransfers(
     const id = `${log.transactionHash}:${log.logIndex}`;
     if (!from || !to || seen.has(id)) return false;
     seen.add(id);
-    const other = lower(from) === me ? to : from;
-    return !skip.has(lower(other)) && lower(from) !== lower(to);
+    const other = lower(lower(from) === me ? to : from);
+    if (other === settlement) return lower(to) === me;
+    return !skip.has(other) && lower(from) !== lower(to);
   });
 
   const stamp = await timestampsOf(
