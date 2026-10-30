@@ -35,5 +35,5 @@ input[type="number"] {
 
 /* Outlined amber action of the account panel (Depositar, Enviar, Copiar…). */
 .account-button {
-  @apply flex items-center justify-center gap-2 min-h-11 px-3 whitespace-nowrap border-2 border-amber-300 rounded-lg bg-white text-sm font-semibold text-gray-900 transition-colors hover:bg-amber-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer;
+  @apply flex items-center justify-center gap-2 min-h-11 px-3 whitespace-nowrap border-2 border-[#ffd230] rounded-lg bg-white text-sm font-semibold text-gray-900 transition-colors hover:bg-[#fffbeb] disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer;
 }

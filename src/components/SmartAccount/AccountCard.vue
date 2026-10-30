@@ -97,6 +97,6 @@ a.acct-link:hover {
 }
 
 .acct-network {
-  @apply flex items-center justify-center gap-1 px-3 py-2 rounded-lg bg-gray-100 text-[11px] text-gray-600 whitespace-nowrap;
+  @apply flex items-center justify-center gap-1.5 px-2.5 py-2 rounded-lg bg-gray-100 text-xs text-gray-600 whitespace-nowrap;
 }
 </style>

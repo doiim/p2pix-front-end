@@ -151,6 +151,10 @@ const handleDone = () => {
         </dd>
       </div>
     </dl>
+    <p class="px-2.5 py-2 rounded-lg bg-gray-100 text-xs text-gray-600">
+      Taxa de rede patrocinada pela P2Pix: nada foi descontado do valor
+      enviado.
+    </p>
     <a
       v-if="explorerHref && explorer"
       :href="explorerHref"
@@ -163,7 +167,7 @@ const handleDone = () => {
     </a>
     <button
       type="button"
-      class="min-h-11 rounded-lg bg-amber-400 text-sm font-semibold text-gray-900 transition-colors hover:bg-amber-500 cursor-pointer"
+      class="min-h-12 rounded-lg bg-[#ffb900] text-base font-semibold text-gray-900 transition-colors hover:bg-[#fe9a00] cursor-pointer"
       @click="handleDone"
     >
       Fechar

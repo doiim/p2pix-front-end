@@ -92,16 +92,16 @@ const handleCancel = () => {
         autocomplete="off"
         placeholder="0"
         :aria-invalid="!!amountError"
-        class="min-w-0 flex-1 border-none text-lg text-gray-900 outline-none"
+        class="min-w-0 flex-1 border-none text-xl font-semibold text-gray-900 outline-none"
       />
       <DropdownChip label="Selecionar token">
         <img
           v-if="selected"
           :src="selected.image"
           :alt="form.symbol.value"
-          class="h-5 w-5"
+          class="h-6 w-6 rounded-full"
         />
-        <span class="text-sm font-medium text-gray-900">
+        <span class="text-base font-medium text-gray-900">
           {{ form.symbol.value }}
         </span>
         <template #items="{ close }">
@@ -202,7 +202,7 @@ const handleCancel = () => {
 @reference "tailwindcss";
 
 .send-field {
-  @apply flex items-center gap-2 w-full min-h-11 px-3 py-1.5 border border-gray-300 rounded-lg text-gray-900;
+  @apply flex items-center gap-2 w-full min-h-11 pl-3 pr-2.5 py-2.5 border border-gray-300 rounded-lg text-gray-900;
 }
 
 .send-field.is-invalid {

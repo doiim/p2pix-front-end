@@ -81,8 +81,8 @@ watch(
     }}
   </p>
   <template v-else>
-    <div class="relative self-center p-4 border border-gray-200 rounded-lg">
-      <div class="w-48 h-48 [&_svg]:h-full [&_svg]:w-full" v-html="qrSvg" />
+    <div class="relative self-center p-3 border border-gray-200 rounded-lg">
+      <div class="w-[184px] h-[184px] [&_svg]:h-full [&_svg]:w-full" v-html="qrSvg" />
       <img
         :src="getNetworkImage(user.network.value.name)"
         alt=""
@@ -91,7 +91,7 @@ watch(
     </div>
     <div class="flex flex-col items-center gap-1 text-center">
       <span class="acct-label">Endereço da sua conta</span>
-      <span class="font-mono text-sm text-gray-500 break-all">
+      <span class="max-w-[21ch] font-mono text-[15px] leading-[22px] text-gray-500 break-all">
         <strong class="font-bold text-gray-900">{{
           address.slice(0, 10)
         }}</strong
@@ -114,7 +114,7 @@ watch(
       type="button"
       :aria-expanded="expanded"
       aria-describedby="accepted-label"
-      class="flex flex-col gap-2 w-full p-3 border border-gray-200 rounded-lg text-left transition-colors hover:bg-gray-50 cursor-pointer"
+      class="flex flex-col gap-2 w-full p-3 border border-gray-300 rounded-lg text-left transition-colors hover:bg-gray-50 cursor-pointer"
       @click="expanded = !expanded"
     >
       <span class="flex -space-x-2">
@@ -123,7 +123,7 @@ watch(
           :key="token.symbol"
           :src="token.image"
           alt=""
-          class="w-5 h-5 rounded-full border-2 border-white bg-white"
+          class="w-[22px] h-[22px] rounded-full border-2 border-white bg-white"
         />
       </span>
       <span class="flex items-center justify-between gap-2">

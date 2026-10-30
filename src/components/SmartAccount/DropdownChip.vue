@@ -39,7 +39,7 @@ const close = () => (open.value = false);
 @reference "tailwindcss";
 
 .chip {
-  @apply flex min-w-fit items-center gap-2 rounded-3xl bg-gray-300 px-3 py-2 transition-colors hover:bg-gray-200 cursor-pointer;
+  @apply flex min-w-fit items-center gap-1.5 rounded-3xl bg-gray-300 pl-1.5 pr-2.5 py-1 -my-2 min-h-11 transition-colors hover:bg-gray-200 cursor-pointer;
 }
 
 .menu {
