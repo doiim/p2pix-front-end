@@ -26,6 +26,10 @@
       {
         "title": "De quem estou comprando?",
         "content": "Vendedores fazem as ofertas e indicam a chave Pix que irão receber o valor transacionado. Essa oferta fica registrada no contrato inteligente até que a compra seja concluída e os tokens sejam liberados para a sua carteira. \n\n\n\n* **Onde encontrar o comprovante do Pix?**\n    Quando você faz um Pix, um comprovante é gerado automaticamente para o pagador e para o recebedor. Ele pode ser acessado no momento da transação pelo app ou site do banco, ou pelo seu extrato bancário.\n* **Para onde vão os tokens que eu comprei?**\n    Os tokens comprados vão para a carteira que você conectou ao p2pix. \n    Nota: Lembre-se sempre de configurar a sua carteira na rede correta em que quer receber seus tokens. "
+      },
+      {
+        "title": "O que é a allowlist de um vendedor?",
+        "content": "É uma lista de compradores de confiança que o vendedor cria para a conta dele. Quem está na lista pode comprar desse vendedor acima do limite de reputação; quem não está continua comprando normalmente, com o limite de sempre. Se um vendedor incluiu você, ele envia o arquivo da lista (.json): importe esse arquivo em Compradores confiáveis, no menu da carteira, na seção Listas que você recebeu. A lista fica salva só no seu navegador, e o app confere se ela é a mesma que o vendedor gravou na rede antes de usá-la. Envie ao vendedor o endereço mostrado nessa seção, que é o endereço que faz as suas compras."
       }
     ]
   },
@@ -47,6 +51,10 @@
       {
         "title": "Como retirar a oferta?",
         "content": "Para retirar a oferta, use o saque em 'Gerenciar Ofertas'. O saque desativa a oferta — novas reservas deixam de ser aceitas — e devolve para a sua carteira o saldo que não estiver em reservas ativas."
+      },
+      {
+        "title": "Como liberar o limite para compradores de confiança?",
+        "content": "Abra Compradores confiáveis no menu da carteira, adicione o endereço de cada comprador (o apelido é opcional e fica só com você) e clique em Gravar lista na rede. A rede guarda apenas um resumo de 32 bytes da lista (a raiz), não os endereços; a lista fica salva só no seu navegador. Depois clique em Baixar lista (.json) e envie o arquivo aos compradores, que o importam na mesma página; o arquivo leva os endereços e os apelidos. A lista vale para todas as suas ofertas na rede e não bloqueia ninguém: quem não está nela compra com o limite de reputação normal. Gravar uma lista nova invalida os arquivos já enviados. Para desligar, use Desativar lista."
       }
     ]
   }

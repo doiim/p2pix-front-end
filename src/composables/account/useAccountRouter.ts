@@ -1,4 +1,5 @@
-import { computed, ref } from 'vue';
+import { computed, ref, type Ref } from 'vue';
+import type { Address } from 'viem';
 import { useClipboard } from '@vueuse/core';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useUser } from '@/composables/useUser';
@@ -26,17 +27,18 @@ export function useAccountRouter() {
   return { current, push, back, reset };
 }
 
-export function useCopyAddress() {
-  const { smartAccountAddress } = usePasskeyAccount();
+export function useCopyAddress(
+  source: Ref<Address | null> = usePasskeyAccount().smartAccountAddress,
+) {
   const { showToast } = useUser();
   const { copy, isSupported } = useClipboard({ legacy: true });
   return async (): Promise<void> => {
-    if (!smartAccountAddress.value) return;
+    if (!source.value) return;
     if (!isSupported.value) {
       showToast('error', 'Copie o endereço manualmente');
       return;
     }
-    await copy(smartAccountAddress.value);
+    await copy(source.value);
     showToast('success', 'Endereço copiado!');
   };
 }
