@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { useUser } from '@/composables/useUser';
 import { onClickOutside } from '@vueuse/core';
 import { getNetworkImage } from '@/utils/imagesPath';
@@ -128,6 +128,15 @@ const infoMenuOptions: MenuOption[] = [
     showInMobile: false,
   },
 ];
+
+// With the account panel, vender lives on the offer card: the menu drops the link (design 2G2).
+const mobileMenuOptions = computed(() =>
+  walletMenuOptions.filter(
+    (opt) =>
+      opt.showInMobile &&
+      !(opt.label === 'Quero vender' && account.isReady.value),
+  ),
+);
 
 const walletMenuOptions: MenuOption[] = [
   {
@@ -502,12 +511,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
     >
       <div class="pl-4 h-full">
         <div class="bg-white rounded-md z-10 h-full">
-          <template
-            v-for="(option, index) in walletMenuOptions.filter(
-              (opt) => opt.showInMobile,
-            )"
-            :key="index"
-          >
+          <template v-for="(option, index) in mobileMenuOptions" :key="index">
             <div class="menu-button" @click="handleMenuOptionClick(option)">
               <RouterLink
                 v-if="option.isDynamic"
@@ -534,10 +538,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
               </RouterLink>
             </div>
             <div
-              v-if="
-                index <
-                walletMenuOptions.filter((opt) => opt.showInMobile).length - 1
-              "
+              v-if="index < mobileMenuOptions.length - 1"
               class="w-full flex justify-center"
             >
               <hr class="w-4/5" />
