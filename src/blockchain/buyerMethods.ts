@@ -197,36 +197,63 @@ export const withdrawDeposit = async (
   return receipt.status === 'success';
 };
 
-/** Releases the lock with the prover's proof of Pix payment. */
+/**
+ * `release` always pays the lock's buyer, whoever submits it; only the buyer's
+ * own account should spend gas on it.
+ */
+export const getBuyerLock = async (lockID: bigint, buyer: Address) => {
+  const { address, abi, client } = await getContract(true);
+  const lock = toLock(
+    await client.readContract({
+      address,
+      abi,
+      functionName: 'mapLocks',
+      args: [lockID],
+    }),
+  );
+  if (lock.buyerAddress.toLowerCase() !== buyer.toLowerCase()) {
+    throw new Error('Account is not the buyer of this lock');
+  }
+  return lock;
+};
+
+/** The `release` call itself, for batching with the calls that follow it. */
+export const releaseCall = async (
+  lockID: bigint,
+  proof: PixProof,
+): Promise<AaCall> => {
+  const { address, abi } = await getContract(true);
+  return {
+    to: address,
+    data: encodeFunctionData({
+      abi: abi as Abi,
+      functionName: 'release',
+      args: [lockID, proof],
+    }),
+    value: 0n,
+  };
+};
+
+/**
+ * Releases the lock with the prover's proof of Pix payment. `afterRelease`
+ * calls ride in the same UserOperation as the release (the
+ * smart-account rail only), e.g. the swap's approve + pre-signature.
+ */
 export const releaseLock = async (
   lockID: bigint,
   proof: PixProof,
+  afterRelease: readonly AaCall[] = [],
 ): Promise<TransactionReceipt> => {
   const { address, abi, wallet, client, account } = await getContract();
   const aa = await getActiveAaContext();
 
   if (aa) {
-    const lock = await client.readContract({
-      address,
-      abi,
-      functionName: 'mapLocks',
-      args: [lockID],
-    });
-    const { token: lockToken, buyerAddress } = toLock(lock);
-    if (buyerAddress.toLowerCase() !== aa.account.address.toLowerCase()) {
-      throw new Error('Active smart account is not the buyer of this lock');
-    }
-
-    const call: AaCall = {
-      to: address,
-      data: encodeFunctionData({
-        abi: abi as Abi,
-        functionName: 'release',
-        args: [lockID, proof],
-      }),
-      value: 0n,
-    };
-    const aaReceipt = await sendAaOperation(aa, [call], lockToken);
+    const lock = await getBuyerLock(lockID, aa.account.address);
+    const aaReceipt = await sendAaOperation(
+      aa,
+      [await releaseCall(lockID, proof), ...afterRelease],
+      lock.token,
+    );
     if (!aaReceipt.success) {
       throw new Error(
         `AA release failed: ${aaReceipt.receipt.transactionHash}`,
@@ -237,18 +264,7 @@ export const releaseLock = async (
 
   if (!wallet) throw new Error('Carteira não conectada');
   if (!account) throw new Error('Account not available');
-
-  // `release` always pays the lock's buyer, whoever submits it; only the
-  // buyer's own account should spend gas on it.
-  const lock = await client.readContract({
-    address,
-    abi,
-    functionName: 'mapLocks',
-    args: [lockID],
-  });
-  if (toLock(lock).buyerAddress.toLowerCase() !== account.toLowerCase()) {
-    throw new Error('Connected account is not the buyer of this lock');
-  }
+  await getBuyerLock(lockID, account);
 
   const { request } = await client.simulateContract({
     address,

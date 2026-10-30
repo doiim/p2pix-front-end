@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
-import { onClickOutside } from '@vueuse/core';
 import { useUser } from '@/composables/useUser';
 import { useReputation } from '@/composables/useReputation';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
@@ -9,9 +8,8 @@ import ReputationChecking from '@/components/BuyerSteps/Reputation/ReputationChe
 import ReputationDetailsPanel from '@/components/BuyerSteps/Reputation/ReputationDetailsPanel.vue';
 import ReputationLimitRow from '@/components/BuyerSteps/Reputation/ReputationLimitRow.vue';
 import ReputationMaxButton from '@/components/BuyerSteps/Reputation/ReputationMaxButton.vue';
-import ChevronDown from '@/assets/chevronDown.svg';
+import TokenSelector from '@/components/Swap/TokenSelector.vue';
 import { verifyNetworkLiquidity } from '@/utils/networkLiquidity';
-import { getTokenImage, getNetworkImage } from '@/utils/imagesPath';
 import {
   LIMIT_ROW_SENTENCES,
   amountInputText,
@@ -25,9 +23,12 @@ import {
 } from '@/utils/reputation';
 import type { BuyPress, LimitRowVariant, PanelTag } from '@/utils/reputation';
 import type { ValidDeposit } from '@/model/ValidDeposit';
-import { Networks } from '@/config/networks';
 import { useConnectModal } from '@/wallet/useConnectModal';
 import { TokenEnum } from '@/model/NetworkEnum';
+import { defaultUiToken, findSwapToken } from '@/model/BuyToken';
+import { IMPACT_WARN_BPS, quoteLock, type SwapIntent } from '@/blockchain/swap';
+import { useSwapQuote } from '@/composables/useSwapQuote';
+import { formatEther, zeroAddress } from 'viem';
 import { getCurrentAccount } from '@/blockchain/provider';
 import { getAaOwnerKind, isAaAvailable } from '@/blockchain/aa/aaContext';
 import { findAllowlistProof } from '@/blockchain/allowlist';
@@ -37,7 +38,7 @@ import { findAllowlistProof } from '@/blockchain/allowlist';
 const props = defineProps<{ refusal: BuyPress | null }>();
 
 const emit = defineEmits<{
-  tokenBuy: [deposit: ValidDeposit, press: BuyPress];
+  tokenBuy: [deposit: ValidDeposit, press: BuyPress, swapIntent?: SwapIntent];
 }>();
 
 // Store reference
@@ -47,7 +48,6 @@ const reputation = useReputation();
 const {
   walletAddress,
   network,
-  selectedToken,
   depositsValidList,
   loadingNetworkLiquidity,
   failedLiquidityNetworks,
@@ -59,7 +59,6 @@ const selectedNetworkUnread = computed(() =>
 );
 
 // html references
-const tokenDropdownEl = useTemplateRef<HTMLDivElement>('tokenDropdown');
 const amountInputEl = useTemplateRef<HTMLInputElement>('amountInput');
 const maxButtonEl =
   useTemplateRef<InstanceType<typeof ReputationMaxButton>>('maxButton');
@@ -67,7 +66,6 @@ const limitRowEl =
   useTemplateRef<InstanceType<typeof ReputationLimitRow>>('limitRow');
 
 // Reactive state (seeded before any watcher exists, so a refusal does not clear itself)
-const selectTokenToggle = ref<boolean>(false);
 const amountText = ref(
   props.refusal ? amountInputText(floorCents(props.refusal.amount)) : '',
 );
@@ -90,6 +88,30 @@ const displayCents = computed(() => {
     : 0n;
 });
 
+// Token received. A refusal is in BRZ (what the contract locks), so it reopens on BRZ.
+const buyToken = ref<string>(
+  props.refusal ? TokenEnum.BRZ : defaultUiToken(network.value),
+);
+const swapping = computed(() => !!findSwapToken(network.value, buyToken.value));
+const swapQuote = useSwapQuote<{ lockAmount: bigint; impactBps: number }>();
+const impactBps = computed(() => swapQuote.result.value?.impactBps ?? null);
+const swapIntent = (): SwapIntent | undefined =>
+  swapping.value && tokenValue.value > 0
+    ? { token: buyToken.value, amount: String(tokenValue.value) }
+    : undefined;
+// BRZ to lock: the typed amount for BRZ, the quoted cost for a swap token. Limit, liquidity and
+// "~ R$" all read this, since the contract only sees BRZ.
+const lockWei = computed(() => {
+  if (swapping.value) return swapQuote.result.value?.lockAmount ?? null;
+  return parsed.value.status === 'ok' ? parsed.value.wei : null;
+});
+const lockValue = computed(() =>
+  lockWei.value === null ? 0 : Number(formatEther(lockWei.value)),
+);
+const lockCents = computed(() =>
+  swapping.value ? (lockWei.value ?? 0n) / 10n ** 16n : displayCents.value,
+);
+
 // Offers from other sellers. Lowercase both sides: the subgraph returns lowercase, the wallet checksummed.
 const othersDeposits = computed(() => {
   const account = walletAddress.value?.toLowerCase();
@@ -99,7 +121,7 @@ const othersDeposits = computed(() => {
 });
 const selectedDeposits = computed(() =>
   walletAddress.value
-    ? verifyNetworkLiquidity(tokenValue.value, othersDeposits.value)
+    ? verifyNetworkLiquidity(lockValue.value, othersDeposits.value)
     : [],
 );
 const selectedDeposit = computed(() =>
@@ -107,11 +129,6 @@ const selectedDeposit = computed(() =>
 );
 const hasLiquidity = computed(
   () => !walletAddress.value || selectedDeposit.value !== undefined,
-);
-const availableNetworks = computed(() =>
-  Networks.filter((n) =>
-    selectedDeposits.value.some((d) => d.network.id === n.id),
-  ),
 );
 // Largest offer on this network from another seller: what one purchase can reach (Máx, panel P4).
 const maxOfferCents = computed(() => {
@@ -148,9 +165,9 @@ watch(
 // renders or blocks.
 const verdict = computed(() =>
   reputation.snapshot.value !== null &&
-  parsed.value.status === 'ok' &&
+  lockWei.value !== null &&
   allowlisted.value === false
-    ? classifyAmount(parsed.value.wei, reputation.snapshot.value.limitTokens)
+    ? classifyAmount(lockWei.value, reputation.snapshot.value.limitTokens)
     : null,
 );
 const rowVariant = computed(() =>
@@ -188,8 +205,35 @@ const enableConfirmButton = computed(
   () =>
     walletAddress.value !== null &&
     parsed.value.status === 'ok' &&
+    lockWei.value !== null &&
     hasLiquidity.value,
 );
+
+// Debounced: a quote per keystroke would hammer the order book.
+let quoteTimer: ReturnType<typeof setTimeout> | undefined;
+watch(
+  [tokenValue, buyToken, () => network.value.id, walletAddress],
+  () => {
+    clearTimeout(quoteTimer);
+    const intent = swapIntent();
+    if (!intent) return swapQuote.run(null);
+    swapQuote.quoting.value = true;
+    quoteTimer = setTimeout(
+      () =>
+        swapQuote.run(() =>
+          quoteLock(intent, walletAddress.value ?? zeroAddress),
+        ),
+      500,
+    );
+  },
+  { immediate: true },
+);
+
+// Swap tokens exist only on chains with a CoW config.
+watch(network, () => {
+  if (!findSwapToken(network.value, buyToken.value))
+    buyToken.value = defaultUiToken(network.value);
+});
 
 // A refusal belongs to the network and account it happened on, but must survive mount: only a real
 // change drops it. On the immediate run Vue passes `[]` as the previous value of a multi-source watch.
@@ -239,23 +283,10 @@ const emitConfirmButton = (checkedWithin: boolean): void => {
   const deposit = selectedDeposit.value;
   if (!deposit) return;
   const press = {
-    amount: tokenValue.value,
+    amount: lockValue.value,
     checkedWithin,
   };
-  emit('tokenBuy', deposit, press);
-};
-
-const toggleTokenSelection = (): void => {
-  selectTokenToggle.value = !selectTokenToggle.value;
-};
-
-onClickOutside(tokenDropdownEl, () => {
-  selectTokenToggle.value = false;
-});
-
-const handleSelectedToken = (token: TokenEnum): void => {
-  user.setSelectedToken(token);
-  selectTokenToggle.value = false;
+  emit('tokenBuy', deposit, press, swapIntent());
 };
 
 const onToggle = (): void => {
@@ -297,9 +328,9 @@ const handleSubmit = async (e: Event): Promise<void> => {
 
   refused.value = false;
   const variant =
-    read.ok && parsed.value.status === 'ok'
+    read.ok && lockWei.value !== null
       ? limitRowVariant(
-          classifyAmount(parsed.value.wei, read.snapshot.limitTokens),
+          classifyAmount(lockWei.value, read.snapshot.limitTokens),
           false,
         )
       : null;
@@ -314,7 +345,7 @@ const handleSubmit = async (e: Event): Promise<void> => {
 };
 
 const pressContext = () =>
-  `${network.value.id}:${walletAddress.value}:${amountText.value}`;
+  `${network.value.id}:${walletAddress.value}:${amountText.value}:${buyToken.value}`;
 
 // Cleared first so a repeated sentence is announced again; only set on transitions, never per keystroke.
 const announce = (text: string): void => {
@@ -342,7 +373,7 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
           name="tokenAmount"
           placeholder="0"
           required
-          :aria-label="`Quantidade de ${selectedToken}`"
+          :aria-label="`Quantidade de ${buyToken}`"
           :aria-invalid="amountInvalid ? 'true' : 'false'"
           :aria-describedby="limitState ? 'rep-status rep-amount' : undefined"
           class="flex-1 min-w-0 max-w-[60%] p-0 border-0 outline-none bg-transparent text-xl font-semibold placeholder:text-gray-900/50"
@@ -350,88 +381,22 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
         />
         <div class="flex items-center flex-none gap-1 sm:gap-2 ml-auto sm:ml-0">
           <ReputationMaxButton
-            v-if="limitState"
+            v-if="limitState && !swapping"
             ref="maxButton"
             :variant="limitState.variant"
             :limit-tokens="limitState.snapshot.limitTokens"
             :max-offer-cents="maxOfferCents"
             @fill="onFill"
           />
-          <div ref="tokenDropdown" class="relative overflow-visible">
-            <button
-              type="button"
-              class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
-              :aria-expanded="selectTokenToggle"
-              @click="toggleTokenSelection()"
-            >
-              <img
-                alt="Imagem do token"
-                class="sm:w-fit w-4"
-                :src="getTokenImage(selectedToken)"
-              />
-              <span
-                class="text-gray-900 sm:text-lg text-md font-medium"
-                id="token"
-                >{{ selectedToken }}</span
-              >
-              <ChevronDown
-                class="shrink-0 text-gray-900 transition-all duration-500 ease-in-out"
-                :class="{ 'scale-y-[-1]': selectTokenToggle }"
-                alt="Expandir"
-              />
-            </button>
-            <transition name="dropdown">
-              <div
-                v-if="selectTokenToggle"
-                class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
-              >
-                <div
-                  class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
-                >
-                  <div
-                    v-for="token in TokenEnum"
-                    :key="token"
-                    class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
-                    @click="handleSelectedToken(token)"
-                  >
-                    <img
-                      :alt="token + ' logo'"
-                      width="20"
-                      height="20"
-                      :src="getTokenImage(token)"
-                    />
-                    <span
-                      class="text-gray-900 py-4 text-end font-semibold text-sm"
-                    >
-                      {{ token }}
-                    </span>
-                  </div>
-                  <div class="w-full flex justify-center">
-                    <hr class="w-4/5" />
-                  </div>
-                </div>
-              </div>
-            </transition>
-          </div>
+          <TokenSelector v-model="buyToken" />
         </div>
       </div>
       <div class="custom-divide py-2 mb-2"></div>
       <template v-if="!loadingNetworkLiquidity">
-        <div class="flex justify-between">
-          <p class="text-gray-500 font-normal text-sm w-auto">
-            ~ R$ {{ formatBrlFixed(displayCents) }}
-          </p>
-          <div class="flex gap-2">
-            <img
-              v-for="network in availableNetworks"
-              :key="network.id"
-              :alt="`${network.name} image`"
-              :src="getNetworkImage(network.name)"
-              width="24"
-              height="24"
-            />
-          </div>
-        </div>
+        <p class="text-gray-500 font-normal text-sm">
+          ~ R$
+          {{ swapQuote.quoting.value ? 'cotando…' : formatBrlFixed(lockCents) }}
+        </p>
         <ReputationChecking v-if="showChecking" />
         <template v-else-if="limitState">
           <ReputationLimitRow
@@ -447,7 +412,7 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
             :snapshot="limitState.snapshot"
             :network-name="network.name"
             :account-kind="accountKind"
-            :amount-cents="displayCents"
+            :amount-cents="lockCents"
             :max-offer-cents="maxOfferCents"
             :limit-changed="refused && refusal?.checkedWithin === true"
             @close="onPanelClose"
@@ -463,9 +428,31 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
         >
         <SpinnerComponent width="4" height="4"></SpinnerComponent>
       </div>
+      <div class="flex justify-center" v-if="swapping">
+        <span class="text-gray-500 font-normal text-sm text-center"
+          >Você recebe {{ TokenEnum.BRZ }} e, logo em seguida, ele é trocado por
+          {{ buyToken }} na CoW Swap. Se a cotação mudar, você fica com
+          {{ TokenEnum.BRZ }} e pode cotar de novo.</span
+        >
+      </div>
       <div
         class="flex justify-center"
-        v-if="!validDecimals && !loadingNetworkLiquidity"
+        v-if="impactBps !== null && impactBps > IMPACT_WARN_BPS"
+      >
+        <span class="text-amber-600 font-normal text-sm text-center"
+          >Impacto de preço de {{ (impactBps / 100).toFixed(1) }}% pela liquidez
+          disponível agora.</span
+        >
+      </div>
+      <div class="flex justify-center" v-if="swapQuote.failed.value">
+        <span class="text-red-500 font-normal text-sm text-center"
+          >Sem cotação para {{ buyToken }} agora. Tente outro valor ou escolha
+          {{ TokenEnum.BRZ }}.</span
+        >
+      </div>
+      <div
+        class="flex justify-center"
+        v-else-if="!validDecimals && !loadingNetworkLiquidity"
       >
         <span class="text-red-500 font-normal text-sm"
           >Por favor utilize no máximo 2 casas decimais</span
@@ -503,7 +490,7 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
       v-if="walletAddress"
       type="submit"
       text="Confirmar Oferta"
-      :isDisabled="!enableConfirmButton"
+      :isDisabled="!enableConfirmButton || swapQuote.quoting.value"
       :loading="busy"
       :aria-busy="busy ? 'true' : 'false'"
       aria-label="Confirmar Oferta"
