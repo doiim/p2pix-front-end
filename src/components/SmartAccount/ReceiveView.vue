@@ -145,7 +145,9 @@ watch(
         class="flex items-center gap-3 px-3 py-2"
       >
         <img :src="token.image" alt="" class="w-5 h-5 rounded-full" />
-        <span class="text-sm font-semibold text-gray-900">{{ token.symbol }}</span>
+        <span class="text-sm font-semibold text-gray-900">{{
+          token.symbol
+        }}</span>
         <span class="text-xs text-gray-500">{{ nameOf(token.symbol) }}</span>
       </li>
     </ul>

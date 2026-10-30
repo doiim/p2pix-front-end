@@ -7,12 +7,10 @@ import RedirectIcon from '@/assets/redirect.svg';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useSendForm } from '@/composables/account/useSendForm';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
-import { useUser } from '@/composables/useUser';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 
 const accountRouter = useAccountRouter();
 const account = usePasskeyAccount();
-const user = useUser();
 const form = useSendForm();
 const { copy } = useClipboard({ legacy: true });
 const copied = ref(false);
