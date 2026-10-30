@@ -495,7 +495,7 @@ const handleMenuOptionClick = (option: MenuOption): void => {
                       "
                       class="w-full flex justify-center"
                     >
-                      <hr class="w-4/5" />
+                      <hr class="w-4/5 border-gray-200" />
                     </div>
                   </template>
                 </div>
@@ -631,11 +631,11 @@ header {
 }
 
 .redirect_button {
-  @apply py-5 px-4 text-gray-900 flex sm:font-semibold font-bold sm:text-base text-sm justify-between;
+  @apply py-4 px-4 text-gray-900 flex sm:font-semibold font-bold sm:text-base text-sm justify-between;
 }
 
 .menu-button {
-  @apply flex sm:text-center sm:justify-center hover:bg-gray-200 hover:rounded-lg w-full;
+  @apply flex sm:text-center sm:justify-center hover:bg-gray-100 rounded-lg w-full;
 }
 
 a:hover {
