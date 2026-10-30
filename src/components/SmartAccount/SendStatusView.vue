@@ -2,7 +2,7 @@
 import { computed, ref } from 'vue';
 import { useClipboard } from '@vueuse/core';
 import CopyIcon from '@/assets/copyPix.svg';
-import KeyIcon from '@/assets/key.svg';
+import KeyIcon from '@/assets/keyOutline.svg';
 import RedirectIcon from '@/assets/redirect.svg';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useSendForm } from '@/composables/account/useSendForm';
@@ -52,7 +52,7 @@ const handleDone = () => {
     </div>
     <span
       aria-hidden="true"
-      class="block w-10 h-10 rounded-full border-4 border-gray-200 border-t-gray-900 animate-spin motion-reduce:animate-none"
+      class="block w-10 h-10 rounded-full border-4 border-gray-200 border-t-gray-600 animate-spin motion-reduce:animate-none"
     />
     <p class="text-sm font-medium text-gray-900">
       A transação está sendo enviada para a rede
@@ -77,9 +77,9 @@ const handleDone = () => {
       </p>
     </div>
     <span
-      class="flex items-center justify-center w-9 h-9 rounded-full bg-gray-100"
+      class="flex items-center justify-center w-14 h-14 rounded-full bg-gray-100 text-gray-500"
     >
-      <KeyIcon aria-hidden="true" />
+      <KeyIcon aria-hidden="true" class="w-7 h-7" />
     </span>
     <p class="text-sm text-gray-900">
       O navegador vai pedir sua passkey para assinar o envio de
@@ -152,8 +152,7 @@ const handleDone = () => {
       </div>
     </dl>
     <p class="px-2.5 py-2 rounded-lg bg-gray-100 text-xs text-gray-600">
-      Taxa de rede patrocinada pela P2Pix: nada foi descontado do valor
-      enviado.
+      Taxa de rede patrocinada pela P2Pix: nada foi descontado do valor enviado.
     </p>
     <a
       v-if="explorerHref && explorer"

@@ -396,7 +396,7 @@ const handleSubmit = (e: Event): void => {
     </Transition>
     <!-- Trusted buyers -->
     <div
-      v-if="walletAddress && allowlistRoot !== null"
+      v-if="walletAddress && allowlistActive"
       class="flex items-center justify-between gap-3 w-full bg-white sm:px-10 px-6 py-3 rounded-lg"
     >
       <div class="flex flex-col items-start min-w-0">
