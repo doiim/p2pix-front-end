@@ -114,7 +114,7 @@ export function useTrustedBuyers() {
     const error = addressError(address);
     if (error) return error;
     if (walletAddress.value && sameAddress(address, walletAddress.value)) {
-      return 'Esse é o seu próprio endereço.';
+      return 'Este é o endereço da sua carteira. Adicione o do comprador.';
     }
     const label = nickname.trim();
     const entry: AllowlistEntry = label
@@ -181,7 +181,6 @@ export function useTrustedBuyers() {
     if (!(await commitRoot(zeroHash))) return false;
     resetEdits();
     justSaved.value = false;
-    user.showToast('success', 'Lista desativada');
     return true;
   };
 

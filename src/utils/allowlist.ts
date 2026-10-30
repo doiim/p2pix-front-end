@@ -14,7 +14,7 @@ const HEX_ADDRESS = /^0x[0-9a-fA-F]{40}$/;
 /** pt-BR reason the text is not a usable buyer address, if any. */
 export const addressError = (text: string): string | undefined => {
   if (!HEX_ADDRESS.test(text)) {
-    return 'Use 0x seguido de 40 caracteres hexadecimais.';
+    return 'Endereço inválido. Ele começa com 0x e tem 42 caracteres.';
   }
   // Mixed case carries an EIP-55 checksum; a mistyped character breaks it.
   if (!isAddress(text, { strict: true })) {

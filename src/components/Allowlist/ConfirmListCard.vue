@@ -7,6 +7,8 @@ import CustomButton from '@/components/ui/CustomButton.vue';
 import ChevronDown from '@/assets/chevronDown.svg';
 import InfoIcon from '@/assets/info.svg';
 import ValidIcon from '@/assets/validIcon.svg';
+import CloseIcon from '@/assets/closeAlertIcon.svg';
+import { shortHex } from '@/utils/allowlist';
 
 export type ConfirmRow = { kind: 'in' | 'out' | 'info' | 'ok'; text: string };
 
@@ -18,8 +20,15 @@ defineProps<{
   busy: boolean;
   /** Addresses in the list `setRoot` will write. */
   count: number;
+  /** A list is already active on-chain. */
+  active: boolean;
+  /** What signing changes, when worth a sentence of its own. */
+  effect?: string;
+  backText?: string;
+  /** Shows the "Fechar" button, for the dialog. */
+  closable?: boolean;
 }>();
-defineEmits<{ back: []; sign: [] }>();
+defineEmits<{ back: []; sign: []; close: [] }>();
 
 const user = useUser();
 const walletAddress = useWalletAddress();
@@ -35,10 +44,20 @@ const contract = computed(
       <span class="round-icon" aria-hidden="true">
         <ValidIcon class="[&_path]:fill-white" />
       </span>
-      <div>
+      <div class="flex-1">
         <p class="text-sm text-gray-600">Confirme na carteira</p>
         <h2 class="text-xl font-semibold">{{ title }}</h2>
       </div>
+      <button
+        v-if="closable"
+        type="button"
+        class="shrink-0 self-start p-1 cursor-pointer disabled:opacity-40"
+        aria-label="Fechar"
+        :disabled="busy"
+        @click="$emit('close')"
+      >
+        <CloseIcon />
+      </button>
     </div>
 
     <ul class="flex flex-col gap-2">
@@ -72,24 +91,32 @@ const contract = computed(
           <dd>{{ user.network.value.name }}</dd>
         </div>
         <div>
-          <dt class="text-gray-500">Endereço</dt>
-          <dd class="font-mono break-all">{{ walletAddress }}</dd>
-        </div>
-        <div>
-          <dt class="text-gray-500">Lista</dt>
-          <dd>{{ count === 1 ? '1 endereço' : `${count} endereços` }}</dd>
+          <dt class="text-gray-500">Contrato</dt>
+          <dd class="font-mono">P2Pix {{ shortHex(contract) }}</dd>
         </div>
         <div>
           <dt class="text-gray-500">Função</dt>
-          <dd class="font-mono">setRoot</dd>
+          <dd class="font-mono">setRoot(address, bytes32)</dd>
         </div>
         <div>
-          <dt class="text-gray-500">Contrato P2Pix</dt>
-          <dd class="font-mono break-all">{{ contract }}</dd>
+          <dt class="text-gray-500">Endereço</dt>
+          <dd class="font-mono">{{ shortHex(walletAddress ?? '') }} (você)</dd>
         </div>
         <div>
-          <dt class="text-gray-500">Nova raiz</dt>
+          <dt class="text-gray-500">Raiz</dt>
           <dd class="font-mono break-all">{{ root }}</dd>
+        </div>
+        <div>
+          <dt class="text-gray-500">Lista</dt>
+          <dd>
+            {{
+              count === 0
+                ? 'nenhum endereço'
+                : count === 1
+                  ? '1 endereço'
+                  : `${count} endereços`
+            }}
+          </dd>
         </div>
         <p class="text-gray-600">
           Na carteira, confira se o contrato, a função e a raiz são estes.
@@ -99,7 +126,11 @@ const contract = computed(
 
     <p class="text-gray-600">
       Vale para todas as suas ofertas em {{ user.network.value.name }}.
+      <template v-if="!active">
+        Depois, baixe a lista (.json) e envie aos compradores.
+      </template>
     </p>
+    <p v-if="effect" class="text-gray-600">{{ effect }}</p>
 
     <div class="mt-2 flex items-center justify-end gap-6">
       <button
@@ -108,7 +139,7 @@ const contract = computed(
         :disabled="busy"
         @click="$emit('back')"
       >
-        Voltar
+        {{ backText ?? 'Voltar' }}
       </button>
       <CustomButton
         text="Assinar na carteira"

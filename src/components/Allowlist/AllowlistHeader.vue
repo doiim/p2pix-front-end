@@ -25,7 +25,7 @@ const contract = computed(
 const explorer = computed(() => user.network.value.blockExplorers?.default.url);
 const castCommand = computed(
   () =>
-    `cast call ${contract.value} "sellerAllowList(address)(bytes32)" ${walletAddress.value} --rpc-url <SEU_RPC>`,
+    `cast call ${contract.value} "sellerAllowList(address)(bytes32)" ${walletAddress.value} --rpc-url <SEU_RPC_ARBITRUM>`,
 );
 const { copy, copied, isSupported } = useClipboard({ legacy: true });
 
@@ -97,30 +97,33 @@ const localRoot = computed(() =>
       </button>
     </div>
 
-    <div v-if="open === 'how'" class="panel">
-      <ol class="list-decimal space-y-2 pl-5">
-        <li>
-          Adicione o endereço de quem você conhece. O apelido fica só neste
-          navegador e no arquivo.
-        </li>
-        <li>
-          Grave a lista na rede. O contrato guarda só a raiz, um resumo de 32
-          bytes, não os endereços.
-        </li>
-        <li>
-          Baixe a lista (.json) e envie aos compradores. Eles importam o arquivo
-          e compram das suas ofertas sem o limite de reputação.
-        </li>
-      </ol>
-      <p class="mt-3 text-gray-500">
-        Quem não está na lista compra com o limite normal. Gravar uma lista nova
-        muda a raiz, e os arquivos já enviados deixam de valer. O arquivo leva
-        os endereços e os apelidos.
+    <div v-if="open === 'how'" class="panel space-y-3">
+      <p>
+        Quem está na lista reserva das suas ofertas sem o limite de reputação.
+        Os demais continuam comprando dentro do próprio limite: ninguém é
+        bloqueado.
       </p>
-      <p class="mt-3 text-gray-500">
+      <p>
+        A lista vale para todas as suas ofertas nesta rede. Em outra rede, grave
+        outra lista.
+      </p>
+      <p>
+        O contrato guarda só a raiz, um resumo de 32 bytes. Os endereços e
+        apelidos ficam neste navegador e no arquivo que você baixa.
+      </p>
+      <p>
+        Você envia o arquivo (.json) aos compradores. Ele traz a prova de cada
+        um, só funciona na carteira de quem está na lista e deixa de valer
+        sempre que você grava uma lista nova.
+      </p>
+      <p>
         A lista não é secreta: quem recebe o arquivo vê todos os endereços e
         apelidos, e a compra feita pela lista mostra na rede o endereço do
         comprador e pode mostrar outro endereço da lista.
+      </p>
+      <p>
+        Você também pode chamar <span class="font-mono">setRoot()</span> direto
+        no contrato, sem este app.
       </p>
     </div>
 
@@ -131,8 +134,8 @@ const localRoot = computed(() =>
           <dd class="font-semibold">{{ user.network.value.name }}</dd>
         </div>
         <div>
-          <dt class="label">Contrato P2Pix</dt>
-          <dd class="font-mono break-all">
+          <dt class="label">Contrato</dt>
+          <dd class="font-mono">
             <a
               v-if="explorer"
               :href="`${explorer}/address/${contract}`"
@@ -140,13 +143,19 @@ const localRoot = computed(() =>
               rel="noopener noreferrer"
               class="text-gray-900! underline"
             >
-              {{ contract }}
+              P2Pix {{ shortHex(contract) }}
             </a>
-            <template v-else>{{ contract }}</template>
+            <template v-else>P2Pix {{ shortHex(contract) }}</template>
           </dd>
         </div>
         <div>
-          <dt class="label">Raiz na rede</dt>
+          <dt class="label">Leitura</dt>
+          <dd class="font-mono">
+            sellerAllowList({{ shortHex(walletAddress ?? '') }})
+          </dd>
+        </div>
+        <div>
+          <dt class="label">Na rede</dt>
           <dd class="font-mono break-all">
             {{
               list.onChainRoot.value ??
@@ -155,12 +164,8 @@ const localRoot = computed(() =>
           </dd>
         </div>
         <div>
-          <dt class="label">Raiz calculada neste navegador</dt>
+          <dt class="label">Calculada</dt>
           <dd class="font-mono break-all">{{ localRoot }}</dd>
-        </div>
-        <div>
-          <dt class="label">Leitura</dt>
-          <dd class="font-mono">sellerAllowList(seu endereço)</dd>
         </div>
         <div>
           <dt class="label">Folha</dt>

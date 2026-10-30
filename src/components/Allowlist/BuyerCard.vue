@@ -2,7 +2,6 @@
 import type { AllowlistEntry } from '@/utils/allowlistStorage';
 import { shortHex } from '@/utils/allowlist';
 import TrashIcon from '@/assets/trash.svg';
-import UserIcon from '@/assets/user.svg';
 
 export type BuyerStatus = 'onchain' | 'offchain' | 'new' | 'leaving';
 
@@ -27,7 +26,6 @@ defineEmits<{ remove: []; undo: [] }>();
         <span v-if="entry.nickname" class="font-semibold">
           {{ entry.nickname[0].toUpperCase() }}
         </span>
-        <UserIcon v-else />
       </span>
       <div
         class="min-w-0"
@@ -67,6 +65,7 @@ defineEmits<{ remove: []; undo: [] }>();
         v-if="status === 'leaving'"
         type="button"
         class="min-h-11 px-2 font-semibold text-gray-900 hover:opacity-70 cursor-pointer"
+        :aria-label="`Manter ${entry.nickname ?? shortHex(entry.address)} na lista`"
         @click="$emit('undo')"
       >
         Desfazer
@@ -75,7 +74,7 @@ defineEmits<{ remove: []; undo: [] }>();
         v-else
         type="button"
         class="icon-button"
-        :aria-label="`Remover ${entry.nickname ?? entry.address} da lista`"
+        :aria-label="`Remover ${entry.nickname ?? shortHex(entry.address)} da lista`"
         @click="$emit('remove')"
       >
         <TrashIcon />

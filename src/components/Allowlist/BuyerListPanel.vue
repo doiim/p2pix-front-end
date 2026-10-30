@@ -125,7 +125,7 @@ const chooseFile = async () => {
 
     <template v-else>
       <div
-        v-if="list.justSaved.value"
+        v-if="list.justSaved.value && list.savedOnChain.value"
         class="rounded-lg bg-white p-6 text-gray-900"
       >
         <p class="text-lg font-semibold">
@@ -138,7 +138,15 @@ const chooseFile = async () => {
         </p>
       </div>
 
-      <div v-if="!cards.length" class="empty">
+      <div v-if="!cards.length && list.isActive.value" class="empty">
+        <p class="text-lg font-semibold">Nenhum endereço neste navegador</p>
+        <p>
+          Adicione o endereço de quem você conhece ou importe o arquivo que você
+          baixou quando gravou.
+        </p>
+      </div>
+
+      <div v-else-if="!cards.length" class="empty">
         <p class="text-lg font-semibold">Nenhum endereço ainda</p>
         <ol class="list-decimal space-y-2 pl-6">
           <li>Adicione o endereço de quem você conhece.</li>

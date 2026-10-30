@@ -60,7 +60,7 @@ export type AccountKind = 'wallet' | 'smartAccount';
 // A "Confirmar Oferta" press (BSC → HV); HV hands it back as the refusal after AmountNotAllowed.
 export type BuyPress = {
   amount: number;
-  skipAllowlist?: boolean; // "Comprar sem o link": lock without the seller's allowlist proof
+  skipAllowlist?: boolean; // "Comprar sem a lista": lock without the seller's allowlist proof
   checkedWithin: boolean; // a limit read said the amount fits: only then is P9 ("Seu limite mudou…") true
 };
 export type LimitChange = {

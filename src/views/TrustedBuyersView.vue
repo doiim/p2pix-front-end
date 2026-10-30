@@ -18,6 +18,22 @@ import router from '@/router/index';
 const walletAddress = useWalletAddress();
 const list = useTrustedBuyers();
 const confirmDeactivate = ref(false);
+const deactivated = ref(false);
+
+const alertText = computed(() => {
+  if (list.justSaved.value) return 'Tudo certo! Sua lista foi gravada na rede.';
+  return deactivated.value ? 'Tudo certo! Sua lista foi desativada.' : '';
+});
+const closeAlert = () => {
+  list.justSaved.value = false;
+  deactivated.value = false;
+};
+watch(list.hasPending, (pending) => {
+  if (pending) deactivated.value = false;
+});
+
+const DEACTIVATE_EFFECT =
+  'Com a raiz zero, ninguém compra das suas ofertas acima do limite de reputação e todos os arquivos deixam de valer. Os endereços continuam neste navegador para você gravar de novo quando quiser.';
 
 onMounted(() => {
   // walletAddress is set a tick after mount on reload; the connector is not.
@@ -55,30 +71,32 @@ const deactivateRows = computed<ConfirmRow[]>(() => [
     kind: 'out',
     text: returning(list.savedOnChain.value ? list.saved.value.length : 0),
   },
-  FILES_GONE,
+  { kind: 'info', text: 'Todos os arquivos deixam de valer' },
   { kind: 'ok', text: 'Os endereços continuam neste navegador' },
 ]);
 
 const deactivate = async () => {
-  if (await list.deactivate()) confirmDeactivate.value = false;
+  if (!(await list.deactivate())) return;
+  confirmDeactivate.value = false;
+  deactivated.value = true;
 };
 </script>
 
 <template>
   <div class="page">
     <div
-      v-if="list.justSaved.value"
+      v-if="alertText"
       class="flex w-full max-w-6xl items-center justify-between gap-4 rounded-lg bg-amber-400 px-6 py-3"
       role="status"
     >
       <p class="text-lg font-semibold text-gray-900">
-        Tudo certo! Sua lista foi gravada na rede.
+        {{ alertText }}
       </p>
       <button
         type="button"
         class="shrink-0 p-1 cursor-pointer"
-        aria-label="Fechar aviso"
-        @click="list.justSaved.value = false"
+        aria-label="Fechar alerta"
+        @click="closeAlert"
       >
         <CloseIcon />
       </button>
@@ -122,6 +140,7 @@ const deactivate = async () => {
                 : 'Ativar a lista'
           "
           :count="list.draft.value.length"
+          :active="list.isActive.value"
           :rows="saveRows"
           :root="list.draftRoot.value"
           :busy="list.busy.value"
@@ -152,10 +171,15 @@ const deactivate = async () => {
         <ConfirmListCard
           title="Desativar a lista"
           :count="0"
+          active
+          closable
+          :effect="DEACTIVATE_EFFECT"
+          back-text="Voltar e editar"
           :rows="deactivateRows"
           :root="zeroHash"
           :busy="list.busy.value"
           @back="confirmDeactivate = false"
+          @close="confirmDeactivate = false"
           @sign="deactivate"
         />
       </div>

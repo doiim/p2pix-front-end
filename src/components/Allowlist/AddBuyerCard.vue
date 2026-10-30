@@ -20,12 +20,17 @@ const submit = () => {
   nickname.value = '';
 };
 
-const phrase = (entries: AllowlistEntry[], one: string, many: string) => {
-  if (!entries.length) return [];
-  return entries.length === 1
-    ? [`${entryLabel(entries[0])} ${one}`]
-    : [`${entries.length} ${many}`];
-};
+const names = new Intl.ListFormat('pt-BR', {
+  style: 'long',
+  type: 'conjunction',
+});
+
+const phrase = (entries: AllowlistEntry[], one: string, many: string) =>
+  entries.length
+    ? [
+        `${names.format(entries.map(entryLabel))} ${entries.length === 1 ? one : many}`,
+      ]
+    : [];
 
 const title = computed(() => {
   const count = props.list.changeCount.value;
@@ -37,21 +42,25 @@ const title = computed(() => {
   return count === 1 ? '1 alteração a gravar' : `${count} alterações a gravar`;
 });
 
+/** The bar's sentence, split so the root can be shown in monospace. */
 const summary = computed(() => {
   const list = props.list;
   const changes = [
     ...phrase(list.added.value, 'entra', 'entram'),
     ...phrase(list.leaving.value, 'sai', 'saem'),
   ].join(', ');
-  const root = list.draft.value.length
-    ? `nova raiz ${shortHex(list.draftRoot.value)}`
-    : 'a lista fica vazia e desativada';
-  const old = list.isActive.value
-    ? ['os arquivos já enviados deixam de valer']
-    : [];
-  return [changes || 'esta lista ainda não está gravada', root, ...old].join(
-    ' · ',
-  );
+  const hasList = list.draft.value.length > 0;
+  const tail = hasList
+    ? list.isActive.value
+      ? ' · os arquivos já enviados deixam de valer'
+      : ' · depois, baixe a lista (.json) e envie aos compradores'
+    : ' · gravar desativa a lista';
+  return {
+    lead: changes ? `${changes} · ` : '',
+    label: hasList ? 'nova raiz ' : 'raiz ',
+    root: hasList ? shortHex(list.draftRoot.value) : 'zero',
+    tail,
+  };
 });
 </script>
 
@@ -118,7 +127,11 @@ const summary = computed(() => {
     >
       <div>
         <p class="text-lg font-semibold text-gray-900">{{ title }}</p>
-        <p class="text-gray-600 break-words">{{ summary }}</p>
+        <p class="text-gray-600 break-words">
+          {{ summary.lead }}{{ summary.label
+          }}<span class="font-mono">{{ summary.root }}</span
+          >{{ summary.tail }}
+        </p>
       </div>
       <CustomButton
         text="Gravar lista na rede"

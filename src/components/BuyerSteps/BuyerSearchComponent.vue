@@ -153,7 +153,7 @@ const maxOfferCents = computed(() => {
 // On the seller's on-chain allowlist the limit does not apply: `lock` sends the proof. `null` while the
 // check runs, which gives no verdict, like a reputation read in flight.
 const proofFound = ref<boolean | null>(false);
-// "Comprar sem o link": behave as if the seller's allowlist did not exist, and send no proof.
+// "Comprar sem a lista": behave as if the seller's allowlist did not exist, and send no proof.
 const ignoreAllowlist = ref(false);
 const allowlisted = computed(() =>
   ignoreAllowlist.value ? false : proofFound.value,
