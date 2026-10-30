@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, watch, type Component } from 'vue';
+import { useDocumentVisibility, useIntervalFn } from '@vueuse/core';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useSendForm } from '@/composables/account/useSendForm';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
@@ -26,7 +27,16 @@ const refresh = async () => {
   await account.refreshBalances();
   if (account.error.value)
     user.showToast('error', 'Não foi possível ler o saldo.');
+  void account.refreshDiscovered();
 };
+
+// Picks up deposits made from outside the app on the selected network; the
+// other networks are re-read only on mount, on a switch and after a send.
+const visibility = useDocumentVisibility();
+useIntervalFn(() => {
+  if (visibility.value === 'visible' && !account.busy.value)
+    void account.refreshBalances();
+}, 15_000);
 
 // Switching between Comprar and Vender remounts the panel: keep the open
 // screen and the balances, only re-read them.

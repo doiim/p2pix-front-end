@@ -12,6 +12,10 @@ import {
   getActiveAaContext,
   sendAaOperation,
 } from '@/blockchain/aa/operations';
+import {
+  discoverBalances,
+  type DiscoveredBalances,
+} from '@/blockchain/balanceDiscovery';
 import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
@@ -79,6 +83,8 @@ const balancesLoaded = ref(false);
 const balances = ref<TokenBalance[]>([]);
 const ethBalance = ref<bigint>(0n);
 const smartAccountAddress = ref<Address | null>(null);
+// Every network, not just the selected one: funds left on another chain.
+const discovered = ref<DiscoveredBalances | null>(null);
 
 export function usePasskeyAccount() {
   const user = useUser();
@@ -148,6 +154,15 @@ export function usePasskeyAccount() {
     }
   };
 
+  // Reads every network, so it runs on demand, never on each balance poll.
+  const refreshDiscovered = async (): Promise<void> => {
+    const owner = smartAccountAddress.value;
+    if (!owner) return;
+    const found = await discoverBalances(owner);
+    // The session may have changed while the networks were being read.
+    if (smartAccountAddress.value === owner) discovered.value = found;
+  };
+
   const explorerTxUrl = (
     hash: Hex,
     network = user.network.value,
@@ -200,6 +215,7 @@ export function usePasskeyAccount() {
         txHash,
       });
       await refreshBalances();
+      void refreshDiscovered();
       return { userOpHash, txHash };
     } catch (cause) {
       console.error('[account] send failed', cause);
@@ -219,6 +235,7 @@ export function usePasskeyAccount() {
     balances.value = [];
     ethBalance.value = 0n;
     balancesLoaded.value = false;
+    discovered.value = null;
     error.value = null;
   };
 
@@ -228,6 +245,7 @@ export function usePasskeyAccount() {
     balancesLoaded,
     balances,
     ethBalance,
+    discovered,
     smartAccountAddress,
     isReady,
     symbolOf,
@@ -236,6 +254,7 @@ export function usePasskeyAccount() {
     assets,
     send,
     refreshBalances,
+    refreshDiscovered,
     explorerTxUrl,
     reset,
   };
