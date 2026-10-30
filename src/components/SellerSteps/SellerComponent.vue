@@ -55,14 +55,6 @@ const cost = useSwapQuote<{
   decimals: number;
   impactBps: number;
 }>();
-const costLabel = computed(() =>
-  cost.result.value
-    ? Number(
-        formatUnits(cost.result.value.cost, cost.result.value.decimals),
-      ).toFixed(2)
-    : null,
-);
-
 let quoteTimer: ReturnType<typeof setTimeout> | undefined;
 const refreshCost = (): void => {
   clearTimeout(quoteTimer);
@@ -243,16 +235,13 @@ const handleSubmit = (e: Event): void => {
       </p>
     </div>
     <div
-      v-if="swapToken"
+      v-if="
+        swapToken &&
+        (cost.failed.value ||
+          (cost.result.value && cost.result.value.impactBps > IMPACT_WARN_BPS))
+      "
       class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg gap-1 text-sm text-center"
     >
-      <span class="text-gray-500"
-        >Você paga ~
-        {{ cost.quoting.value ? 'cotando…' : (costLabel ?? '—') }}
-        {{ payToken }}. A CoW Swap troca por {{ offer || 0 }}
-        {{ selectedToken }} antes do depósito; se a ordem não executar, o
-        {{ payToken }} fica na sua carteira.</span
-      >
       <span
         v-if="
           cost.result.value && cost.result.value.impactBps > IMPACT_WARN_BPS
@@ -412,7 +401,9 @@ const handleSubmit = (e: Event): void => {
     >
       <div class="flex flex-wrap items-center gap-x-3 gap-y-1 min-w-0">
         <span class="inline-flex items-center gap-1">
-          <span id="allowlist-title" class="text-base font-semibold text-gray-900"
+          <span
+            id="allowlist-title"
+            class="text-base font-semibold text-gray-900"
             >Compradores confiáveis</span
           >
           <span
@@ -454,11 +445,7 @@ const handleSubmit = (e: Event): void => {
     <CustomButton
       v-if="walletAddress"
       type="submit"
-      :text="
-        swapToken
-          ? `Trocar ${payToken} por ${selectedToken}`
-          : 'Enviar para a rede'
-      "
+      text="Enviar para a rede"
       :isDisabled="!!swapToken && (cost.quoting.value || !cost.result.value)"
     />
     <CustomButton

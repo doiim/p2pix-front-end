@@ -164,10 +164,16 @@ const handleCancel = () => {
 
   <dl
     v-if="form.amount.value && !amountError"
-    class="flex justify-between gap-2 pt-4 border-t border-gray-200 text-sm text-gray-900"
+    class="flex flex-col gap-1 pt-4 border-t border-gray-200 text-sm text-gray-900"
   >
-    <dt class="font-normal text-gray-600">O destino recebe</dt>
-    <dd class="font-semibold">{{ form.amountText.value }}</dd>
+    <div class="flex justify-between gap-2">
+      <dt class="font-normal text-gray-600">Taxa de rede</dt>
+      <dd>Patrocinada</dd>
+    </div>
+    <div class="flex justify-between gap-2">
+      <dt class="font-normal text-gray-600">O destino recebe</dt>
+      <dd class="font-semibold">{{ form.amountText.value }}</dd>
+    </div>
   </dl>
 
   <NetworkNotice />

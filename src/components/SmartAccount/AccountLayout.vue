@@ -3,7 +3,8 @@ import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import AccountCard from './AccountCard.vue';
 
-defineProps<{ selling: boolean }>();
+// A step inside the offer card (QR code, loading, receipt) names the hero itself.
+defineProps<{ selling: boolean; title?: string; subtitle?: string }>();
 
 const account = usePasskeyAccount();
 const accountRouter = useAccountRouter();
@@ -16,16 +17,18 @@ const accountRouter = useAccountRouter();
         class="font-extrabold sm:text-5xl text-3xl sm:max-w-[29rem] max-w-[20rem]"
       >
         {{
-          selling
+          title ??
+          (selling
             ? 'Venda cripto e receba em Pix'
-            : 'Adquira cripto com apenas um Pix'
+            : 'Adquira cripto com apenas um Pix')
         }}
       </h1>
       <p class="font-medium sm:text-base text-sm max-w-[30rem]">
         {{
-          selling
+          subtitle ??
+          (selling
             ? 'Digite um valor, escolha o token e envie sua oferta para a rede'
-            : 'Digite um valor, confira a oferta, conecte sua carteira e receba os tokens após realizar o Pix'
+            : 'Digite um valor, confira a oferta, conecte sua carteira e receba os tokens após realizar o Pix')
         }}
       </p>
     </div>

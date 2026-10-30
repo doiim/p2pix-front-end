@@ -91,18 +91,20 @@ export function useAccountActivity() {
   };
 
   const remote = computed(() =>
-    (query.data.value ?? []).map((tx): ActivityItem => {
-      const token = tokenAt(tx.token);
-      return {
-        id: tx.id,
-        ...(tx.withdrawn ? WITHDRAWN : SUBGRAPH[tx.type]),
-        // An amount without a known token has no unit: show none, never a guess.
-        amount: token ? BigInt(tx.amount || '0') : 0n,
-        token,
-        timestamp: Number(tx.blockTimestamp) * 1000,
-        href: account.explorerTxUrl(tx.transactionHash as Address),
-      };
-    }),
+    (query.data.value ?? [])
+      .filter((tx) => tx.type !== 'lock')
+      .map((tx): ActivityItem => {
+        const token = tokenAt(tx.token);
+        return {
+          id: tx.id,
+          ...(tx.withdrawn ? WITHDRAWN : SUBGRAPH[tx.type]),
+          // An amount without a known token has no unit: show none, never a guess.
+          amount: token ? BigInt(tx.amount || '0') : 0n,
+          token,
+          timestamp: Number(tx.blockTimestamp) * 1000,
+          href: account.explorerTxUrl(tx.transactionHash as Address),
+        };
+      }),
   );
 
   // On-chain Transfer logs: a failure or partial range just shows fewer rows.

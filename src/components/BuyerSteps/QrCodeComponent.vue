@@ -13,6 +13,8 @@ import QRCode from 'qrcode';
 // Props
 interface Props {
   lockID: string;
+  /** Rendered inside the offer column: the layout already shows the hero. */
+  embedded?: boolean;
 }
 
 const props = defineProps<Props>();
@@ -141,8 +143,8 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div class="page">
-    <div class="text-container">
+  <div :class="props.embedded ? 'flex flex-col items-center w-full' : 'page'">
+    <div v-if="!props.embedded" class="text-container">
       <span
         class="text font-extrabold lg:text-2xl text-xl sm:max-w-[30rem] max-w-[24rem]"
       >

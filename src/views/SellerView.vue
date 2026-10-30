@@ -131,13 +131,17 @@ const swapFilled = () => {
 <template>
   <div>
     <div v-if="flowStep == Step.Sell">
-      <AccountLayout v-if="!loading" selling>
-        <SellerComponent @approve-tokens="approveOffer">
+      <AccountLayout
+        selling
+        :title="loading ? 'Confirme em sua carteira' : undefined"
+        :subtitle="loading ? loadingMessage : undefined"
+      >
+        <SellerComponent v-if="!loading" @approve-tokens="approveOffer">
           <OfferTabs />
           <template #footer><ActivityTab /></template>
         </SellerComponent>
+        <LoadingComponent v-else embedded :message="loadingMessage" />
       </AccountLayout>
-      <LoadingComponent v-if="loading" :message="loadingMessage" />
     </div>
     <CustomAlert
       v-if="flowStep == Step.Sell && showAlert"

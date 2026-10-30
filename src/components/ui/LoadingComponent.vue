@@ -3,12 +3,14 @@
 const props = defineProps({
   title: String,
   message: String,
+  /** Rendered inside the offer column: the layout already shows the hero. */
+  embedded: Boolean,
 });
 </script>
 
 <template>
-  <div class="page">
-    <div class="text-container">
+  <div :class="props.embedded ? 'flex flex-col items-center w-full' : 'page'">
+    <div v-if="!props.embedded" class="text-container">
       <span
         class="text font-bold sm:text-3xl text-2xl sm:max-w-[29rem] max-w-[20rem]"
       >

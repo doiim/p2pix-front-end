@@ -461,13 +461,6 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
         >
         <SpinnerComponent width="4" height="4"></SpinnerComponent>
       </div>
-      <div class="flex justify-center" v-if="swapping">
-        <span class="text-gray-500 font-normal text-sm text-center"
-          >Você recebe {{ TokenEnum.BRZ }} e, logo em seguida, ele é trocado por
-          {{ buyToken }} na CoW Swap. Se a cotação mudar, você fica com
-          {{ TokenEnum.BRZ }} e pode cotar de novo.</span
-        >
-      </div>
       <div
         class="flex justify-center"
         v-if="impactBps !== null && impactBps > IMPACT_WARN_BPS"

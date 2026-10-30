@@ -58,6 +58,28 @@ const loadingRelease = computed(
   () => releaseLockMutation.isPending.value || swapReleasing.value,
 );
 const flowStep = ref<Step>(Step.Search);
+
+// The hero follows the step; the account panel stays beside the offer card.
+const hero = computed(() => {
+  if (flowStep.value === Step.Buy) {
+    return loadingLock.value
+      ? { title: 'Confirme em sua carteira', subtitle: undefined }
+      : {
+          title: 'Utilize o QR Code ou copie o código para realizar o Pix',
+          subtitle:
+            'Após realizar o Pix no banco de sua preferência, clique no botão abaixo para liberação dos tokens.',
+        };
+  }
+  if (flowStep.value === Step.List) {
+    return loadingRelease.value
+      ? { title: 'Confirme em sua carteira', subtitle: undefined }
+      : {
+          title: 'Os tokens já foram transferidos para a sua carteira!',
+          subtitle: undefined,
+        };
+  }
+  return { title: undefined, subtitle: undefined };
+});
 const sellerAddress = ref<Address>();
 const tokenAmount = ref<number>();
 const lockID = ref<string>('');
@@ -241,11 +263,50 @@ onMounted(async () => {
 
 <template>
   <div>
-    <AccountLayout v-if="flowStep == Step.Search" :selling="false">
-      <SearchComponent :refusal="searchRefusal" @token-buy="confirmBuyClick">
+    <AccountLayout
+      :selling="false"
+      :title="hero.title"
+      :subtitle="hero.subtitle"
+    >
+      <SearchComponent
+        v-if="flowStep == Step.Search"
+        :refusal="searchRefusal"
+        @token-buy="confirmBuyClick"
+      >
         <OfferTabs />
         <template #footer><ActivityTab /></template>
       </SearchComponent>
+      <template v-if="flowStep == Step.Buy">
+        <QrCodeComponent
+          v-if="!loadingLock"
+          :lockID="lockID"
+          embedded
+          @pix-validated="releaseTransaction"
+        />
+        <LoadingComponent
+          v-else
+          embedded
+          :message="'A transação está sendo enviada para a rede'"
+        />
+      </template>
+      <template v-if="flowStep == Step.List">
+        <BuyConfirmedComponent
+          v-if="!loadingRelease"
+          :tokenAmount="tokenAmount"
+          :new-limit="newLimit"
+          :swap="swapResult"
+          embedded
+          @make-another-transaction="flowStep = Step.Search"
+        />
+        <LoadingComponent
+          v-else
+          embedded
+          :message="
+            releaseNotice ??
+            'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'
+          "
+        />
+      </template>
     </AccountLayout>
     <CustomAlert
       v-if="showLockRecoveryAlert"
@@ -265,33 +326,5 @@ onMounted(async () => {
       :type="'buy'"
       @close-alert="showBuyAlert = false"
     />
-    <div v-if="flowStep == Step.Buy">
-      <QrCodeComponent
-        :lockID="lockID"
-        @pix-validated="releaseTransaction"
-        v-if="!loadingLock"
-      />
-      <LoadingComponent
-        v-if="loadingLock"
-        :message="'A transação está sendo enviada para a rede'"
-      />
-    </div>
-    <div v-if="flowStep == Step.List">
-      <div class="flex flex-col gap-10" v-if="!loadingRelease">
-        <BuyConfirmedComponent
-          :tokenAmount="tokenAmount"
-          :new-limit="newLimit"
-          :swap="swapResult"
-          @make-another-transaction="flowStep = Step.Search"
-        />
-      </div>
-      <LoadingComponent
-        v-if="loadingRelease"
-        :message="
-          releaseNotice ??
-          'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'
-        "
-      />
-    </div>
   </div>
 </template>

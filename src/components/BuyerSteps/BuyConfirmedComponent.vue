@@ -30,6 +30,8 @@ const props = defineProps<{
   newLimit: LimitChange | null;
   /** Present when the buyer asked for another token after the release. */
   swap?: { uid: Hex | null; token: string };
+  /** Rendered inside the offer column: the layout already shows the hero. */
+  embedded?: boolean;
 }>();
 
 const user = useUser();
@@ -195,8 +197,8 @@ onMounted(() => {
     :type="alertType"
     @close-alert="alertType = null"
   />
-  <div class="page">
-    <div class="text-container">
+  <div :class="props.embedded ? 'flex flex-col items-center w-full' : 'page'">
+    <div v-if="!props.embedded" class="text-container">
       <span class="text font-extrabold sm:text-5xl text-xl max-w-[50rem]"
         >Os tokens já foram transferidos <br />
         para a sua carteira!
