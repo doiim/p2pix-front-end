@@ -23,7 +23,10 @@ const accountRouter = useAccountRouter();
             : 'Adquira cripto com apenas um Pix')
         }}
       </h1>
-      <p class="font-medium sm:text-base text-sm max-w-[30rem]">
+      <!-- subtitle '' = a step with no subtitle; undefined = the page's default. -->
+      <p
+        v-if="subtitle !== ''"
+        class="font-medium sm:text-base text-sm max-w-[30rem]">
         {{
           subtitle ??
           (selling

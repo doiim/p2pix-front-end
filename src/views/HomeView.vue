@@ -75,7 +75,7 @@ const hero = computed(() => {
       ? { title: undefined, subtitle: undefined }
       : {
           title: 'Os tokens já foram transferidos para a sua carteira!',
-          subtitle: undefined,
+          subtitle: '',
         };
   }
   return { title: undefined, subtitle: undefined };
