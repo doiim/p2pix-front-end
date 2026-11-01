@@ -9,13 +9,19 @@ import {
 } from 'vue';
 import ChevronDown from '@/assets/chevronDown.svg';
 import infoIconUrl from '@/assets/info.svg?url';
-import { LIMIT_ROW_SENTENCES, formatTokens } from '@/utils/reputation';
-import type { LimitRowVariant } from '@/utils/reputation';
+import {
+  LIMIT_ROW_SENTENCES,
+  LIMIT_ROW_TIPS,
+  formatBrl,
+  isOfferRow,
+} from '@/utils/reputation';
+import type { RowVariant } from '@/utils/reputation';
 
+// `expanded: null` = no details panel (the liquidity rows): no chevron.
 defineProps<{
-  variant: LimitRowVariant;
-  limitTokens: bigint;
-  expanded: boolean;
+  variant: RowVariant;
+  amountCents: bigint | null;
+  expanded: boolean | null;
 }>();
 
 const emit = defineEmits<{ toggle: [] }>();
@@ -103,6 +109,7 @@ defineExpose({ focusToggle: () => toggleEl.value?.focus() });
 <template>
   <div class="relative flex items-start gap-1 pt-1 sm:gap-1.5 sm:pt-2">
     <button
+      v-if="expanded !== null"
       ref="toggle"
       type="button"
       aria-controls="rep-details"
@@ -129,8 +136,11 @@ defineExpose({ focusToggle: () => toggleEl.value?.focus() });
       }}</span
       >{{ ' '
       }}<span class="static whitespace-nowrap text-red-700"
-        ><strong id="rep-amount" class="font-semibold text-red-700"
-          >R$ {{ formatTokens(limitTokens) }}</strong
+        ><strong
+          v-if="amountCents !== null"
+          id="rep-amount"
+          class="font-semibold text-red-700"
+          >R$ {{ formatBrl(amountCents) }}</strong
         ><span
           ref="wrapper"
           class="group/tip static md:relative inline-block align-top ml-1 sm:ml-2"
@@ -141,7 +151,11 @@ defineExpose({ focusToggle: () => toggleEl.value?.focus() });
           ><button
             ref="pill"
             type="button"
-            aria-label="Sobre o limite por compra"
+            :aria-label="
+              isOfferRow(variant)
+                ? 'Sobre as ofertas'
+                : 'Sobre o limite por compra'
+            "
             aria-describedby="rep-tip"
             class="inline-flex items-center h-11 -my-3 px-1 sm:h-auto sm:my-0 sm:px-0 rounded-full border-0 bg-transparent align-top cursor-help focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-800"
             @click="onPillClick"
@@ -186,15 +200,18 @@ defineExpose({ focusToggle: () => toggleEl.value?.focus() });
             id="rep-tip"
             ref="tip"
             role="tooltip"
-            class="absolute z-30 top-[calc(100%+10px)] -left-[46px] -right-3 sm:-left-10 md:left-auto md:-right-[3px] md:w-[280px] md:max-w-[calc(100vw-24px)] box-border px-3 py-2 rounded bg-white text-base font-medium text-gray-900 text-left whitespace-normal pointer-events-none [filter:drop-shadow(0_0_1px_rgb(0_0_0/0.14))_drop-shadow(0_4px_6px_rgb(0_0_0/0.12))] transition-[opacity,transform,visibility] duration-200 ease-[ease] motion-reduce:transition-none"
-            :class="tipClass"
+            class="absolute z-30 top-[calc(100%+10px)] -right-3 md:left-auto md:-right-[3px] md:w-[280px] md:max-w-[calc(100vw-24px)] box-border px-3 py-2 rounded bg-white text-base font-medium text-gray-900 text-left whitespace-normal pointer-events-none [filter:drop-shadow(0_0_1px_rgb(0_0_0/0.14))_drop-shadow(0_4px_6px_rgb(0_0_0/0.12))] transition-[opacity,transform,visibility] duration-200 ease-[ease] motion-reduce:transition-none"
+            :class="[
+              tipClass,
+              expanded === null ? '-left-3' : '-left-[46px] sm:-left-10',
+            ]"
             :style="
               arrowX === null
                 ? undefined
                 : { '--rep-tip-arrow-x': `${arrowX}px` }
             "
-            >Seu limite vem da reputação da sua carteira e cresce a cada compra
-            concluída.<svg
+            >{{ LIMIT_ROW_TIPS[variant]
+            }}<svg
               width="16"
               height="9"
               viewBox="0 0 16 9"

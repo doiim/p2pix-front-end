@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { computed, useTemplateRef } from 'vue';
 import { formatBrl, formatTokens, maxFill } from '@/utils/reputation';
-import type { LimitRowVariant } from '@/utils/reputation';
+import type { LimitRowVariant, MaxFill } from '@/utils/reputation';
 
+// `limit: null` on the liquidity row: only the largest offer binds.
 const props = defineProps<{
-  variant: LimitRowVariant;
-  limitTokens: bigint;
+  limit: { variant: LimitRowVariant; tokens: bigint } | null;
   maxOfferCents: bigint | null;
 }>();
 
@@ -13,18 +13,22 @@ const emit = defineEmits<{ fill: [cents: bigint] }>();
 
 const buttonEl = useTemplateRef<HTMLButtonElement>('button');
 
-const target = computed(() => maxFill(props.limitTokens, props.maxOfferCents));
+const target = computed<MaxFill>(() =>
+  props.limit === null
+    ? { cents: props.maxOfferCents ?? 0n, binding: 'offer' }
+    : maxFill(props.limit.tokens, props.maxOfferCents),
+);
 
 const label = computed(() => {
-  if (target.value.binding === 'offer') {
+  if (props.limit === null || target.value.binding === 'offer') {
     return `Máx: usar a maior oferta de R$ ${formatBrl(target.value.cents)}`;
   }
-  const limit = formatTokens(props.limitTokens);
+  const limit = formatTokens(props.limit.tokens);
   return {
     over: `Máx: usar seu limite de R$ ${limit}`,
     cap: `Máx: usar o limite máximo de R$ ${limit}`,
     refused: `Máx: usar seu limite atual de R$ ${limit}`,
-  }[props.variant];
+  }[props.limit.variant];
 });
 
 defineExpose({ focus: () => buttonEl.value?.focus() });

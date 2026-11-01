@@ -49,11 +49,28 @@ export type ReputationRead =
 
 export type AmountVerdict = 'free' | 'within' | 'overLimit' | 'overCap';
 export type LimitRowVariant = 'over' | 'cap' | 'refused'; // R1 | R2 | R3
+// No offer on the network covers the amount: same row, read from the offers instead of the limit.
+export type LiquidityRowVariant = 'overOffer' | 'noOffer';
+export type RowVariant = LimitRowVariant | LiquidityRowVariant;
+export const isOfferRow = (v: RowVariant): v is LiquidityRowVariant =>
+  v === 'overOffer' || v === 'noOffer';
 // The row's lead sentence (spec §6), followed by "R$ {limit}"; the search step announces the same words.
-export const LIMIT_ROW_SENTENCES: Record<LimitRowVariant, string> = {
+export const LIMIT_ROW_SENTENCES: Record<RowVariant, string> = {
   over: 'Acima do seu limite de',
   cap: 'Acima do limite máximo de',
   refused: 'O contrato recusou esta compra: seu limite atual é de',
+  overOffer: 'Acima da maior oferta de',
+  noOffer: 'Atualmente não há ofertas nesta rede',
+};
+const LIMIT_TIP =
+  'Seu limite vem da reputação da sua carteira e cresce a cada compra concluída.';
+const OFFER_TIP = 'Cada compra usa uma única oferta, de um único vendedor.';
+export const LIMIT_ROW_TIPS: Record<RowVariant, string> = {
+  over: LIMIT_TIP,
+  cap: LIMIT_TIP,
+  refused: LIMIT_TIP,
+  overOffer: OFFER_TIP,
+  noOffer: OFFER_TIP,
 };
 export type PanelTag = 'chart' | 'howItWorks' | 'verification';
 export type AccountKind = 'wallet' | 'smartAccount';

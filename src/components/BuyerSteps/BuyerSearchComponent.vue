@@ -24,7 +24,12 @@ import {
   limitRowVariant,
   parseAmountInput,
 } from '@/utils/reputation';
-import type { BuyPress, LimitRowVariant, PanelTag } from '@/utils/reputation';
+import type {
+  BuyPress,
+  LimitRowVariant,
+  LiquidityRowVariant,
+  PanelTag,
+} from '@/utils/reputation';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { useConnectModal } from '@/wallet/useConnectModal';
 import { TokenEnum } from '@/model/NetworkEnum';
@@ -192,6 +197,25 @@ const limitState = computed(() =>
     ? { variant: rowVariant.value, snapshot: reputation.snapshot.value }
     : null,
 );
+// No offer covers the amount: the limit row's look, reading the largest offer (2L/2N pattern).
+const liquidityRow = computed<{
+  variant: LiquidityRowVariant;
+  amountCents: bigint | null;
+} | null>(() => {
+  const blocked =
+    !hasLiquidity.value &&
+    tokenValue.value > 0 &&
+    limitState.value === null &&
+    !loadingNetworkLiquidity.value &&
+    !selectedNetworkUnread.value &&
+    !swapQuote.failed.value;
+  if (!blocked) return null;
+  const cents = maxOfferCents.value;
+  return {
+    variant: cents === null ? 'noOffer' : 'overOffer',
+    amountCents: cents,
+  };
+});
 const showChecking = computed(
   () =>
     open.value &&
@@ -200,7 +224,10 @@ const showChecking = computed(
 );
 // The panel is open only over the limit, so while it re-reads the input keeps its red (spec §4).
 const amountInvalid = computed(
-  () => limitState.value !== null || showChecking.value,
+  () =>
+    limitState.value !== null ||
+    showChecking.value ||
+    liquidityRow.value !== null,
 );
 // Same check as usePasskeyAccount.isSmartAccount; reading walletAddress keeps it reactive to connector switches.
 const accountKind = computed(() =>
@@ -395,7 +422,9 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
           required
           :aria-label="`Quantidade de ${buyToken}`"
           :aria-invalid="amountInvalid ? 'true' : 'false'"
-          :aria-describedby="limitState ? 'rep-status rep-amount' : undefined"
+          :aria-describedby="
+            limitState || liquidityRow ? 'rep-status rep-amount' : undefined
+          "
           class="flex-1 min-w-0 max-w-[60%] p-0 border-0 outline-none bg-transparent text-xl font-semibold placeholder:text-gray-900/50"
           :class="amountInvalid ? 'text-red-700' : 'text-gray-900'"
         />
@@ -403,9 +432,17 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
           <ReputationMaxButton
             v-if="limitState && !swapping"
             ref="maxButton"
-            :variant="limitState.variant"
-            :limit-tokens="limitState.snapshot.limitTokens"
+            :limit="{
+              variant: limitState.variant,
+              tokens: limitState.snapshot.limitTokens,
+            }"
             :max-offer-cents="maxOfferCents"
+            @fill="onFill"
+          />
+          <ReputationMaxButton
+            v-else-if="liquidityRow?.amountCents && !swapping"
+            :limit="null"
+            :max-offer-cents="liquidityRow.amountCents"
             @fill="onFill"
           />
           <TokenSelector v-model="buyToken" />
@@ -422,7 +459,7 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
           <ReputationLimitRow
             ref="limitRow"
             :variant="limitState.variant"
-            :limit-tokens="limitState.snapshot.limitTokens"
+            :amount-cents="limitState.snapshot.limitTokens * 100n"
             :expanded="open"
             @toggle="onToggle"
           />
@@ -438,6 +475,12 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
             @close="onPanelClose"
           />
         </template>
+        <ReputationLimitRow
+          v-else-if="liquidityRow"
+          :variant="liquidityRow.variant"
+          :amount-cents="liquidityRow.amountCents"
+          :expanded="null"
+        />
       </template>
       <div
         class="flex justify-center items-center"
@@ -469,21 +512,6 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
       >
         <span class="text-red-500 font-normal text-sm"
           >Por favor utilize no máximo 2 casas decimais</span
-        >
-      </div>
-      <div
-        class="flex justify-center"
-        v-else-if="
-          !hasLiquidity &&
-          !loadingNetworkLiquidity &&
-          !selectedNetworkUnread &&
-          tokenValue > 0 &&
-          !rowVariant
-        "
-      >
-        <span class="text-red-500 font-normal text-sm"
-          >Atualmente não há liquidez nas redes selecionadas para sua
-          demanda</span
         >
       </div>
       <div
