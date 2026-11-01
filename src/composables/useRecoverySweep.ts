@@ -2,6 +2,7 @@ import { computed, ref, watch } from 'vue';
 import { useConnection } from '@wagmi/vue';
 import { getAddress, type Address, type Hex } from 'viem';
 
+import { UserFacingError, walletErrorMessage } from '@/utils/walletPrompts';
 import {
   createRecoveryContext,
   loginWithBackupPasskey,
@@ -50,8 +51,8 @@ export function useRecoverySweep() {
     try {
       return await task();
     } catch (cause) {
-      error.value =
-        cause instanceof Error ? cause.message : 'Falha na recuperação';
+      console.error(cause);
+      error.value = walletErrorMessage(cause, 'Falha na recuperação');
       return null;
     } finally {
       busy.value = false;
@@ -76,7 +77,7 @@ export function useRecoverySweep() {
         found.chainId !== user.network.value.id
       ) {
         if (connection.isConnected.value) {
-          throw new Error(
+          throw new UserFacingError(
             'Esta conta é de outra rede: desconecte a carteira para recuperá-la',
           );
         }
@@ -98,9 +99,11 @@ export function useRecoverySweep() {
   const sweep = async (recipient: string) => {
     const result = await run(async () => {
       const current = context.value;
-      if (!current) throw new Error('Entre com a passkey de backup primeiro');
+      if (!current) {
+        throw new UserFacingError('Entre com a passkey de backup primeiro');
+      }
       const invalid = validateSweepRecipient(recipient, address.value);
-      if (invalid) throw new Error(invalid);
+      if (invalid) throw new UserFacingError(invalid);
       return sweepAccount(current, getAddress(recipient));
     });
     if (!result) return null;

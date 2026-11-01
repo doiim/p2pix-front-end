@@ -14,6 +14,7 @@ import { queryKeyRoots } from '@/queries/keys';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 import { formatBrlFixed } from '@/utils/reputation';
+import { walletErrorMessage } from '@/utils/walletPrompts';
 import { exportPrivateKey, MAGIC_CONNECTOR_ID } from '@/wallet/magic';
 
 const account = usePasskeyAccount();
@@ -25,15 +26,17 @@ const isMagic = computed(
   () => connection.connector.value?.id === MAGIC_CONNECTOR_ID,
 );
 
-const run = async (task: () => Promise<void>, done?: string) => {
+const run = async (
+  task: () => Promise<void>,
+  failed: string,
+  done?: string,
+) => {
   try {
     await task();
     if (done) user.showToast('success', done);
   } catch (cause) {
-    user.showToast(
-      'error',
-      cause instanceof Error ? cause.message : 'Algo deu errado',
-    );
+    console.error(cause);
+    user.showToast('error', walletErrorMessage(cause, failed));
   }
 };
 
@@ -219,6 +222,7 @@ const failedNetworks = computed(() =>
         @click="
           run(
             backup.install,
+            'Não foi possível adicionar a passkey de backup.',
             `Passkey de backup adicionada na rede ${user.network.value.name}.`,
           )
         "
@@ -229,7 +233,11 @@ const failedNetworks = computed(() =>
             : 'Adicionar passkey de backup'
         }}
       </button>
-      <button type="button" class="acct-link" @click="run(exportPrivateKey)">
+      <button
+        type="button"
+        class="acct-link"
+        @click="run(exportPrivateKey, 'Não foi possível exportar a chave.')"
+      >
         Exportar chave
       </button>
     </div>

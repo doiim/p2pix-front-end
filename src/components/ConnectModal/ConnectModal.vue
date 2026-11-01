@@ -29,6 +29,7 @@ import {
   magicSessionUnverified,
 } from '@/wallet/magic';
 import { WALLETCONNECT_ID } from '@/wallet/walletConnect';
+import { isUserRejection } from '@/utils/walletPrompts';
 
 const { isOpen, close } = useConnectModal();
 const user = useUser();
@@ -151,19 +152,6 @@ function messageOf(e: unknown): string {
   if (e instanceof PasskeyLoginError) return PASSKEY_LOGIN_ERROR;
   if (isPasskeyCancelled(e) || isUserRejection(e)) return 'Conexão cancelada.';
   return 'Não foi possível conectar. Tente novamente.';
-}
-
-// A rejection counts as the user's cancel only when the wallet says the user
-// did it — EIP-1193 code 4001 or phrasing that names them. Relayers and
-// paymasters reject too, and those are failures to retry, not cancellations.
-function isUserRejection(e: unknown): boolean {
-  if (typeof e !== 'object' || e === null) return false;
-  if ('code' in e && e.code === 4001) return true;
-  const msg = e instanceof Error ? e.message : '';
-  return (
-    /\buser (rejected|denied|cancel+ed|aborted|declined)/i.test(msg) ||
-    /\b(rejected|denied|cancel+ed|declined) by the user/i.test(msg)
-  );
 }
 
 async function run(key: string, action: () => Promise<unknown>) {

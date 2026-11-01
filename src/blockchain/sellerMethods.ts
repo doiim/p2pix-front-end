@@ -5,6 +5,7 @@ import { createParticipant } from '@/utils/bbPay';
 import type { Participant } from '@/utils/bbPay';
 import type { Address } from 'viem';
 import { getSender, sendContractCalls, type ContractCall } from './send';
+import { UserFacingError } from '@/utils/walletPrompts';
 
 const getP2PixAddress = (): Address => {
   const user = useUser();
@@ -50,7 +51,9 @@ const approveTokens = async (participant: Participant): Promise<void> => {
       approveCall(offer),
     ]);
     if (!success) {
-      throw new Error(`Falha na aprovação: ${receipt.transactionHash}`);
+      throw new UserFacingError(
+        `Falha na aprovação: ${receipt.transactionHash}`,
+      );
     }
   }
 };
@@ -61,14 +64,15 @@ const addDeposit = async (): Promise<unknown> => {
   const user = useUser();
 
   // `seller` starts as an empty object (useUser), not null.
-  if (!user.seller.value.offer) throw new Error('Informe o valor da oferta');
+  if (!user.seller.value.offer)
+    throw new UserFacingError('Informe o valor da oferta');
   const offer = parseEther(user.seller.value.offer.toString());
   const token = getSellerToken();
 
   const sellerId = await createParticipant(user.seller.value);
   user.setSellerId(sellerId.id);
   if (!sellerId.id) {
-    throw new Error('Falha ao cadastrar o vendedor');
+    throw new UserFacingError('Falha ao cadastrar o vendedor');
   }
 
   const depositCall: ContractCall = {
@@ -97,7 +101,7 @@ const addDeposit = async (): Promise<unknown> => {
     outflow: { token, amount: offer },
   });
   if (!success) {
-    throw new Error(`Falha no depósito: ${receipt.transactionHash}`);
+    throw new UserFacingError(`Falha no depósito: ${receipt.transactionHash}`);
   }
   return receipt;
 };

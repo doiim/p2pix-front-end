@@ -10,6 +10,7 @@ import {
 
 import { isAaAvailable } from '@/blockchain/aa/aaContext';
 import { getPublicClient } from '@/blockchain/provider';
+import { UserFacingError } from '@/utils/walletPrompts';
 import { getSender, sendContractCalls } from '@/blockchain/send';
 import { requireRpId, rpId } from '@/config/aa';
 import { useUser } from '@/composables/useUser';
@@ -42,7 +43,7 @@ export function useBackupPasskey() {
     ]),
     queryFn: () => {
       const address = walletAddress.value;
-      if (!address) throw new Error('Carteira não conectada');
+      if (!address) throw new UserFacingError('Carteira não conectada');
       return isBackupPasskeyInstalled(getPublicClient(), address);
     },
     enabled: computed(() => isEligible.value && Boolean(walletAddress.value)),
@@ -60,7 +61,9 @@ export function useBackupPasskey() {
       // replaces the authenticator's credential: never run it over a backup
       // that exists.
       if (!address || !needsBackup.value) {
-        throw new Error('Não é possível adicionar a passkey de backup agora');
+        throw new UserFacingError(
+          'Não é possível adicionar a passkey de backup agora',
+        );
       }
       // The credential is bound to `address` and `chainId`; the install is
       // sent by the active smart account on the current network. Both must
@@ -74,7 +77,7 @@ export function useBackupPasskey() {
           !sender.isSmartAccount ||
           !isAddressEqual(sender.address, address)
         ) {
-          throw new Error('A conta ou a rede mudou; tente novamente');
+          throw new UserFacingError('A conta ou a rede mudou; tente novamente');
         }
         return sender;
       };
@@ -82,7 +85,7 @@ export function useBackupPasskey() {
       // The cached status can be stale (installed from another tab or
       // device); re-read the chain before replacing the credential.
       if (await isBackupPasskeyInstalled(getPublicClient(chainId), address)) {
-        throw new Error('Esta conta já tem uma passkey de backup');
+        throw new UserFacingError('Esta conta já tem uma passkey de backup');
       }
       const credential = await registerBackupPasskey({
         address,
@@ -104,7 +107,8 @@ export function useBackupPasskey() {
         ],
         { aaOnly: true },
       );
-      if (!result.success) throw new Error('Falha ao instalar a passkey');
+      if (!result.success)
+        throw new UserFacingError('Falha ao instalar a passkey');
     },
     onSettled: () =>
       queryClient.invalidateQueries({ queryKey: queryKeyRoots.backupPasskey }),

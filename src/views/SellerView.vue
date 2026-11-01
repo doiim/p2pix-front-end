@@ -16,7 +16,7 @@ import { useAddDepositMutation } from '@/queries/mutations';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import { findSwapToken } from '@/model/BuyToken';
 import { TokenEnum, type SwapToken } from '@/model/NetworkEnum';
-import { promptsNotice } from '@/utils/walletPrompts';
+import { promptsNotice, walletErrorMessage } from '@/utils/walletPrompts';
 import type { Participant } from '@/utils/bbPay';
 
 enum Step {
@@ -82,7 +82,14 @@ const sendOffer = async (args: Participant) => {
     await addDepositMutation.mutateAsync();
     showAlert.value = true;
   } catch (err) {
-    console.log(err);
+    console.error(err);
+    user.showToast(
+      'error',
+      walletErrorMessage(
+        err,
+        'Não foi possível criar a oferta. Tente novamente.',
+      ),
+    );
   } finally {
     flowStep.value = Step.Sell;
     sending.value = false;
