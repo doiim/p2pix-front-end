@@ -154,6 +154,15 @@ const maxOfferCents = computed(() => {
   return cents === 0n ? null : cents;
 });
 
+// No offer from another seller on this network: nothing to buy, whatever the limit says.
+const noOffers = computed(
+  () =>
+    walletAddress.value !== null &&
+    !loadingNetworkLiquidity.value &&
+    !selectedNetworkUnread.value &&
+    maxOfferCents.value === null,
+);
+
 // On the seller's on-chain allowlist the limit does not apply: `lock` sends the proof. `null` while the
 // check runs, which gives no verdict, like a reputation read in flight.
 const proofFound = ref<boolean | null>(false);
@@ -193,6 +202,7 @@ const rowVariant = computed(() =>
 const limitState = computed(() =>
   rowVariant.value !== null &&
   reputation.snapshot.value !== null &&
+  !noOffers.value &&
   !loadingNetworkLiquidity.value
     ? { variant: rowVariant.value, snapshot: reputation.snapshot.value }
     : null,
