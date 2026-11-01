@@ -52,6 +52,10 @@ export const invalidateLocks = () => {
   void queryClient.invalidateQueries({
     queryKey: queryKeyRoots.networkDeposits,
   });
+  // A release pays the buyer: the account panel's balances move with it.
+  void queryClient.invalidateQueries({
+    queryKey: queryKeyRoots.passkeyBalances,
+  });
 };
 
 /** Reserve a deposit: the counterpart of the buyer's `addLock`. */
