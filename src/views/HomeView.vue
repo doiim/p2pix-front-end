@@ -84,6 +84,11 @@ const sellerAddress = ref<Address>();
 const tokenAmount = ref<number>();
 const lockID = ref<string>('');
 const showModal = ref<boolean>(false);
+// The Pix warning shows each time the QR step opens (new lock or resumed one).
+const showPixWarning = ref<boolean>(true);
+watch(flowStep, (step) => {
+  if (step === Step.Buy) showPixWarning.value = true;
+});
 const showBuyAlert = ref<boolean>(false);
 const showLockRecoveryAlert = ref<boolean>(false);
 const swapResult = ref<{ uid: Hex | null; token: string }>();
@@ -268,6 +273,34 @@ onMounted(async () => {
       :title="hero.title"
       :subtitle="hero.subtitle"
     >
+      <template #banner>
+        <CustomAlert
+          v-if="showLockRecoveryAlert"
+          :type="'lockPending'"
+          @close-alert="showLockRecoveryAlert = false"
+        />
+        <CustomAlert
+          v-if="flowStep == Step.Search && showModal"
+          :type="'redirect'"
+          @close-alert="showModal = false"
+          @go-to-lock="flowStep = Step.Buy"
+        />
+        <CustomAlert
+          v-if="flowStep == Step.Buy && !loadingLock && showPixWarning"
+          :type="'pixWarning'"
+          @close-alert="showPixWarning = false"
+        />
+        <CustomAlert
+          v-if="
+            flowStep == Step.List &&
+            showBuyAlert &&
+            !loadingLock &&
+            !loadingRelease
+          "
+          :type="'buy'"
+          @close-alert="showBuyAlert = false"
+        />
+      </template>
       <SearchComponent
         v-if="flowStep == Step.Search"
         :refusal="searchRefusal"
@@ -308,23 +341,5 @@ onMounted(async () => {
         />
       </template>
     </AccountLayout>
-    <CustomAlert
-      v-if="showLockRecoveryAlert"
-      :type="'lockPending'"
-      @close-alert="showLockRecoveryAlert = false"
-    />
-    <CustomAlert
-      v-if="flowStep == Step.Search && showModal"
-      :type="'redirect'"
-      @close-alert="showModal = false"
-      @go-to-lock="flowStep = Step.Buy"
-    />
-    <CustomAlert
-      v-if="
-        flowStep == Step.List && showBuyAlert && !loadingLock && !loadingRelease
-      "
-      :type="'buy'"
-      @close-alert="showBuyAlert = false"
-    />
   </div>
 </template>

@@ -98,6 +98,7 @@ onMounted(() => {
     <CustomAlert
       v-if="alertType"
       :key="alertType"
+      class="mx-auto mt-10 max-w-lg"
       :type="alertType"
       @close-alert="alertType = null"
     />

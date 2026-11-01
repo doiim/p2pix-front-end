@@ -5,21 +5,6 @@ const props = defineProps<{
 }>();
 
 const alertText = ref<string>('');
-const alertPaddingLeft = ref<string>('18rem');
-
-if (props.type === 'sell') {
-  alertPaddingLeft.value = '30%';
-} else if (props.type === 'buy') {
-  alertPaddingLeft.value = '30%';
-} else if (props.type.startsWith('withdraw')) {
-  alertPaddingLeft.value = '40%';
-} else if (props.type === 'redirect') {
-  alertPaddingLeft.value = '35%';
-} else if (props.type === 'lockPending') {
-  alertPaddingLeft.value = '30%';
-} else if (props.type.startsWith('sweep')) {
-  alertPaddingLeft.value = '35%';
-}
 
 switch (props.type) {
   case 'buy':
@@ -32,6 +17,10 @@ switch (props.type) {
     break;
   case 'redirect':
     alertText.value = 'Existe uma compra em aberto. Continuar?';
+    break;
+  case 'pixWarning':
+    alertText.value =
+      'A transação só será processada após efetuado o pagamento do Pix. Caso contrário não conseguiremos comprovar o seu depósito e não será possível transferir os tokens para sua carteira.';
     break;
   case 'lockPending':
     alertText.value =
@@ -56,119 +45,50 @@ switch (props.type) {
 }
 </script>
 <template>
+  <!-- In the page flow, above the cards: it never covers them (no overlay). -->
   <div
-    class="modal-overlay sm:h-12 h-full inset-0 absolute backdrop-blur-sm sm:backdrop-blur-none"
+    role="status"
+    class="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 w-full px-4 py-3 rounded-lg bg-amber-400 text-gray-900"
   >
-    <div class="modal px-12 text-center sm:flex justify-between hidden">
-      <div class="flex items-center">
-        <p class="text-black tracking-tighter leading-tight py-2">
-          {{ alertText }}
-        </p>
-        <button v-if="props.type === 'redirect'" @click="$emit('go-to-lock')">
-          Sim
-        </button>
-      </div>
-      <img
-        src="../../assets/closeAlertIcon.svg"
-        alt="Fechar alerta"
-        class="w-3 cursor-pointer"
-        @click="$emit('close-alert')"
-      />
-    </div>
-    <div
-      class="modal-mobile px-7 py-3 text-center inline-block sm:hidden mt-24 h-48"
-      v-if="props.type !== 'redirect'"
+    <p
+      class="flex-1 min-w-[12rem] text-sm sm:text-base font-semibold leading-snug"
     >
-      <p class="text-black tracking-tighter leading-tight my-2 text-start mb-4">
-        {{ alertText }}
-      </p>
-      <button
-        @click="$emit('close-alert')"
-        class="border-2 border-solid border-amber-400 mt-2"
+      <strong v-if="props.type === 'pixWarning'" class="font-extrabold"
+        >ATENÇÃO!</strong
       >
-        Ok
-      </button>
-    </div>
-    <div
-      class="modal-mobile px-5 text-center inline-block sm:hidden mt-24 h-40"
+      {{ alertText }}
+    </p>
+    <button
       v-if="props.type === 'redirect'"
+      type="button"
+      class="alert-action"
+      @click="$emit('go-to-lock')"
     >
-      <p
-        class="text-black text-lg tracking-tighter leading-tight my-6 mx-2 text-justify font-semibold"
-      >
-        Retomar a última compra?
-      </p>
-      <div class="flex justify-around items-center px-2">
-        <button
-          @click="$emit('close-alert')"
-          class="border-2 border-solid border-white-400 mt-2 font-semibold"
-        >
-          Não
-        </button>
-        <button
-          @click="$emit('go-to-lock')"
-          class="border-2 border-solid border-white-400 mt-2 font-semibold"
-        >
-          Sim
-        </button>
-      </div>
-    </div>
+      Sim
+    </button>
+    <button
+      v-if="props.type === 'pixWarning'"
+      type="button"
+      class="alert-action"
+      @click="$emit('close-alert')"
+    >
+      Entendi
+    </button>
+    <button
+      v-else
+      type="button"
+      aria-label="Fechar alerta"
+      class="flex items-center justify-center size-8 rounded cursor-pointer"
+      @click="$emit('close-alert')"
+    >
+      <img src="../../assets/closeAlertIcon.svg" alt="" class="w-3" />
+    </button>
   </div>
 </template>
+
 <style scoped>
-.modal-overlay {
-  display: flex !important;
-  justify-content: center;
-  width: 100%;
-  padding-top: 7rem;
-  z-index: 10;
-}
-
-.modal {
-  background-color: rgba(251, 191, 36, 1);
-  height: 3rem;
-  width: 96%;
-  border-radius: 10px;
-  align-items: center;
-  white-space: nowrap;
-}
-
-.modal-mobile {
-  background-color: rgba(251, 191, 36, 1);
-  /* height: 200px; */
-  width: 300px;
-  border-radius: 10px;
-}
-.close {
-  cursor: pointer;
-}
-
-.close-img {
-  width: 25px;
-}
-
-.check {
-  width: 150px;
-}
-
-h6 {
-  font-weight: 500;
-  font-size: 28px;
-  margin: 20px 0;
-}
-
-p {
-  font-size: 20px;
-  font-weight: 600;
-}
-
-button {
-  width: 50px;
-  height: 30px;
-  color: black;
-  font-size: 16px;
-  border-radius: 10px;
-  border: 2px solid white;
-  margin-left: 1rem;
+@reference "tailwindcss";
+.alert-action {
+  @apply h-8 px-4 rounded-lg border-2 border-white text-sm font-semibold cursor-pointer;
 }
 </style>

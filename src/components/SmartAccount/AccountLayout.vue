@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import AccountCard from './AccountCard.vue';
@@ -8,6 +9,9 @@ defineProps<{ selling: boolean; title?: string; subtitle?: string }>();
 
 const account = usePasskeyAccount();
 const accountRouter = useAccountRouter();
+const showPanel = computed(
+  () => account.isReady.value || accountRouter.current.value === 'recovery',
+);
 </script>
 
 <template>
@@ -26,7 +30,8 @@ const accountRouter = useAccountRouter();
       <!-- subtitle '' = a step with no subtitle; undefined = the page's default. -->
       <p
         v-if="subtitle !== ''"
-        class="font-medium sm:text-base text-sm max-w-[30rem]">
+        class="font-medium sm:text-base text-sm max-w-[30rem]"
+      >
         {{
           subtitle ??
           (selling
@@ -34,6 +39,14 @@ const accountRouter = useAccountRouter();
             : 'Digite um valor, confira a oferta, conecte sua carteira e receba os tokens após realizar o Pix')
         }}
       </p>
+    </div>
+    <!-- Alerts sit in the flow above the cards, as wide as the row (card, or card + panel); :empty hides
+         the box when no alert renders (Vue leaves only comment nodes). -->
+    <div
+      class="w-full max-w-[30.25rem] mt-10 empty:hidden"
+      :class="{ 'lg:max-w-[53.125rem]': showPanel }"
+    >
+      <slot name="banner" />
     </div>
     <!-- Reversed so the account panel sits left of the offer card on wide
          screens and below it when the row wraps. -->
@@ -43,11 +56,7 @@ const accountRouter = useAccountRouter();
       <div class="flex flex-col items-center w-full md:max-w-[30.25rem]">
         <slot />
       </div>
-      <AccountCard
-        v-if="
-          account.isReady.value || accountRouter.current.value === 'recovery'
-        "
-      />
+      <AccountCard v-if="showPanel" />
     </div>
   </div>
 </template>

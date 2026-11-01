@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, watch } from 'vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
-import CustomModal from '@/components/ui/CustomModal.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import { type Offer } from '@/utils/bbPay';
 import type { PixProof } from '@/utils/pixProof';
@@ -24,7 +23,6 @@ const { network } = user;
 
 const qrCode = ref<string>('');
 const qrCodeSvg = ref<string>('');
-const showWarnModal = ref<boolean>(true);
 const submitting = ref<boolean>(false);
 const copyFeedback = ref<boolean>(false);
 const copyFeedbackTimeout = ref<NodeJS.Timeout | null>(null);
@@ -203,11 +201,6 @@ onUnmounted(() => {
         @button-clicked="submitProof"
       />
     </div>
-    <CustomModal
-      v-if="showWarnModal"
-      @close-modal="showWarnModal = false"
-      :isRedirectModal="false"
-    />
   </div>
 </template>
 

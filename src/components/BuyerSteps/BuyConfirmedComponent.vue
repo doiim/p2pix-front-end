@@ -194,6 +194,7 @@ onMounted(() => {
   <CustomAlert
     v-if="alertType"
     :key="alertType"
+    class="mt-10"
     :type="alertType"
     @close-alert="alertType = null"
   />
