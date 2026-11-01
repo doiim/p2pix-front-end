@@ -15,7 +15,6 @@ const cache = new Map<string, { at: number; price: Promise<bigint | null> }>();
 const quoteOne = async (
   network: NetworkConfig,
   sellToken: Address,
-  from: Address,
 ): Promise<bigint | null> => {
   if (!network.swap) return null;
   const buyToken = network.tokens[TokenEnum.BRZ].address;
@@ -23,7 +22,8 @@ const quoteOne = async (
   const q = await quote(network.swap, {
     sellToken,
     buyToken,
-    from,
+    // A price is the same for every owner: CoW never learns whose balance it is.
+    from: zeroAddress,
     kind: 'sell',
     amount: unit,
     priceQuality: 'fast',
@@ -37,7 +37,6 @@ const quoteOne = async (
 const fetchPrice = async (
   network: NetworkConfig,
   token: string | undefined,
-  from: Address,
 ): Promise<bigint | null> => {
   if (token === TokenEnum.BRZ) {
     const brz = network.tokens[TokenEnum.BRZ].address;
@@ -45,23 +44,21 @@ const fetchPrice = async (
   }
   const symbol = token ?? NATIVE_WRAPPER;
   const found = network.swap?.tokens.find((t) => t.symbol === symbol);
-  return found ? quoteOne(network, found.address, from) : null;
+  return found ? quoteOne(network, found.address) : null;
 };
 
 /**
  * BRZ base units for one whole `token` (undefined = the native coin), or null
- * when no price is known. Cached per chain and token for 60 s. `from` only
- * names the quote's owner.
+ * when no price is known. Cached per chain and token for 60 s.
  */
 export const priceInBrz = (
   network: NetworkConfig,
   token?: string,
-  from: Address = zeroAddress,
 ): Promise<bigint | null> => {
   const key = `${network.id}:${token ?? 'native'}`;
   const hit = cache.get(key);
   if (hit && Date.now() - hit.at < TTL_MS) return hit.price;
-  const price = fetchPrice(network, token, from).catch((cause: unknown) => {
+  const price = fetchPrice(network, token).catch((cause: unknown) => {
     console.error(`[prices] no price for ${key}`, cause);
     cache.delete(key);
     return null;

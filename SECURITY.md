@@ -27,8 +27,8 @@ P2Pix is self-custodial for signing on injected and WalletConnect EOAs and WebAu
 
 ### CoW Protocol order book (`api.cow.fi`) — optional swap
 
-- **What it is:** CoW Protocol's order book, used only on Arbitrum One (and Sepolia for testing) and only when the buyer picks a swap token (USDT, USDC or DAI) instead of BRZ, or the seller pays with one of them instead of BRZ. The app requests quotes from it and posts the user's order; independent solvers settle the order through the GPv2Settlement contract. Orders are built, hashed and signed client-side (EIP-712 on the EOA rail, an on-chain pre-signature from the smart account); the API supplies only a price, and the order uid it returns must equal the locally computed one.
-- **What it sees or can block:** the requester's IP, the user's address (the zero address before a wallet is connected), the token pair, amounts and timing — quotes are requested as the user types, before any wallet action. It can refuse, delay or never settle an order; it cannot move more than the signed sell limit or pay anyone but the user, and an unfilled order expires after 30 minutes with the tokens still in the user's account.
+- **What it is:** CoW Protocol's order book, used only on Arbitrum One (and Sepolia for testing): when the buyer picks a swap token (USDT, USDC or DAI) instead of BRZ, when the seller pays with one of them instead of BRZ, and for the R$ prices in the account panel. The app requests quotes from it and posts the user's order; independent solvers settle the order through the GPv2Settlement contract. Orders are built, hashed and signed client-side (EIP-712 on the EOA rail, an on-chain pre-signature from the smart account); the API supplies only a price, and the order uid it returns must equal the locally computed one.
+- **What it sees or can block:** the requester's IP, the user's address (the zero address before a wallet is connected, and always for the panel's prices), the token pair, amounts and timing — quotes are requested as the user types, before any wallet action. It can refuse, delay or never settle an order; it cannot move more than the signed sell limit or pay anyone but the user, and an unfilled order expires after 30 minutes with the tokens still in the user's account.
 - **Escape path:** release never depends on the swap — a quote or order failure delivers BRZ and the buyer keeps it ("Ficar com BRZ") or trades it on any DEX. A live order can be withdrawn on-chain (`setPreSignature(uid, false)` or `invalidateOrder(uid)` on GPv2Settlement), not only through the API.
 
 ### WalletConnect relay (`wss://relay.walletconnect.com`, …)
@@ -93,11 +93,11 @@ Every request below is triggered by **first-party** code in this front-end (not 
   - _Data exposed:_ Query (read) parameters, addresses.
   - _Escape path:_ Index, not authoritative; the chain is the source of truth. Pointing at another subgraph requires a rebuild; only `subgraphUrls[0]` is used (open gap).
 
-- **`https://api.cow.fi/arbitrum_one`** (CoW Protocol order book) — _on user action (swap token picked)_
-  - _Trigger:_ Buy or sell form with a swap token selected on Arbitrum One (quotes while typing), order post, and order status polling every 10 s while it is live.
+- **`https://api.cow.fi/arbitrum_one`** (CoW Protocol order book) — _on user action (swap token picked) and when the account panel opens_
+  - _Trigger:_ Buy or sell form with a swap token selected on Arbitrum One (quotes while typing), order post, order status polling every 10 s while it is live, and the account panel's R$ prices (cached 60 s per token).
   - _Purpose:_ Price quotes and order relay to solvers; settlement is on-chain.
-  - _Data exposed:_ Address (zero address before connecting), token pair, amounts, timing.
-  - _Escape path:_ Pick BRZ — no request is made. The endpoint is `swap.apiUrl` in `src/config/networks.ts`.
+  - _Data exposed:_ Address (zero address before connecting and for the panel's prices), token pair, amounts, timing.
+  - _Escape path:_ Pick BRZ — the trade makes no request; the panel's prices still do. The endpoint is `swap.apiUrl` in `src/config/networks.ts`.
 
 - **`https://api.p2pix.co` / `https://demo.api.p2pix.co`** (P2Pix prover) — _on user action (trade)_
   - _Trigger:_ Seller registration (`/register`), buyer charge creation (`/request`), release polling (`/release`).

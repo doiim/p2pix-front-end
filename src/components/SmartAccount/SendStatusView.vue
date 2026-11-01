@@ -70,7 +70,13 @@ const handleDone = () => {
     class="flex flex-col items-center gap-3 py-2 text-center"
   >
     <div>
-      <h2 class="acct-title">Confirme com sua passkey</h2>
+      <h2 class="acct-title">
+        {{
+          account.isSmartAccount.value
+            ? 'Confirme com sua passkey'
+            : 'Confirme na sua carteira'
+        }}
+      </h2>
       <p class="text-xs text-gray-600">
         Enviar {{ form.amountText.value }} para
         {{ tiny(form.receiver.value.trim()) }}
@@ -82,7 +88,11 @@ const handleDone = () => {
       <KeyIcon aria-hidden="true" class="w-7 h-7" />
     </span>
     <p class="text-sm text-gray-900">
-      O navegador vai pedir sua passkey para assinar o envio de
+      {{
+        account.isSmartAccount.value
+          ? 'O navegador vai pedir sua passkey para assinar o envio de'
+          : 'Sua carteira vai pedir a confirmação para enviar'
+      }}
       {{ form.amountText.value }} para
       <span class="font-mono">{{ tiny(form.receiver.value.trim()) }}</span
       >.
@@ -151,7 +161,10 @@ const handleDone = () => {
         </dd>
       </div>
     </dl>
-    <p class="px-2.5 py-2 rounded-lg bg-gray-100 text-xs text-gray-600">
+    <p
+      v-if="account.isSmartAccount.value"
+      class="px-2.5 py-2 rounded-lg bg-gray-100 text-xs text-gray-600"
+    >
       Taxa de rede patrocinada pela P2Pix: nada foi descontado do valor enviado.
     </p>
     <a

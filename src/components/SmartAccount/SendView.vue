@@ -174,7 +174,13 @@ const handleCancel = () => {
   <dl class="flex flex-col gap-2 text-sm">
     <div class="flex items-center justify-between gap-3">
       <dt class="text-gray-600">Taxa de rede</dt>
-      <dd class="font-semibold text-gray-900">Patrocinada</dd>
+      <dd class="font-semibold text-gray-900">
+        {{
+          account.isSmartAccount.value
+            ? 'Patrocinada'
+            : 'Paga pela sua carteira'
+        }}
+      </dd>
     </div>
     <div class="flex items-center justify-between gap-3">
       <dt class="text-gray-600">O destino recebe</dt>

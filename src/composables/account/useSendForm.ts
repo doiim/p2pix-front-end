@@ -63,7 +63,10 @@ export function useSendForm() {
   const symbol = computed(() => account.symbolOf(token.value));
   const amount = computed(() => parseAmount(amountInput.value, decimals.value));
 
-  /** Spendable maximum: the full balance; sponsored operations spend no ETH. */
+  /**
+   * Spendable maximum: the full balance. Smart-account sends are sponsored; a
+   * regular wallet pays gas in the native coin, so it refuses sending all of it.
+   */
   const maxAmount = computed(() => account.balanceOf(token.value));
 
   const receiverAddress = computed(() => {

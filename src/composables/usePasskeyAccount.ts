@@ -10,6 +10,7 @@ import { getAaOwnerKind, isAaAvailable } from '@/blockchain/aa/aaContext';
 import {
   getActiveAaContext,
   sendAaOperation,
+  type AaOutflow,
 } from '@/blockchain/aa/operations';
 import {
   discoverBalances,
@@ -17,7 +18,11 @@ import {
   type DiscoveredBalances,
 } from '@/blockchain/balanceDiscovery';
 import type { AaCall, AaContext } from '@/blockchain/aa/types';
-import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
+import {
+  getCurrentAccount,
+  getPublicClient,
+  getWalletClient,
+} from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
 import { useUser } from '@/composables/useUser';
 import { TokenEnum, type NetworkConfig } from '@/model/NetworkEnum';
@@ -35,7 +40,8 @@ export type SendParams = {
 export type SendResult = { userOpHash: Hex; txHash?: Hex };
 
 type Balances = {
-  context: AaContext;
+  owner: Address;
+  network: NetworkConfig;
   result: { eth: bigint; tokens: TokenBalance[] };
 };
 
@@ -73,10 +79,8 @@ const assertSendFunds = (params: SendParams, funds: Balances): void => {
   const held =
     params.token === undefined
       ? funds.result.eth
-      : (balanceAt(
-          funds.result.tokens,
-          addressOf(funds.context.network, params.token),
-        )?.balance ?? 0n);
+      : (balanceAt(funds.result.tokens, addressOf(funds.network, params.token))
+          ?.balance ?? 0n);
   if (held < params.amount) {
     throw new Error(
       params.token === undefined
@@ -95,33 +99,76 @@ const error = ref<string | null>(null);
 // Every network, not just the selected one: funds left on another chain.
 const discovered = ref<DiscoveredBalances | null>(null);
 
+/** Passkey and Magic sessions: one UserOperation from the Kernel account. */
+const sendOnAaRail = async (
+  context: AaContext,
+  call: AaCall,
+  outflow?: AaOutflow,
+): Promise<SendResult> => {
+  const receipt = await sendAaOperation(
+    context,
+    [call],
+    outflow,
+    () => (sending.value = true),
+  );
+  if (!receipt.success) {
+    throw new Error(`Operação falhou na rede: ${receipt.userOpHash}`);
+  }
+  return {
+    userOpHash: receipt.userOpHash,
+    txHash: receipt.receipt.transactionHash,
+  };
+};
+
+/** Any other connector: a plain transaction its wallet prompts for and pays gas on. */
+const sendOnEoaRail = async (
+  network: NetworkConfig,
+  call: AaCall,
+): Promise<SendResult> => {
+  const wallet = await getWalletClient();
+  if (!wallet?.account) throw new Error('Carteira não conectada');
+  // `chain` makes viem refuse the send while the wallet is on another network.
+  const hash = await wallet.sendTransaction({
+    ...call,
+    account: wallet.account,
+    chain: network,
+  });
+  sending.value = true;
+  const receipt = await getPublicClient(network.id).waitForTransactionReceipt({
+    hash,
+  });
+  if (receipt.status !== 'success') {
+    throw new Error(`Transação falhou na rede: ${hash}`);
+  }
+  // No UserOperation on this rail: the transaction hash names the send.
+  return { userOpHash: hash, txHash: hash };
+};
+
 export function usePasskeyAccount() {
   const user = useUser();
   const walletAddress = useWalletAddress();
 
-  const isReady = computed(() => {
-    if (!isAaAvailable(user.network.value)) return false;
-    // The wallet address is part of the readiness check on purpose: a null
-    // address means the AA smart account never resolved, so the account is
-    // not actually usable even when an owner kind exists.
-    return (
+  // Every connected account has the panel: its own address, or its Kernel.
+  const isReady = computed(() => Boolean(walletAddress.value));
+  // Passkey and Magic sessions on a network with the smart-account rail.
+  // Reading walletAddress keeps this reactive to connector switches.
+  const isSmartAccount = computed(
+    () =>
       Boolean(walletAddress.value) &&
-      Boolean(getAaOwnerKind(getCurrentAccount().connector?.id))
-    );
-  });
+      isAaAvailable(user.network.value) &&
+      Boolean(getAaOwnerKind(getCurrentAccount().connector?.id)),
+  );
 
   const readBalances = async (): Promise<Balances> => {
-    const context = await getActiveAaContext();
-    if (!context) throw new Error('Contexto da conta inteligente indisponível');
+    const owner = walletAddress.value;
+    if (!owner) throw new Error('Carteira não conectada');
+    const network = user.network.value;
     const result = await getTokenBalances(
-      getPublicClient(),
-      context.account.address,
-      watchedTokens(context.network).map((token) => token.address),
+      getPublicClient(network.id),
+      owner,
+      watchedTokens(network).map((token) => token.address),
     );
-    return {
-      context,
-      result,
-    };
+    return { owner, network, result };
   };
 
   // The key carries the chain, so a read that resolves after a network switch
@@ -208,53 +255,40 @@ export function usePasskeyAccount() {
     error.value = null;
     try {
       const funds = await readBalances();
-      const { context } = funds;
-      const calls: AaCall[] =
-        params.token === undefined
-          ? [{ to: params.to, value: params.amount, data: '0x' }]
-          : [
-              tokenTransfer(
-                addressOf(context.network, params.token),
-                params.to,
-                params.amount,
-              ),
-            ];
       assertSendFunds(params, funds);
-
-      const receipt = await sendAaOperation(
-        context,
-        calls,
+      const token =
         params.token === undefined
           ? undefined
-          : {
-              token: addressOf(context.network, params.token),
-              amount: params.amount,
-            },
-        () => (sending.value = true),
-      );
-      const { userOpHash } = receipt;
-      if (!receipt.success) {
-        throw new Error(`Operação falhou na rede: ${userOpHash}`);
-      }
-      const txHash = receipt.receipt.transactionHash;
+          : addressOf(funds.network, params.token);
+      const call: AaCall = token
+        ? tokenTransfer(token, params.to, params.amount)
+        : { to: params.to, value: params.amount, data: '0x' };
+      const context = await getActiveAaContext();
+      const sent = context
+        ? await sendOnAaRail(
+            context,
+            call,
+            token ? { token, amount: params.amount } : undefined,
+          )
+        : await sendOnEoaRail(funds.network, call);
       // ponytail: history only knows TokenEnum; a swap-token send is not logged
       // (it would read as native coin); widen the entry type when Activity shows swap tokens.
       const logged = Object.values(TokenEnum).find((t) => t === params.token);
       if (params.token === undefined || logged) {
         appendHistory({
-          id: userOpHash,
+          id: sent.userOpHash,
           token: logged,
           amount: params.amount.toString(),
           to: params.to,
-          from: context.account.address,
-          chainId: context.network.id,
+          from: funds.owner,
+          chainId: funds.network.id,
           timestamp: Date.now(),
-          txHash,
+          txHash: sent.txHash,
         });
       }
       await refreshBalances();
       void refreshDiscovered();
-      return { userOpHash, txHash };
+      return sent;
     } catch (cause) {
       console.error('[account] send failed', cause);
       error.value = cause instanceof Error ? cause.message : 'Falha ao enviar';
@@ -280,9 +314,10 @@ export function usePasskeyAccount() {
     balances,
     ethBalance,
     discovered,
-    // The connected address is the smart account: one source.
+    // The connected address (the Kernel on smart-account sessions): one source.
     smartAccountAddress: walletAddress,
     isReady,
+    isSmartAccount,
     symbolOf,
     decimalsOf,
     balanceOf,

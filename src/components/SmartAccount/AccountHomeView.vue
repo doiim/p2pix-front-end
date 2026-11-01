@@ -45,13 +45,12 @@ const prices = useQuery({
     user.network.value.id,
   ]),
   queryFn: async () => {
-    const owner = account.smartAccountAddress.value ?? undefined;
     const entries = await Promise.all(
       account.assets.value.map(
         async (asset) =>
           [
             asset.token ?? '',
-            await priceInBrz(user.network.value, asset.token, owner),
+            await priceInBrz(user.network.value, asset.token),
           ] as const,
       ),
     );

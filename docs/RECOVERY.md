@@ -34,7 +34,7 @@ Needs: your authenticator (or its sync provider), the RPC, Pimlico, and, outside
 
 ### (b) Magic key export
 
-1. "Exportar chave" in the account panel, shown for any Magic login on a network with the smart-account rail. The key is the same on every network, so a user on a network without the panel switches to one that has it.
+1. "Exportar chave" in the account panel, shown for any Magic login.
 2. Magic's own reveal UI opens; the key is shown inside Magic's iframe and the app never sees it.
 
 Needs Magic to be up and its dashboard setting for the reveal flow enabled. Not yet verified. On a non-AA network this key **is** the account: import it into any wallet and the funds are yours. On an AA network it is the Kernel account's root signer, not the account holding the funds: to move them you still need to sign a UserOp with it and relay it, either through another bundler or via path (d).
@@ -61,7 +61,7 @@ If the account holds tokens but no ETH, there is no paymaster to quote and step 
 
 ### (e) Non-AA networks (Magic EOA)
 
-The Magic EOA is the account and there is no Kernel, no backup passkey and no account panel. The only exit is (b). Export the key while Magic works; after that nothing else recovers it. Prefer a passkey or injected wallet for funds you cannot afford to have gated by Magic.
+The Magic EOA is the account: there is no Kernel and no backup passkey. "Enviar" in the account panel sends from it as a plain transaction, and (b) exports its key; both need Magic. Export the key while Magic works; after that nothing else recovers it. Prefer a passkey or injected wallet for funds you cannot afford to have gated by Magic.
 
 ## Matrix
 
@@ -73,7 +73,7 @@ Network = AA network (Kernel account) or non-AA. "Bkp" = backup passkey installe
 | up    | AA      | down    | User: export (b); a backup passkey cannot be installed or used (both need a relay). Operator: relay through another bundler (config change and rebuild of `bundlerUrl`, `SECURITY.md`) or use (d) with the exported key. |
 | down  | AA      | up      | User: with Bkp, (a) recovery from "Entrar". Without Bkp, only a key exported earlier plus a relayer. Operator: help (d) with an earlier export; no server-side recovery exists.                                          |
 | down  | AA      | down    | User: with Bkp or an earlier export, (d) is the only way. Operator: walk the user through (d); needs ETH in the account and a funded EOA.                                                                                |
-| up    | non-AA  | up/down | User: export (b); Pimlico is not involved. Operator: nothing.                                                                                                                                                            |
+| up    | non-AA  | up/down | User: "Enviar" in the account panel, or export (b); Pimlico is not involved. Operator: nothing.                                                                                                                          |
 | down  | non-AA  | up/down | User: only a key exported earlier. Without it the funds are gated by Magic. Operator: nothing can be done; there is no backup path here.                                                                                 |
 | n/a   | AA      | up      | Passkey or injected-wallet user: (c) "Enviar" in the account panel, or use the wallet directly.                                                                                                                          |
 | n/a   | AA      | down    | Passkey user: (d) with the passkey. Injected-wallet user: the EOA rail does not use Pimlico, so nothing changes.                                                                                                         |

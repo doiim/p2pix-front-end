@@ -203,7 +203,7 @@ const showChecking = computed(
 const amountInvalid = computed(
   () => limitState.value !== null || showChecking.value,
 );
-// Same check as usePasskeyAccount.isReady; reading walletAddress keeps it reactive to connector switches.
+// Same check as usePasskeyAccount.isSmartAccount; reading walletAddress keeps it reactive to connector switches.
 const accountKind = computed(() =>
   walletAddress.value !== null &&
   isAaAvailable(network.value) &&
