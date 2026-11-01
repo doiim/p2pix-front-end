@@ -94,8 +94,7 @@ const addDeposit = async (): Promise<unknown> => {
 
   // `deposit` pulls the offer with `transferFrom` inside the contract.
   const { success, receipt } = await sendContractCalls(sender, calls, {
-    token,
-    amount: offer,
+    outflow: { token, amount: offer },
   });
   if (!success) {
     throw new Error(`Falha no depósito: ${receipt.transactionHash}`);

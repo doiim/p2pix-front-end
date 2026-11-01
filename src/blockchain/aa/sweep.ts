@@ -119,6 +119,10 @@ const gasReserve = (op: UserOperation<'0.7'>): bigint => {
  * Move all ETH and every declared token of the context's account to
  * `recipient` in one UserOperation. Gas is paid by P2Pix (`aa.sponsorSweep`),
  * else by the account in ETH, keeping back the estimated cost.
+ *
+ * Sends the UserOperation itself instead of `sendContractCalls`: the account
+ * comes from the backup-passkey login of the recovery screen, not from the
+ * active connector, so `getSender` would resolve another account (or none).
  */
 export const sweepAccount = async (
   context: AaContext,

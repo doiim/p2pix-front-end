@@ -1,7 +1,6 @@
-import { encodeFunctionData, zeroHash, type Address, type Hex } from 'viem';
+import { zeroHash, type Address, type Hex } from 'viem';
 import { getContract } from './provider';
-import { getActiveAaContext, sendAaOperation } from './aa/operations';
-import type { AaCall } from './aa/types';
+import { getSender, sendContractCalls } from './send';
 import { allowlistProof, allowlistRoot, sameAddress } from '@/utils/allowlist';
 import {
   addressesOf,
@@ -22,40 +21,13 @@ export const readAllowlistRoot = async (seller: Address): Promise<Hex> => {
 
 /** `setRoot` only accepts the caller's own address, so the root is per account. */
 export const writeAllowlistRoot = async (root: Hex): Promise<void> => {
-  const { address, abi, wallet, client, account } = await getContract();
-  const aa = await getActiveAaContext();
-
-  if (aa) {
-    const call: AaCall = {
-      to: address,
-      value: 0n,
-      data: encodeFunctionData({
-        abi,
-        functionName: 'setRoot',
-        args: [aa.account.address, root],
-      }),
-    };
-    const receipt = await sendAaOperation(aa, [call]);
-    if (!receipt.success) {
-      throw new Error(`AA setRoot failed: ${receipt.receipt.transactionHash}`);
-    }
-    return;
-  }
-
-  if (!wallet) throw new Error('Wallet not connected');
-  if (!account) throw new Error('Account not available');
-
-  const { request } = await client.simulateContract({
-    address,
-    abi,
-    functionName: 'setRoot',
-    args: [account, root],
-    account,
-  });
-  const hash = await wallet.writeContract(request);
-  const receipt = await client.waitForTransactionReceipt({ hash });
-  if (receipt.status !== 'success') {
-    throw new Error(`Transaction failed: ${receipt.transactionHash}`);
+  const sender = await getSender();
+  const { address, abi } = await getContract();
+  const { success, receipt } = await sendContractCalls(sender, [
+    { address, abi, functionName: 'setRoot', args: [sender.address, root] },
+  ]);
+  if (!success) {
+    throw new Error(`Falha ao gravar a lista: ${receipt.transactionHash}`);
   }
 };
 

@@ -12,6 +12,7 @@ import { getParticipantID, getUnreleasedLockById } from '@/blockchain/events';
 import { getEffectiveWalletAddress } from '@/blockchain/aa/operations';
 import { useConnection } from '@wagmi/vue';
 import { useUser } from '@/composables/useUser';
+import { Networks } from '@/config/networks';
 import { lockKey, participantIdKey, queryKeyRoots } from './keys';
 
 /** Deposits a seller still has on the selected network. */
@@ -105,16 +106,22 @@ export function useWalletAddress(): Readonly<Ref<Address | null>> {
   const connectorAddress = computed(() => connection.address.value ?? null);
 
   const query = useQuery({
-    queryKey: computed(() => [
-      ...queryKeyRoots.aaAddress,
-      network.value.id,
-      connection.connector.value?.id ?? 'none',
-      connectorAddress.value ?? zeroAddress,
-    ]),
-    queryFn: () => {
-      const address = connectorAddress.value;
-      if (!address) throw new Error('Carteira não conectada');
-      return getEffectiveWalletAddress(address);
+    queryKey: computed(
+      () =>
+        [
+          ...queryKeyRoots.aaAddress,
+          network.value.id,
+          connection.connector.value?.id ?? 'none',
+          connectorAddress.value ?? zeroAddress,
+        ] as const,
+    ),
+    // Only the key's values: a switch mid-read cannot store the new account under the old key.
+    queryFn: ({ queryKey: [, networkId, connectorId, address] }) => {
+      const keyNetwork = Networks.find((n) => n.id === networkId);
+      if (address === zeroAddress || !keyNetwork) {
+        throw new Error('Carteira não conectada');
+      }
+      return getEffectiveWalletAddress(address, keyNetwork, connectorId);
     },
     enabled: computed(() => Boolean(connectorAddress.value)),
   });

@@ -9,8 +9,9 @@ import {
   type Hex,
   type WalletClient,
 } from 'viem';
-import { getActiveAaContext, sendAaOperation } from './aa/operations';
-import type { AaCall, AaContext } from './aa/types';
+import { getActiveAaContext } from './aa/operations';
+import { getSender, sendContractCalls } from './send';
+import type { AaCall } from './aa/types';
 import { getBuyerLock, releaseCall, releaseLock } from './buyerMethods';
 import type { PixProof } from '@/utils/pixProof';
 import { getPublicClient, getWalletClient } from './provider';
@@ -127,7 +128,7 @@ export const buyBrz = async (symbol: string, brzAmount: bigint) => {
     kind: 'buy',
     now: nowSeconds(),
   });
-  return aa ? placeAa(ctx, aa, order, owner) : placeEoa(ctx, order, owner);
+  return aa ? placeAa(ctx, order, owner) : placeEoa(ctx, order, owner);
 };
 
 /**
@@ -266,7 +267,7 @@ export const requoteSwap = async (symbol: string): Promise<Hex> => {
     kind: 'sell',
     now: nowSeconds(),
   });
-  return aa ? placeAa(ctx, aa, order, owner) : placeEoa(ctx, order, owner);
+  return aa ? placeAa(ctx, order, owner) : placeEoa(ctx, order, owner);
 };
 
 /** Withdraws a live order so `sellToken` stays in the account. */
@@ -277,12 +278,13 @@ export const cancelSwap = async (
   const ctx = swapContext();
   const aa = await getActiveAaContext();
   if (aa) {
-    const receipt = await sendAaOperation(
-      aa,
+    const { success, receipt } = await sendContractCalls(
+      await getSender(),
       cancelPresignCalls(await contractsOf(ctx), sellToken, uid),
+      { aaOnly: true },
     );
-    if (!receipt.success) {
-      throw new Error(`AA cancel failed: ${receipt.receipt.transactionHash}`);
+    if (!success) {
+      throw new Error(`AA cancel failed: ${receipt.transactionHash}`);
     }
     return;
   }
@@ -458,18 +460,20 @@ const submit = async (
 
 const placeAa = async (
   ctx: SwapContext,
-  aa: AaContext,
   order: CowOrder,
   owner: Address,
 ): Promise<Hex> => {
   const uid = await submit(ctx, order, owner, presigned(owner));
-  const receipt = await sendAaOperation(
-    aa,
+  const { success, receipt } = await sendContractCalls(
+    await getSender(),
     presignCalls(await contractsOf(ctx), order, uid),
-    { token: order.sellToken, amount: order.sellAmount },
+    {
+      aaOnly: true,
+      outflow: { token: order.sellToken, amount: order.sellAmount },
+    },
   );
-  if (!receipt.success) {
-    throw new Error(`AA presign failed: ${receipt.receipt.transactionHash}`);
+  if (!success) {
+    throw new Error(`AA presign failed: ${receipt.transactionHash}`);
   }
   return uid;
 };

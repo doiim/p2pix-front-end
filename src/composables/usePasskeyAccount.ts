@@ -4,25 +4,24 @@ import {
   getTokenBalances,
   type TokenBalance,
 } from '@doiim/passkeys/smart-account';
-import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem';
+import {
+  encodeFunctionData,
+  erc20Abi,
+  isAddressEqual,
+  type Address,
+  type Hex,
+} from 'viem';
 
 import { getAaOwnerKind, isAaAvailable } from '@/blockchain/aa/aaContext';
-import {
-  getActiveAaContext,
-  sendAaOperation,
-  type AaOutflow,
-} from '@/blockchain/aa/operations';
+import type { AaOutflow } from '@/blockchain/aa/operations';
+import { getSender, sendContractCalls } from '@/blockchain/send';
 import {
   discoverBalances,
   watchedTokens,
   type DiscoveredBalances,
 } from '@/blockchain/balanceDiscovery';
-import type { AaCall, AaContext } from '@/blockchain/aa/types';
-import {
-  getCurrentAccount,
-  getPublicClient,
-  getWalletClient,
-} from '@/blockchain/provider';
+import type { AaCall } from '@/blockchain/aa/types';
+import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
 import { useUser } from '@/composables/useUser';
 import { TokenEnum, type NetworkConfig } from '@/model/NetworkEnum';
@@ -99,58 +98,28 @@ const error = ref<string | null>(null);
 // Every network, not just the selected one: funds left on another chain.
 const discovered = ref<DiscoveredBalances | null>(null);
 
-/** Smart-account rail (an active AA context): one UserOperation from the Kernel account. */
-const sendOnAaRail = async (
-  context: AaContext,
+/** One send on whichever rail the connection has (see `sendContractCalls`), from the funds it was checked against. */
+const sendCall = async (
+  funds: Balances,
   call: AaCall,
   outflow?: AaOutflow,
 ): Promise<SendResult> => {
-  const receipt = await sendAaOperation(
-    context,
-    [call],
-    outflow,
-    () => (sending.value = true),
-  );
-  if (!receipt.success) {
-    throw new Error(`Operação falhou na rede: ${receipt.userOpHash}`);
-  }
-  return {
-    userOpHash: receipt.userOpHash,
-    txHash: receipt.receipt.transactionHash,
-  };
-};
-
-/** EOA rail (no AA context): a plain transaction the wallet prompts for and pays gas on. */
-const sendOnEoaRail = async (
-  network: NetworkConfig,
-  call: AaCall,
-): Promise<SendResult> => {
-  const wallet = await getWalletClient();
-  if (!wallet?.account) throw new Error('Carteira não conectada');
-  // `chain` makes viem refuse the send while the wallet is on another network.
-  const hash = await wallet.sendTransaction({
-    ...call,
-    account: wallet.account,
-    chain: network,
-  });
-  sending.value = true;
-  // The wallet can replace the pending send: a speed-up still sends, a cancel does not.
-  let replacement: string | undefined;
-  const receipt = await getPublicClient(network.id).waitForTransactionReceipt({
-    hash,
-    onReplaced: (replaced) => (replacement = replaced.reason),
-  });
+  const sender = await getSender();
   if (
-    receipt.status !== 'success' ||
-    (replacement !== undefined && replacement !== 'repriced')
+    sender.chainId !== funds.network.id ||
+    !isAddressEqual(sender.address, funds.owner)
   ) {
-    throw new Error(`Transação não concluída: ${hash}`);
+    throw new Error('A conta ou a rede mudou; tente novamente');
   }
-  // No UserOperation on this rail: the mined transaction's hash names the send.
-  return {
-    userOpHash: receipt.transactionHash,
-    txHash: receipt.transactionHash,
-  };
+  const result = await sendContractCalls(sender, [call], {
+    outflow,
+    onSent: () => (sending.value = true),
+  });
+  if (!result.success) {
+    throw new Error(`Envio não concluído na rede: ${result.hash}`);
+  }
+  // On the wallet rail there is no UserOperation: the transaction hash names the send.
+  return { userOpHash: result.hash, txHash: result.receipt.transactionHash };
 };
 
 export function usePasskeyAccount() {
@@ -272,14 +241,11 @@ export function usePasskeyAccount() {
       const call: AaCall = token
         ? tokenTransfer(token, params.to, params.amount)
         : { to: params.to, value: params.amount, data: '0x' };
-      const context = await getActiveAaContext();
-      const sent = context
-        ? await sendOnAaRail(
-            context,
-            call,
-            token ? { token, amount: params.amount } : undefined,
-          )
-        : await sendOnEoaRail(funds.network, call);
+      const sent = await sendCall(
+        funds,
+        call,
+        token ? { token, amount: params.amount } : undefined,
+      );
       // ponytail: history only knows TokenEnum; a swap-token send is not logged
       // (it would read as native coin); widen the entry type when Activity shows swap tokens.
       const logged = Object.values(TokenEnum).find((t) => t === params.token);

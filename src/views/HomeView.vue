@@ -191,7 +191,7 @@ const releaseTransaction = async (proof: PixProof) => {
         swapReleasing.value = false;
       }
       // The swap path bypasses the release mutation, so invalidate here.
-      invalidateLocks();
+      await invalidateLocks();
       swapResult.value = { uid: released.uid, token: intent.token };
     } else {
       const receipt = await releaseLockMutation.mutateAsync({

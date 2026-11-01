@@ -1,6 +1,5 @@
 import { getContract } from './provider';
 import { p2PixAbi } from './abi';
-import { getActiveAaContext, sendAaOperation } from './aa/operations';
 import type { AaCall } from './aa/types';
 import { findAllowlistProof } from './allowlist';
 import { getSender, sendContractCalls } from './send';
@@ -202,36 +201,15 @@ export const releaseLock = async (
   const { address, abi } = await getContract();
   await getBuyerLock(lockID, sender.address);
 
-  // Calls that already are encoded (the swap's approve + pre-signature) cannot
-  // go through `sendContractCalls`; they ride the release UserOperation.
-  if (afterRelease.length > 0) {
-    const aa = await getActiveAaContext();
-    if (
-      !aa ||
-      aa.account.address.toLowerCase() !== sender.address.toLowerCase()
-    ) {
-      throw new Error('A conta ou a rede mudou; tente novamente');
-    }
-    const aaReceipt = await sendAaOperation(aa, [
-      await releaseCall(lockID, proof),
+  // The swap's approve + pre-signature ride the release UserOperation: smart account only.
+  const { success, receipt } = await sendContractCalls(
+    sender,
+    [
+      { address, abi, functionName: 'release', args: [lockID, proof] },
       ...afterRelease,
-    ]);
-    if (!aaReceipt.success) {
-      throw new Error(
-        `Falha na liberação: ${aaReceipt.receipt.transactionHash}`,
-      );
-    }
-    return aaReceipt.receipt;
-  }
-
-  const { success, receipt } = await sendContractCalls(sender, [
-    {
-      address,
-      abi,
-      functionName: 'release',
-      args: [lockID, proof],
-    },
-  ]);
+    ],
+    { aaOnly: afterRelease.length > 0 },
+  );
   if (!success) {
     throw new Error(`Falha na liberação: ${receipt.transactionHash}`);
   }

@@ -10,7 +10,7 @@ import {
 
 import { isAaAvailable } from '@/blockchain/aa/aaContext';
 import { getPublicClient } from '@/blockchain/provider';
-import { getSender, sendRawAaCalls } from '@/blockchain/send';
+import { getSender, sendContractCalls } from '@/blockchain/send';
 import { requireRpId, rpId } from '@/config/aa';
 import { useUser } from '@/composables/useUser';
 import { queryClient } from '@/queries/client';
@@ -76,6 +76,7 @@ export function useBackupPasskey() {
         ) {
           throw new Error('A conta ou a rede mudou; tente novamente');
         }
+        return sender;
       };
       await assertSameAccount();
       // The cached status can be stale (installed from another tab or
@@ -89,15 +90,20 @@ export function useBackupPasskey() {
         rpId: requireRpId(),
         userName: 'Backup P2Pix',
       });
-      await assertSameAccount();
-      const result = await sendRawAaCalls([
-        encodeInstallBackupPasskey({
-          account: address,
-          credentialId: credential.credentialId,
-          publicKeyX: credential.publicKeyX,
-          publicKeyY: credential.publicKeyY,
-        }),
-      ]);
+      const sender = await assertSameAccount();
+      // Installs a validator on the Kernel account: only the smart account can send it.
+      const result = await sendContractCalls(
+        sender,
+        [
+          encodeInstallBackupPasskey({
+            account: address,
+            credentialId: credential.credentialId,
+            publicKeyX: credential.publicKeyX,
+            publicKeyY: credential.publicKeyY,
+          }),
+        ],
+        { aaOnly: true },
+      );
       if (!result.success) throw new Error('Falha ao instalar a passkey');
     },
     onSettled: () =>

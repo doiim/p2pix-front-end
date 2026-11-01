@@ -25,6 +25,7 @@ import {
   isAaAvailable,
 } from './aaContext';
 import type { AaCall, AaContext, AaRuntime } from './types';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 
 export { resetAaAccountCache } from './aaContext';
 
@@ -34,33 +35,49 @@ export const feeTokenAddress = (aa: AaContext): Address => {
   return feeToken ? aa.network.tokens[feeToken].address : zeroAddress;
 };
 
-const resolveActiveAaRuntime = async (): Promise<AaRuntime | null> => {
-  const ownerKind = getAaOwnerKind(getCurrentAccount().connector?.id);
-  if (!ownerKind) return null;
-
-  const network = useUser().network.value;
-  if (!isAaAvailable(network)) return null;
+/** The Kernel rail of `connectorId` on `network`, from the given values only. */
+const resolveAaRuntime = async (
+  network: NetworkConfig,
+  connectorId: string | undefined,
+): Promise<AaRuntime | null> => {
+  const ownerKind = getAaOwnerKind(connectorId);
+  if (!ownerKind || !isAaAvailable(network)) return null;
 
   const walletClient = ownerKind === 'social' ? await getWalletClient() : null;
   if (ownerKind === 'social' && !walletClient?.account) {
     throw new Error('Social login signer not available');
   }
-  return { ownerKind, publicClient: getPublicClient(), walletClient, network };
+  return {
+    ownerKind,
+    publicClient: getPublicClient(network.id),
+    walletClient,
+    network,
+  };
 };
 
 /** Resolve the active app connection into the unified Kernel rail. */
 export const getActiveAaContext = async (): Promise<AaContext | null> => {
-  const runtime = await resolveActiveAaRuntime();
+  // Sending follows the live selection; `assertSender` refuses it if that moved.
+  const runtime = await resolveAaRuntime(
+    useUser().network.value,
+    getCurrentAccount().connector?.id,
+  );
   if (!runtime) return null;
 
   return getAaContextForRuntime(runtime);
 };
 
-/** The connector address is the fallback for connectors without an AA rail. */
+/**
+ * The address the app acts as for `connectorId` on `network`: its Kernel
+ * account, or `fallback` (the connector's own address) without an AA rail.
+ * Reads only its arguments, so a query keyed on them caches the right value.
+ */
 export const getEffectiveWalletAddress = async (
   fallback: Address,
+  network: NetworkConfig,
+  connectorId: string | undefined,
 ): Promise<Address> => {
-  const runtime = await resolveActiveAaRuntime();
+  const runtime = await resolveAaRuntime(network, connectorId);
   if (!runtime) return fallback;
   const account = await getAaAccountForRuntime(runtime);
   return account?.address ?? fallback;

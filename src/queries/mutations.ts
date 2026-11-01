@@ -13,49 +13,42 @@ import type { NetworkConfig } from '@/model/NetworkEnum';
 import { queryClient } from './client';
 import { queryKeyRoots } from './keys';
 
+type KeyRoot = (typeof queryKeyRoots)[keyof typeof queryKeyRoots];
+
+const invalidate = (...roots: readonly KeyRoot[]) =>
+  Promise.all(
+    roots.map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+  );
+
 /**
  * A write changes what the subgraph and the contract report, so the affected
  * read families are invalidated instead of each caller remembering to refetch.
+ * Reads that need the subgraph refetch in the background: it has usually not
+ * indexed the write yet, so waiting on them would only delay the next screen.
  */
 const invalidateDeposits = () => {
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.walletDeposits,
-  });
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.networkDeposits,
-  });
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.walletTransactions,
-  });
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.sellerLockState,
-  });
+  void invalidate(
+    queryKeyRoots.walletDeposits,
+    queryKeyRoots.networkDeposits,
+    queryKeyRoots.walletTransactions,
+    queryKeyRoots.sellerLockState,
+  );
 };
 
-export const invalidateLocks = () => {
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.unreleasedLock,
-  });
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.walletTransactions,
-  });
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.sellerLockState,
-  });
-  // A release resolves a lock, which `useLockQuery` (QR / redirect) and the
-  // `/:lockID` fetchQuery in HomeView read straight from its id.
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.lock,
-  });
-  // `addLock` reduces the seller's on-chain balance, so the buy form's
-  // deposit list must not keep showing pre-lock balances.
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.networkDeposits,
-  });
-  // A release pays the buyer: the account panel's balances move with it.
-  void queryClient.invalidateQueries({
-    queryKey: queryKeyRoots.passkeyBalances,
-  });
+/**
+ * Same split as `invalidateDeposits`; the chain-only reads are awaited, so a
+ * mutation resolves with them fresh: the lock read by its id (QR, `/:lockID`)
+ * and the account panel's balances, which a release moves.
+ */
+export const invalidateLocks = (): Promise<unknown> => {
+  // `addLock` also reduces the seller's balance in the buy form's deposit list.
+  void invalidate(
+    queryKeyRoots.unreleasedLock,
+    queryKeyRoots.walletTransactions,
+    queryKeyRoots.sellerLockState,
+    queryKeyRoots.networkDeposits,
+  );
+  return invalidate(queryKeyRoots.lock, queryKeyRoots.passkeyBalances);
 };
 
 /** Reserve a deposit: the counterpart of the buyer's `addLock`. */

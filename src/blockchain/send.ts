@@ -3,8 +3,11 @@ import {
   isAddressEqual,
   type Abi,
   type Address,
+  type Hex,
   type Log,
+  type PublicClient,
   type TransactionReceipt,
+  type WalletClient,
 } from 'viem';
 import { getContract } from './provider';
 import {
@@ -21,9 +24,20 @@ export type ContractCall = {
   args: readonly unknown[];
 };
 
+export type SendOptions = {
+  /** Token the batch moves out of the smart account (see `AaOutflow`). */
+  outflow?: AaOutflow;
+  /** Called once the send is submitted (UserOperation accepted, or transaction hash), before its receipt. */
+  onSent?: () => void;
+  /** Refuse to send without a smart account: calls only a Kernel account can make. */
+  aaOnly?: boolean;
+};
+
 export type SendResult = {
   sender: Address;
   success: boolean;
+  /** AA: the UserOperation hash. EOA: the last transaction's hash. */
+  hash: Hex;
   /** AA: the bundle receipt. EOA: the last transaction's receipt. */
   receipt: TransactionReceipt;
   /** AA: logs of our own UserOperation. EOA: logs of every transaction sent. */
@@ -71,53 +85,13 @@ const assertSender = (
   }
 };
 
-const sendOnAaRail = async (
-  aa: AaContext,
-  calls: readonly AaCall[],
-  outflow?: AaOutflow,
-): Promise<SendResult> => {
-  const op = await sendAaOperation(aa, calls, outflow);
-  return {
-    sender: aa.account.address,
-    success: op.success,
-    receipt: op.receipt,
-    logs: op.logs,
-  };
-};
+const isEncodedCall = (call: ContractCall | AaCall): call is AaCall =>
+  'to' in call;
 
-/**
- * Smart-account-only variant for calls that are already encoded (e.g. a
- * module install the account sends to itself). An EOA has no such call, so
- * there is no EOA rail here: it throws instead of falling back.
- */
-export const sendRawAaCalls = async (
-  calls: readonly AaCall[],
-): Promise<SendResult> => {
-  const aa = await getActiveAaContext();
-  if (!aa) throw new Error('Conta inteligente indisponível');
-  return sendOnAaRail(aa, calls);
-};
-
-/**
- * Single entry point for sending transactions, from the `from` account on the
- * network it was resolved on (see `getSender`). Smart account: all calls go in
- * one UserOperation. Regular wallet: each call is simulated, written and
- * awaited in order, stopping at the first one that does not succeed.
- * `outflow`: token the batch moves out of the smart account (see `AaOutflow`).
- */
-export const sendContractCalls = async (
-  from: Sender,
-  calls: readonly ContractCall[],
-  outflow?: AaOutflow,
-): Promise<SendResult> => {
-  const aa = await getActiveAaContext();
-  if (aa) {
-    // The context's clients are bound to `aa.network`, so a switch after this
-    // check cannot move the operation to another chain.
-    assertSender(from, aa.account.address, aa.network.id);
-    return sendOnAaRail(
-      aa,
-      calls.map((call) => ({
+const encodeCall = (call: ContractCall | AaCall): AaCall =>
+  isEncodedCall(call)
+    ? call
+    : {
         to: call.address,
         value: 0n,
         data: encodeFunctionData({
@@ -125,31 +99,107 @@ export const sendContractCalls = async (
           functionName: call.functionName,
           args: call.args,
         }),
-      })),
-      outflow,
-    );
-  }
+      };
 
+const sendOnAaRail = async (
+  aa: AaContext,
+  calls: readonly (ContractCall | AaCall)[],
+  { outflow, onSent }: SendOptions,
+): Promise<SendResult> => {
+  const op = await sendAaOperation(aa, calls.map(encodeCall), outflow, onSent);
+  return {
+    sender: aa.account.address,
+    success: op.success,
+    hash: op.userOpHash,
+    receipt: op.receipt,
+    logs: op.logs,
+  };
+};
+
+type EoaSigner = {
+  wallet: WalletClient;
+  client: PublicClient;
+  account: Address;
+};
+
+// An encoded call (native coin, swap pre-signature) is sent as is; a contract
+// call is simulated first, so a revert names its reason before the wallet prompts.
+const submitEoaCall = async (
+  { wallet, client, account }: EoaSigner,
+  call: ContractCall | AaCall,
+): Promise<Hex> => {
+  if (isEncodedCall(call)) {
+    return wallet.sendTransaction({ ...call, account, chain: wallet.chain });
+  }
+  const { request } = await client.simulateContract({ ...call, account });
+  return wallet.writeContract(request);
+};
+
+// The wallet can replace a pending transaction: a speed-up still counts, a
+// cancel (or any other replacement) means the call did not run.
+const waitEoaReceipt = async (
+  { client }: EoaSigner,
+  hash: Hex,
+): Promise<{ receipt: TransactionReceipt; ok: boolean }> => {
+  let replacement: string | undefined;
+  const receipt = await client.waitForTransactionReceipt({
+    hash,
+    onReplaced: (replaced) => (replacement = replaced.reason),
+  });
+  const replaced = replacement !== undefined && replacement !== 'repriced';
+  return { receipt, ok: receipt.status === 'success' && !replaced };
+};
+
+const sendOnEoaRail = async (
+  from: Sender,
+  calls: readonly (ContractCall | AaCall)[],
+  { onSent }: SendOptions,
+): Promise<SendResult> => {
   const { wallet, client, account } = await getContract();
   if (!wallet || !account) throw new Error('Carteira não conectada');
   // Both clients are bound to their chain, and viem refuses a write when the
   // wallet itself sits on another one.
   assertSender(from, account, wallet.chain?.id, client.chain?.id);
+  const signer = { wallet, client, account };
 
   const logs: Log[] = [];
-  let receipt: TransactionReceipt | undefined;
+  let sent: { hash: Hex; receipt: TransactionReceipt; ok: boolean } | undefined;
   for (const call of calls) {
-    const { request } = await client.simulateContract({ ...call, account });
-    const hash = await wallet.writeContract(request);
-    receipt = await client.waitForTransactionReceipt({ hash });
-    logs.push(...receipt.logs);
-    if (receipt.status !== 'success') break;
+    const hash = await submitEoaCall(signer, call);
+    onSent?.();
+    sent = { hash, ...(await waitEoaReceipt(signer, hash)) };
+    logs.push(...sent.receipt.logs);
+    if (!sent.ok) break;
   }
-  if (!receipt) throw new Error('Nenhuma chamada para enviar');
+  if (!sent) throw new Error('Nenhuma chamada para enviar');
   return {
     sender: account,
-    success: receipt.status === 'success',
-    receipt,
+    success: sent.ok,
+    hash: sent.hash,
+    receipt: sent.receipt,
     logs,
   };
+};
+
+/**
+ * Single entry point for sending transactions, from the `from` account on the
+ * network it was resolved on (see `getSender`). Smart account: all calls go in
+ * one UserOperation. Regular wallet: each call is sent and awaited in order
+ * (contract calls simulated first), stopping at the first one that does not
+ * succeed. `aaOnly` refuses the wallet rail for calls only a Kernel can make.
+ */
+export const sendContractCalls = async (
+  from: Sender,
+  calls: readonly (ContractCall | AaCall)[],
+  options: SendOptions = {},
+): Promise<SendResult> => {
+  const aa = await getActiveAaContext();
+  if (aa) {
+    // The context's clients are bound to `aa.network`, so a switch after this
+    // check cannot move the operation to another chain.
+    assertSender(from, aa.account.address, aa.network.id);
+    return sendOnAaRail(aa, calls, options);
+  }
+  if (options.aaOnly) throw new Error('Conta inteligente indisponível');
+  return sendOnEoaRail(from, calls, options);
 };
