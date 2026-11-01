@@ -8,7 +8,7 @@ import {
   zeroAddress,
 } from 'viem';
 
-import { getCurrentAccount } from '@/blockchain/provider';
+import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import {
   usePasskeyAccount,
   type SendResult,
@@ -63,11 +63,24 @@ export function useSendForm() {
   const symbol = computed(() => account.symbolOf(token.value));
   const amount = computed(() => parseAmount(amountInput.value, decimals.value));
 
-  /**
-   * Spendable maximum: the full balance. Smart-account sends are sponsored; a
-   * regular wallet pays gas in the native coin, so it refuses sending all of it.
-   */
+  /** The full balance; what "Usar máximo" fills can be less (see `setMax`). */
   const maxAmount = computed(() => account.balanceOf(token.value));
+
+  /**
+   * Native coin a regular wallet must keep to pay this send's gas: the
+   * estimate at the current max fee, doubled for a fee bump. Zero on the smart
+   * account (sponsored) and for tokens (the gas is not paid in them).
+   */
+  const gasReserve = async (): Promise<bigint> => {
+    const from = getCurrentAccount().address;
+    if (token.value || account.isSmartAccount.value || !from) return 0n;
+    const client = getPublicClient();
+    const [gas, fees] = await Promise.all([
+      client.estimateGas({ account: from, to: from, value: 0n }),
+      client.estimateFeesPerGas(),
+    ]);
+    return gas * fees.maxFeePerGas * 2n;
+  };
 
   const receiverAddress = computed(() => {
     const text = receiver.value.trim();
@@ -98,8 +111,20 @@ export function useSendForm() {
     token.value = next;
   };
 
-  const setMax = (): void => {
-    amountInput.value = formatUnits(maxAmount.value, decimals.value);
+  const setMax = async (): Promise<void> => {
+    const reserve = await gasReserve().catch((cause) => {
+      console.error(cause);
+      return null;
+    });
+    if (reserve === null) {
+      showToast('error', 'Não foi possível estimar a taxa de rede.');
+      return;
+    }
+    const spendable = maxAmount.value - reserve;
+    amountInput.value = formatUnits(
+      spendable > 0n ? spendable : 0n,
+      decimals.value,
+    );
   };
 
   const pasteAddress = async (): Promise<void> => {
