@@ -420,7 +420,9 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
 <template>
   <form class="main-container" @submit="handleSubmit">
     <slot />
-    <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg">
+    <div
+      class="amount-box flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg"
+    >
       <div class="flex justify-between sm:w-full items-center gap-3 sm:gap-4">
         <input
           ref="amountInput"
@@ -573,5 +575,10 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
 .custom-divide {
   width: 100%;
   border-bottom: 1px solid #d1d5db;
+}
+/* The amount field has no outline of its own: its divider shows the focus. */
+.amount-box:has(input[name='tokenAmount']:focus-visible) .custom-divide {
+  border-bottom-color: #3730a3;
+  box-shadow: 0 1px 0 #3730a3;
 }
 </style>
