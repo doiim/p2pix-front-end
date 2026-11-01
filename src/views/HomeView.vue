@@ -34,7 +34,7 @@ import {
 import { promptsNotice } from '@/utils/walletPrompts';
 import { TokenEnum } from '@/model/NetworkEnum';
 import type { Address, Hex } from 'viem';
-import type { PixProof } from '@/utils/pixProof';
+import { releaseErrorMessage, type PixProof } from '@/utils/pixProof';
 
 enum Step {
   Search,
@@ -203,7 +203,8 @@ const releaseTransaction = async (proof: PixProof) => {
           : null;
     });
   } catch (err) {
-    console.log(err);
+    console.error(err);
+    user.showToast('error', releaseErrorMessage(err));
     showBuyAlert.value = false;
     flowStep.value = Step.Buy;
   }

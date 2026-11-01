@@ -1,4 +1,6 @@
 import {
+  BaseError,
+  ContractFunctionRevertedError,
   encodePacked,
   keccak256,
   type Address,
@@ -92,5 +94,36 @@ export const pixProofDigest = (proof: PixProof, bank: BankConfig): Hex => {
         proof.additionParams,
       ],
     ),
+  );
+};
+
+/** What the buyer reads when `release` reverts, by the contract's own error. */
+const RELEASE_ERRORS: Record<string, string> = {
+  ProofExpired:
+    'A prova de pagamento venceu. Busque uma nova prova e envie novamente.',
+  InvalidAttestor: 'O atestador desta prova não é aceito pelo contrato.',
+  PixTargetMismatch: 'O Pix foi pago a outra chave, não à deste lock.',
+  AlreadyReleased: 'Este lock já foi liberado.',
+  LockExpired: 'Este lock expirou.',
+  MalformedProof: 'A prova de pagamento está malformada.',
+};
+
+/**
+ * The message to show when submitting the release fails: the contract's
+ * revert decoded into words, viem's short message for any other RPC or
+ * wallet failure, the error's own message otherwise.
+ */
+export const releaseErrorMessage = (err: unknown): string => {
+  if (!(err instanceof BaseError)) {
+    return err instanceof Error ? err.message : String(err);
+  }
+  const revert = err.walk((e) => e instanceof ContractFunctionRevertedError);
+  const name =
+    revert instanceof ContractFunctionRevertedError
+      ? revert.data?.errorName
+      : undefined;
+  // One line: viem puts the revert signature on its own line.
+  return (
+    (name && RELEASE_ERRORS[name]) || err.shortMessage.replace(/\n+/g, ' ')
   );
 };

@@ -3,7 +3,7 @@ import { computed, onUnmounted, ref, watch } from 'vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import { type Offer } from '@/utils/bbPay';
-import type { PixProof } from '@/utils/pixProof';
+import { releaseErrorMessage, type PixProof } from '@/utils/pixProof';
 import { useUser } from '@/composables/useUser';
 import { useLockQuery, useParticipantIdQuery } from '@/queries/wallet';
 import { useLockSolicitationQuery, usePixProofQuery } from '@/queries/bbPay';
@@ -86,8 +86,10 @@ const submitProof = async () => {
   submitting.value = true;
   try {
     const { data, error } = await proofQuery.refetch();
-    if (error) console.error('Error refreshing proof:', error);
-    else if (data) emit('pixValidated', data);
+    if (error) {
+      console.error('Error refreshing proof:', error);
+      user.showToast('error', releaseErrorMessage(error));
+    } else if (data) emit('pixValidated', data);
   } finally {
     submitting.value = false;
   }
