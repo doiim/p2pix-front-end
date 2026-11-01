@@ -221,6 +221,12 @@ const releaseTransaction = async (proof: PixProof) => {
   }
 };
 
+// "Sim" answers the alert: once resumed it must not come back when this purchase completes.
+const resumeLock = () => {
+  showModal.value = false;
+  flowStep.value = Step.Buy;
+};
+
 const checkForUnreleasedLocks = async (): Promise<void> => {
   const address = walletAddress.value;
   if (!address) throw new Error('Carteira não conectada');
@@ -295,7 +301,7 @@ onMounted(async () => {
           v-if="flowStep == Step.Search && showModal"
           :type="'redirect'"
           @close-alert="showModal = false"
-          @go-to-lock="flowStep = Step.Buy"
+          @go-to-lock="resumeLock"
         />
         <CustomAlert
           v-if="flowStep == Step.Buy && !waitingLock && showPixWarning"
