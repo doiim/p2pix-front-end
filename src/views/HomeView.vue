@@ -7,6 +7,7 @@ import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import BuyConfirmedComponent from '@/components/BuyerSteps/BuyConfirmedComponent.vue';
 import { ref, onMounted, watch, computed } from 'vue';
 import { useUser } from '@/composables/useUser';
+import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { useWalletAddress } from '@/queries/wallet';
 import QrCodeComponent from '@/components/BuyerSteps/QrCodeComponent.vue';
 import { LockIdUnrecoverableError } from '@/blockchain/buyerMethods';
@@ -43,6 +44,11 @@ enum Step {
 }
 
 const user = useUser();
+const account = usePasskeyAccount();
+// A smart account signs on its own: nothing to confirm in a wallet while it sends.
+const loadingTitle = computed(() =>
+  account.isSmartAccount.value ? 'Enviando para a rede' : undefined,
+);
 user.setSellerView(false);
 const reputation = useReputation();
 
@@ -52,6 +58,8 @@ const walletAddress = useWalletAddress();
 const addLockMutation = useAddLockMutation();
 const releaseLockMutation = useReleaseLockMutation();
 const loadingLock = computed(() => addLockMutation.isPending.value);
+// The Buy step opens before addLock starts: until the lock has an id there is no Pix to show.
+const waitingLock = computed(() => loadingLock.value || !lockID.value);
 // The swap release bypasses the mutation, so it has its own flag.
 const swapReleasing = ref(false);
 const loadingRelease = computed(
@@ -62,8 +70,9 @@ const flowStep = ref<Step>(Step.Search);
 // The hero follows the step; the account panel stays beside the offer card.
 const hero = computed(() => {
   if (flowStep.value === Step.Buy) {
-    return loadingLock.value
-      ? { title: undefined, subtitle: undefined }
+    // While loading, say what is happening instead of falling back to the search hero.
+    return waitingLock.value
+      ? { title: 'Reservando a oferta', subtitle: '' }
       : {
           title: 'Utilize o QR Code ou copie o código para realizar o Pix',
           subtitle:
@@ -72,7 +81,7 @@ const hero = computed(() => {
   }
   if (flowStep.value === Step.List) {
     return loadingRelease.value
-      ? { title: undefined, subtitle: undefined }
+      ? { title: 'Liberando seus tokens', subtitle: '' }
       : {
           title: 'Os tokens já foram transferidos para a sua carteira!',
           subtitle: '',
@@ -112,13 +121,13 @@ const confirmBuyClick = async (
   searchRefusal.value = null;
   tokenAmount.value = press.amount;
   swapResult.value = undefined;
-  flowStep.value = Step.Buy;
-
   // Reset any lockID left over from a previous purchase so that, if addLock
   // throws LockIdUnrecoverableError and checkForUnreleasedLocks does not
   // recover an id, the `if (lockID.value)` check below does not mistake a
   // stale id from purchase #1 for a successful recovery of purchase #2.
+  // Cleared before the step changes: the QR step waits for an id (waitingLock).
   lockID.value = '';
+  flowStep.value = Step.Buy;
 
   try {
     const newLockID = await addLockMutation.mutateAsync({
@@ -289,7 +298,7 @@ onMounted(async () => {
           @go-to-lock="flowStep = Step.Buy"
         />
         <CustomAlert
-          v-if="flowStep == Step.Buy && !loadingLock && showPixWarning"
+          v-if="flowStep == Step.Buy && !waitingLock && showPixWarning"
           :type="'pixWarning'"
           @close-alert="showPixWarning = false"
         />
@@ -314,7 +323,7 @@ onMounted(async () => {
       </SearchComponent>
       <template v-if="flowStep == Step.Buy">
         <QrCodeComponent
-          v-if="!loadingLock"
+          v-if="!waitingLock"
           :lockID="lockID"
           embedded
           @pix-validated="releaseTransaction"
@@ -322,6 +331,7 @@ onMounted(async () => {
         <LoadingComponent
           v-else
           embedded
+          :title="loadingTitle"
           :message="'A transação está sendo enviada para a rede'"
         />
       </template>
@@ -337,6 +347,7 @@ onMounted(async () => {
         <LoadingComponent
           v-else
           embedded
+          :title="loadingTitle"
           :message="
             releaseNotice ??
             'A transação está sendo enviada para a rede. Em breve os tokens serão depositados em sua carteira.'
