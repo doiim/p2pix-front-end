@@ -251,7 +251,7 @@ onMounted(() => {
       />
       <button
         type="button"
-        class="border-amber-500 border-2 rounded default-button text-white p-2 px-50 min-w-[198px]"
+        class="border-amber-500 border-2 rounded default-button text-white p-2 min-w-[198px]"
         @click="emit('makeAnotherTransaction')"
       >
         Fazer nova transação
