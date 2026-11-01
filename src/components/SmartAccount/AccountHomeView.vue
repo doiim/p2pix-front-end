@@ -37,16 +37,23 @@ const run = async (task: () => Promise<void>, done?: string) => {
   }
 };
 
+// Only the held assets, in asset order (BRZ, swap tokens, native). Only these
+// are priced: a quote for a token the account lacks would reach CoW for nothing.
+const held = computed(() =>
+  account.assets.value.filter((asset) => account.balanceOf(asset.token) > 0n),
+);
+
 // BRZ base units per whole token, by symbol ('' = native); null = no price.
 // The cache lives in priceInBrz, so a refetch within 60 s costs nothing.
 const prices = useQuery({
   queryKey: computed(() => [
     ...queryKeyRoots.passkeyPrices,
     user.network.value.id,
+    ...held.value.map((asset) => asset.token ?? ''),
   ]),
   queryFn: async () => {
     const entries = await Promise.all(
-      account.assets.value.map(
+      held.value.map(
         async (asset) =>
           [
             asset.token ?? '',
@@ -65,20 +72,17 @@ const toCents = (amount: bigint, decimals: number, price: bigint) =>
   (amount * price) /
   10n ** BigInt(decimals + account.decimalsOf(TokenEnum.BRZ) - 2);
 
-// Only the held assets, in asset order (BRZ, swap tokens, native).
 const rows = computed(() =>
-  account.assets.value
-    .filter((asset) => account.balanceOf(asset.token) > 0n)
-    .map((asset) => {
-      const amount = account.balanceOf(asset.token);
-      const decimals = account.decimalsOf(asset.token);
-      const price = prices.data.value?.get(asset.token ?? '') ?? null;
-      return {
-        ...asset,
-        text: formatTokenAmount(amount, decimals, asset.token ? 2 : 6),
-        cents: price === null ? null : toCents(amount, decimals, price),
-      };
-    }),
+  held.value.map((asset) => {
+    const amount = account.balanceOf(asset.token);
+    const decimals = account.decimalsOf(asset.token);
+    const price = prices.data.value?.get(asset.token ?? '') ?? null;
+    return {
+      ...asset,
+      text: formatTokenAmount(amount, decimals, asset.token ? 2 : 6),
+      cents: price === null ? null : toCents(amount, decimals, price),
+    };
+  }),
 );
 // Rows without a price are left out of the sum; no priced row, no total.
 const total = computed(() => {

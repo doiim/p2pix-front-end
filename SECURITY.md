@@ -94,10 +94,10 @@ Every request below is triggered by **first-party** code in this front-end (not 
   - _Escape path:_ Index, not authoritative; the chain is the source of truth. Pointing at another subgraph requires a rebuild; only `subgraphUrls[0]` is used (open gap).
 
 - **`https://api.cow.fi/arbitrum_one`** (CoW Protocol order book) — _on user action (swap token picked) and when the account panel opens_
-  - _Trigger:_ Buy or sell form with a swap token selected on Arbitrum One (quotes while typing), order post, order status polling every 10 s while it is live, and the account panel's R$ prices (cached 60 s per token).
+  - _Trigger:_ Buy or sell form with a swap token selected on Arbitrum One (quotes while typing), order post, order status polling every 10 s while it is live, and the account panel's R$ prices of the held tokens that have a swap pair (cached 60 s per token).
   - _Purpose:_ Price quotes and order relay to solvers; settlement is on-chain.
   - _Data exposed:_ Address (zero address before connecting and for the panel's prices), token pair, amounts, timing.
-  - _Escape path:_ Pick BRZ — the trade makes no request; the panel's prices still do. The endpoint is `swap.apiUrl` in `src/config/networks.ts`.
+  - _Escape path:_ Pick BRZ — the trade makes no request; the panel quotes only the held tokens that have a swap pair. The endpoint is `swap.apiUrl` in `src/config/networks.ts`.
 
 - **`https://api.p2pix.co` / `https://demo.api.p2pix.co`** (P2Pix prover) — _on user action (trade)_
   - _Trigger:_ Seller registration (`/register`), buyer charge creation (`/request`), release polling (`/release`).

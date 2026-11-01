@@ -93,13 +93,13 @@ const assertSendFunds = (params: SendParams, funds: Balances): void => {
 // Module-level state: the account page and every screen inside it share one
 // instance (same pattern as useUser). Balances live in the vue-query cache.
 const busy = ref(false);
-/** A send accepted by the bundler and waiting for its receipt. */
+/** A send submitted (UserOperation or transaction) and waiting for its receipt. */
 const sending = ref(false);
 const error = ref<string | null>(null);
 // Every network, not just the selected one: funds left on another chain.
 const discovered = ref<DiscoveredBalances | null>(null);
 
-/** Passkey and Magic sessions: one UserOperation from the Kernel account. */
+/** Smart-account rail (an active AA context): one UserOperation from the Kernel account. */
 const sendOnAaRail = async (
   context: AaContext,
   call: AaCall,
@@ -120,7 +120,7 @@ const sendOnAaRail = async (
   };
 };
 
-/** Any other connector: a plain transaction its wallet prompts for and pays gas on. */
+/** EOA rail (no AA context): a plain transaction the wallet prompts for and pays gas on. */
 const sendOnEoaRail = async (
   network: NetworkConfig,
   call: AaCall,
@@ -134,14 +134,23 @@ const sendOnEoaRail = async (
     chain: network,
   });
   sending.value = true;
+  // The wallet can replace the pending send: a speed-up still sends, a cancel does not.
+  let replacement: string | undefined;
   const receipt = await getPublicClient(network.id).waitForTransactionReceipt({
     hash,
+    onReplaced: (replaced) => (replacement = replaced.reason),
   });
-  if (receipt.status !== 'success') {
-    throw new Error(`Transação falhou na rede: ${hash}`);
+  if (
+    receipt.status !== 'success' ||
+    (replacement !== undefined && replacement !== 'repriced')
+  ) {
+    throw new Error(`Transação não concluída: ${hash}`);
   }
-  // No UserOperation on this rail: the transaction hash names the send.
-  return { userOpHash: hash, txHash: hash };
+  // No UserOperation on this rail: the mined transaction's hash names the send.
+  return {
+    userOpHash: receipt.transactionHash,
+    txHash: receipt.transactionHash,
+  };
 };
 
 export function usePasskeyAccount() {

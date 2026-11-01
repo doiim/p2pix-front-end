@@ -59,8 +59,9 @@ const handleConfirm = async () => {
   // The raw cause is in the console; WebAuthn and bundler errors are English.
   user.showToast(
     'error',
-    // The passkey library wraps WebAuthn's NotAllowedError (cancel, timeout).
-    /NotAllowedError|Failed to request credential/.test(
+    // The passkey library wraps WebAuthn's NotAllowedError (cancel, timeout);
+    // viem reports a wallet's rejection as "User rejected the request.".
+    /NotAllowedError|Failed to request credential|User rejected the request/.test(
       account.error.value ?? '',
     )
       ? 'Assinatura cancelada.'
