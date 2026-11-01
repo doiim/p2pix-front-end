@@ -12,7 +12,7 @@ export const findSwapToken = (network: NetworkConfig, symbol: string) =>
   network.swap?.tokens.find((t) => t.symbol === symbol);
 
 /**
- * Preselected in the selectors: the chain's first swap token (USDT on
+ * Preselected in the sell card: the chain's first swap token (USDT on
  * Arbitrum), or BRZ where there is no swap. The contract still only moves BRZ.
  */
 export const defaultUiToken = (network: NetworkConfig): string =>

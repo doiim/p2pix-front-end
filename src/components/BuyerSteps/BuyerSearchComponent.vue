@@ -28,7 +28,7 @@ import type { BuyPress, LimitRowVariant, PanelTag } from '@/utils/reputation';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import { useConnectModal } from '@/wallet/useConnectModal';
 import { TokenEnum } from '@/model/NetworkEnum';
-import { defaultUiToken, findSwapToken } from '@/model/BuyToken';
+import { findSwapToken } from '@/model/BuyToken';
 import { IMPACT_WARN_BPS, quoteLock, type SwapIntent } from '@/blockchain/swap';
 import { useSwapQuote } from '@/composables/useSwapQuote';
 import { formatEther, zeroAddress } from 'viem';
@@ -95,10 +95,9 @@ const displayCents = computed(() => {
     : 0n;
 });
 
-// Token received. A refusal is in BRZ (what the contract locks), so it reopens on BRZ.
-const buyToken = ref<string>(
-  props.refusal ? TokenEnum.BRZ : defaultUiToken(network.value),
-);
+// Token received. Starts on BRZ, what the contract locks: the reputation limit is checked against the
+// typed amount itself, while a swap token needs a CoW quote first.
+const buyToken = ref<string>(TokenEnum.BRZ);
 const swapping = computed(() => !!findSwapToken(network.value, buyToken.value));
 const swapQuote = useSwapQuote<{ lockAmount: bigint; impactBps: number }>();
 const impactBps = computed(() => swapQuote.result.value?.impactBps ?? null);
@@ -244,7 +243,7 @@ watch(
 // Swap tokens exist only on chains with a CoW config.
 watch(network, () => {
   if (!findSwapToken(network.value, buyToken.value))
-    buyToken.value = defaultUiToken(network.value);
+    buyToken.value = TokenEnum.BRZ;
 });
 
 // A refusal belongs to the network and account it happened on, but must survive mount: only a real
