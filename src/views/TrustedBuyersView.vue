@@ -36,8 +36,9 @@ onMounted(() => {
   // walletAddress is set a tick after mount on reload; the connector is not.
   if (!getCurrentAccount().address) router.push({ name: 'home' });
 });
+// The resolved address is also null while a network switch re-resolves it: only a gone connector is a disconnect.
 watch(walletAddress, (address) => {
-  if (!address) router.push({ name: 'home' });
+  if (!address && !getCurrentAccount().address) router.push({ name: 'home' });
 });
 
 const FILES_GONE: ConfirmRow = {
