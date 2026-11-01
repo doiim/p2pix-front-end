@@ -149,6 +149,8 @@ const confirmBuyClick = async (
       // and the search step shows it land ("Verificando seu limite…", then R3).
       await reputation.refresh({ timeoutMs: 4000 });
       searchRefusal.value = press;
+    } else {
+      user.showToast('error', releaseErrorMessage(err));
     }
     flowStep.value = Step.Search;
   } finally {
