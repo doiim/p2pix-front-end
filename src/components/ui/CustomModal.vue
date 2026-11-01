@@ -75,6 +75,8 @@ if (props.isRedirectModal) {
   align-items: center;
   height: 100%;
   width: 100%;
+  /* Same plane as CustomAlert: above the cards and the account panel. */
+  z-index: 10;
 }
 
 .modal {
