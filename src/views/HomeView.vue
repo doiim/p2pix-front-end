@@ -264,17 +264,23 @@ if (paramLockID) {
     flowStep.value = Step.Search;
   }
 } else {
+  // A lock being created or a release on its way owns the screen: a
+  // wallet or network event then must not move the flow or swap the lock.
+  const flowBusy = () =>
+    flowStep.value === Step.List ||
+    (flowStep.value === Step.Buy && !lockID.value);
+
   watch(walletAddress, async () => {
     // A cleared address means the effective-address resolution either
     // disconnected or failed; either way there is no lock to look up, so
     // return early instead of running the query and surfacing a spurious
     // 'Carteira não conectada' error from the watcher.
-    if (!walletAddress.value) return;
+    if (!walletAddress.value || flowBusy()) return;
     await checkForUnreleasedLocks().catch(console.error);
   });
 
   watch(network, async () => {
-    if (walletAddress.value)
+    if (walletAddress.value && !flowBusy())
       await checkForUnreleasedLocks().catch(console.error);
   });
 }
