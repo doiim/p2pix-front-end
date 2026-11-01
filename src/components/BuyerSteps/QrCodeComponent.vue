@@ -133,6 +133,16 @@ watch(solicitationQuery.error, (error) => {
   if (error) console.error('Error creating solicitation:', error);
 });
 
+// The charge is never retried on its own (a retried POST /request is a second charge),
+// so a failed read waits for the buyer to ask again instead of spinning forever.
+const loadFailed = computed(() =>
+  [lockQuery, participantQuery, solicitationQuery].some((q) => q.isError.value),
+);
+const retryLoad = () =>
+  [lockQuery, participantQuery, solicitationQuery]
+    .filter((q) => q.isError.value)
+    .forEach((q) => void q.refetch());
+
 // Clean up timeout on component unmount
 onUnmounted(() => {
   if (copyFeedbackTimeout.value) {
@@ -164,6 +174,22 @@ onUnmounted(() => {
           v-html="qrCodeSvg"
           class="w-48 h-48 flex items-center justify-center"
         ></div>
+        <div
+          v-else-if="loadFailed"
+          role="alert"
+          class="w-48 h-48 flex flex-col items-center justify-center gap-3 text-center"
+        >
+          <span class="text-sm font-medium">
+            Não foi possível gerar a cobrança Pix.
+          </span>
+          <button
+            type="button"
+            class="text-sm font-semibold underline"
+            @click="retryLoad"
+          >
+            Tentar de novo
+          </button>
+        </div>
         <div
           v-else
           class="w-48 h-48 flex items-center justify-center rounded-lg"
