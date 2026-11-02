@@ -17,6 +17,10 @@ import {
   getActiveAaContext,
   sendAaOperation,
 } from '@/blockchain/aa/operations';
+import {
+  discoverBalances,
+  type DiscoveredBalances,
+} from '@/blockchain/balanceDiscovery';
 import type { AaCall, AaContext } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
@@ -80,10 +84,20 @@ const assertSendFunds = (params: SendParams, funds: Balances): void => {
 // instance (same pattern as useUser).
 const busy = ref(false);
 const error = ref<string | null>(null);
+// The balance read's own failure; `error` belongs to the send flow.
+const balanceError = ref<string | null>(null);
 const balancesLoaded = ref(false);
 const balances = ref<TokenBalance[]>([]);
 const ethBalance = ref<bigint>(0n);
 const smartAccountAddress = ref<Address | null>(null);
+// Balance reads in flight, so the poll can skip a tick.
+const reads = ref(0);
+const reading = computed(() => reads.value > 0);
+let discoveryToken = 0;
+const discoveries = ref(0);
+const discovering = computed(() => discoveries.value > 0);
+// Every network, not just the selected one: funds left on another chain.
+const discovered = ref<DiscoveredBalances | null>(null);
 
 export function usePasskeyAccount() {
   const user = useUser();
@@ -121,9 +135,15 @@ export function usePasskeyAccount() {
   );
 
   const readBalances = async (): Promise<Balances> => {
+    const owner = user.walletAddress.value;
     const context = await getActiveAaContext();
     if (!context) throw new Error('Contexto da conta inteligente indisponível');
-    smartAccountAddress.value = context.account.address;
+    // Only a context that still matches the session may name the account.
+    if (
+      context.network.id === user.network.value.id &&
+      user.walletAddress.value === owner
+    )
+      smartAccountAddress.value = context.account.address;
     const result = await getTokenBalances(
       getPublicClient(),
       context.account.address,
@@ -136,20 +156,46 @@ export function usePasskeyAccount() {
   };
 
   const refreshBalances = async (): Promise<void> => {
+    const owner = user.walletAddress.value;
+    const networkId = user.network.value.id;
+    // A network or account switch may happen while a request is in flight;
+    // its result and its error belong to the previous session.
+    const isCurrent = () =>
+      networkId === user.network.value.id && user.walletAddress.value === owner;
+    reads.value += 1;
     try {
       const { context, result } = await readBalances();
-      // A network switch may have happened while this request was in flight.
-      if (context.network.id !== user.network.value.id) return;
+      if (!isCurrent() || context.network.id !== networkId) return;
       ethBalance.value = result.eth;
       balances.value = result.tokens;
       balancesLoaded.value = true;
-      error.value = null;
+      balanceError.value = null;
     } catch (cause) {
       console.error('[account] balance read failed', cause);
-      // `balancesLoaded` stays false on purpose: consumers must render `error`
+      if (!isCurrent()) return;
+      // `balancesLoaded` stays false on purpose: consumers must render `balanceError`
       // (never the loading state) when a read fails.
-      error.value =
+      balanceError.value =
         cause instanceof Error ? cause.message : 'Falha ao buscar os saldos';
+    } finally {
+      reads.value -= 1;
+    }
+  };
+
+  // Reads every network, so it runs on demand, never on each balance poll.
+  const refreshDiscovered = async (): Promise<void> => {
+    const owner = smartAccountAddress.value;
+    if (!owner) return;
+    discoveryToken += 1;
+    const token = discoveryToken;
+    discoveries.value += 1;
+    try {
+      const found = await discoverBalances(owner);
+      // Only the latest request may land, and only for the same session.
+      if (token === discoveryToken && smartAccountAddress.value === owner)
+        discovered.value = found;
+    } finally {
+      discoveries.value -= 1;
     }
   };
 
@@ -205,6 +251,7 @@ export function usePasskeyAccount() {
         txHash,
       });
       await refreshBalances();
+      void refreshDiscovered();
       return { userOpHash, txHash };
     } catch (cause) {
       console.error('[account] send failed', cause);
@@ -224,16 +271,22 @@ export function usePasskeyAccount() {
     balances.value = [];
     ethBalance.value = 0n;
     balancesLoaded.value = false;
+    discovered.value = null;
     error.value = null;
+    balanceError.value = null;
   };
 
   return {
     busy,
     error,
+    balanceError,
     balancesLoaded,
     balances,
     ethBalance,
+    discovered,
     smartAccountAddress,
+    reading,
+    discovering,
     isReady,
     symbolOf,
     decimalsOf,
@@ -241,6 +294,7 @@ export function usePasskeyAccount() {
     assets,
     send,
     refreshBalances,
+    refreshDiscovered,
     explorerTxUrl,
     reset,
   };

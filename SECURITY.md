@@ -52,7 +52,7 @@ P2Pix is self-custodial for signing on injected and WalletConnect EOAs and WebAu
 ### Alchemy RPC + The Graph (reads)
 
 - **What it is:** the read layer — RPC and indexed events.
-- **What it sees or can block:** your addresses, read requests and query parameters.
+- **What it sees or can block:** your addresses, read requests and query parameters. With a smart account open, its address goes to the RPC of every wired network (not only the selected one) on opening the panel, on a network or wallet switch and after a send, and again from the 15 s poll only while no result has landed yet and none is in flight; the selected network's RPC is also read every 15 s while the tab is visible.
 - **Escape path:** point the app at your own RPC and subgraph — a config change and rebuild.
 
 ## Outbound network requests (what the app phones home to)
