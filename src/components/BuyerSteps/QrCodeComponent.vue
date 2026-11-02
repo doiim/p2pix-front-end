@@ -40,15 +40,18 @@ const participantQuery = useParticipantIdQuery(
   sellerAddress,
   tokenAddress,
 );
+// The lock exists on the chain it was created on. After a network switch the
+// reads follow the new chain, where this id is another lock: no charge then.
+const lockChainId = network.value.id;
 const offer = computed<Offer | null>(() => {
   const lock = lockQuery.data.value;
   const participantId = participantQuery.data.value;
-  if (!lock || !participantId) return null;
+  if (network.value.id !== lockChainId || !lock || !participantId) return null;
   return {
     amount: lock.amount,
     sellerId: participantId,
     lockID: BigInt(props.lockID),
-    chainId: network.value.id,
+    chainId: lockChainId,
   };
 });
 const solicitationQuery = useLockSolicitationQuery(offer);
