@@ -181,6 +181,12 @@ const walletMenuOptions: MenuOption[] = [
     showInMobile: true,
   },
   {
+    label: 'Compradores confiáveis',
+    route: '/allowlist',
+    showInDesktop: true,
+    showInMobile: true,
+  },
+  {
     label: 'Perguntas frequentes',
     route: '/faq',
     showInDesktop: false,

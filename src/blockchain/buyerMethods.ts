@@ -2,6 +2,7 @@ import { getContract } from './provider';
 import { p2PixAbi } from './abi';
 import { getActiveAaContext, sendAaOperation } from './aa/operations';
 import type { AaCall } from './aa/types';
+import { findAllowlistProof } from './allowlist';
 import type { PixProof } from '@/utils/pixProof';
 import {
   type Abi,
@@ -104,12 +105,13 @@ export const addLock = async (
   const aa = await getActiveAaContext();
 
   if (aa) {
+    const proof = await findAllowlistProof(sellerAddress, aa.account.address);
     const call: AaCall = {
       to: address,
       data: encodeFunctionData({
         abi: abi as Abi,
         functionName: 'lock',
-        args: [sellerAddress, tokenAddress, parsedAmount, [], []],
+        args: [sellerAddress, tokenAddress, parsedAmount, proof, []],
       }),
       value: 0n,
     };
@@ -131,11 +133,12 @@ export const addLock = async (
   if (!wallet) throw new Error('Carteira não conectada');
   if (!account) throw new Error('Account not available');
 
+  const proof = await findAllowlistProof(sellerAddress, account);
   const { request } = await client.simulateContract({
     address,
     abi,
     functionName: 'lock',
-    args: [sellerAddress, tokenAddress, parsedAmount, [], []],
+    args: [sellerAddress, tokenAddress, parsedAmount, proof, []],
     account,
   });
   const hash = await wallet.writeContract(request);
