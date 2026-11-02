@@ -4,6 +4,7 @@ import { computedAsync, useClipboard, useEventListener } from '@vueuse/core';
 import QRCode from 'qrcode';
 import { useConnect, useConnectors } from '@wagmi/vue';
 import { isPasskeyCancelled } from '@doiim/passkeys';
+import { hasKnownPasskey } from '@doiim/passkeys/storage';
 import { PASSKEY_CONNECTOR_ID, setPasskeyIntent } from '@doiim/passkeys/wagmi';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import IconButton from '@/components/ui/IconButton.vue';
@@ -60,6 +61,11 @@ const byId = (id: string) => connectors.value.find((c) => c.id === id);
 const passkey = computed(() =>
   isPasskeyAvailable() ? byId(PASSKEY_CONNECTOR_ID) : undefined,
 );
+// No passkey ever used in this browser: creating one is the likely first step,
+// so it takes the main row and "login" moves to the small one. Read on open.
+const knownPasskey = ref(hasKnownPasskey());
+const passkeyMain = computed(() => (knownPasskey.value ? 'login' : 'create'));
+const passkeyAlt = computed(() => (knownPasskey.value ? 'create' : 'login'));
 const walletConnect = computed(() => byId(WALLETCONNECT_ID));
 // the generic 'injected' connector is only a fallback: hide it when EIP-6963
 // wallets were discovered (they carry their own ids) or there is no window.ethereum
@@ -103,6 +109,7 @@ watch(isOpen, async (open) => {
   previousOverflow = document.body.style.overflow;
   document.body.style.overflow = 'hidden';
   if (magicSessionUnverified.value) error.value = MAGIC_UNVERIFIED_ERROR;
+  knownPasskey.value = hasKnownPasskey();
   await nextTick();
   dialogRef.value?.focus();
 });
@@ -121,7 +128,7 @@ const MAGIC_UNVERIFIED_ERROR =
   'Não foi possível verificar sua sessão de email/Google. Recarregue a página antes de entrar de novo.';
 
 const PASSKEY_LOGIN_ERROR =
-  'Não foi possível usar um passkey. Tente de novo, use um passkey de outro aparelho (QR) ou crie um novo.';
+  'Não foi possível usar um passkey. Tente de novo, use um passkey de outro aparelho (QR) ou use Criar passkey.';
 
 class WalletConnectStartError extends Error {}
 class PasskeyLoginError extends Error {}
@@ -172,7 +179,7 @@ const onConnector = (connector: Connector) =>
 // "not found" and "dismissed" are indistinguishable (NotAllowedError), so on
 // login both get the same way out: retry, another device (QR), or create.
 function onPasskey(connector: Connector, intent: 'login' | 'create') {
-  return run(connector.uid, async () => {
+  return run(`${connector.uid}:${intent}`, async () => {
     setPasskeyIntent(intent);
     try {
       await connectWith(connector);
@@ -418,26 +425,45 @@ onBeforeUnmount(() => {
               type="button"
               class="row soft"
               :disabled="!!loadingKey"
-              @click="onPasskey(passkey, 'login')"
+              @click="onPasskey(passkey, passkeyMain)"
             >
               <span class="row-icon bg-white"
                 ><FingerprintIcon aria-hidden="true" class="w-5 h-5"
               /></span>
               <span class="row-text">
-                <span class="row-title">Entrar com passkey</span>
-                <span class="row-subtitle">Biometria ou PIN do aparelho</span>
+                <span class="row-title">{{
+                  knownPasskey ? 'Entrar com passkey' : 'Criar passkey'
+                }}</span>
+                <span class="row-subtitle">{{
+                  knownPasskey
+                    ? 'Biometria ou PIN do aparelho'
+                    : 'Cria uma conta nova com biometria ou PIN'
+                }}</span>
               </span>
-              <span v-if="loadingKey === passkey.uid" class="spinner small" />
+              <span
+                v-if="loadingKey === `${passkey.uid}:${passkeyMain}`"
+                class="spinner small"
+              />
             </button>
             <button
               type="button"
               class="row"
               :disabled="!!loadingKey"
-              @click="onPasskey(passkey, 'create')"
+              @click="onPasskey(passkey, passkeyAlt)"
             >
               <span class="row-text">
-                <span class="row-title text-sm">Criar novo passkey</span>
+                <span class="row-title text-sm">{{
+                  knownPasskey ? 'Criar novo passkey' : 'Já tenho um passkey'
+                }}</span>
+                <span v-if="!knownPasskey" class="row-subtitle"
+                  >Entrar com uma passkey já salva (iCloud, Google ou neste
+                  aparelho)</span
+                >
               </span>
+              <span
+                v-if="loadingKey === `${passkey.uid}:${passkeyAlt}`"
+                class="spinner small"
+              />
             </button>
           </section>
 
