@@ -253,7 +253,7 @@ const checkForUnreleasedLocks = async (): Promise<void> => {
 if (paramLockID) {
   const lockToRedirect = await queryClient.fetchQuery({
     queryKey: lockKey(network.value.id, paramLockID),
-    queryFn: () => getUnreleasedLockById(BigInt(paramLockID)),
+    queryFn: () => getUnreleasedLockById(BigInt(paramLockID), network.value),
   });
   if (lockToRedirect) {
     lockID.value = String(lockToRedirect.lockID);

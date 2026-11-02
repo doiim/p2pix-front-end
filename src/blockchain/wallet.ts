@@ -291,7 +291,7 @@ export const checkUnreleasedLock = async (
     (s: LockStatus) => s === LockStatus.Active,
   );
   if (unreleasedLockId !== -1) {
-    return getUnreleasedLockById(sortedIDs[unreleasedLockId]);
+    return getUnreleasedLockById(sortedIDs[unreleasedLockId], network);
   }
   return null;
 };

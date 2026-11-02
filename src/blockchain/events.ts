@@ -1,6 +1,6 @@
 import { formatEther, isAddress, toHex } from 'viem';
 import type { Address } from 'viem';
-import { getContract, getPublicClient } from './provider';
+import { getPublicClient } from './provider';
 import { toLock } from './buyerMethods';
 import { p2PixAbi } from './abi';
 import { Networks } from '@/config/networks';
@@ -45,15 +45,23 @@ const getNetworksLiquidity = async (
   };
 };
 
+// A lock and its Pix target live on one chain: read that chain's own client
+// and P2Pix, never the selected one, which can change mid-read.
+const p2pixOn = (network: NetworkConfig) => ({
+  client: getPublicClient(network.id),
+  address: (network.contracts?.p2pix as ChainContract).address,
+});
+
 const getParticipantID = async (
   seller: Address,
   token: Address,
+  network: NetworkConfig,
 ): Promise<string> => {
-  const { address, abi, client } = await getContract();
+  const { address, client } = p2pixOn(network);
 
   const participantIDHex = await client.readContract({
     address,
-    abi,
+    abi: p2PixAbi,
     functionName: 'getPixTarget',
     args: [seller, token],
   });
@@ -161,13 +169,14 @@ const getValidDeposits = async (
 
 const getUnreleasedLockById = async (
   lockID: bigint,
+  network: NetworkConfig,
 ): Promise<UnreleasedLock> => {
-  const { address, abi, client } = await getContract();
+  const { address, client } = p2pixOn(network);
 
   const { amount, token, seller } = toLock(
     await client.readContract({
       address,
-      abi,
+      abi: p2PixAbi,
       functionName: 'mapLocks',
       args: [lockID],
     }),

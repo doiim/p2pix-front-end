@@ -87,7 +87,8 @@ export function useLockQuery(
 ) {
   return useQuery({
     queryKey: computed(() => lockKey(network.value.id, lockId.value ?? '')),
-    queryFn: () => getUnreleasedLockById(BigInt(lockId.value ?? '0')),
+    queryFn: () =>
+      getUnreleasedLockById(BigInt(lockId.value ?? '0'), network.value),
     enabled: computed(() => Boolean(lockId.value)),
   });
 }
@@ -149,7 +150,7 @@ export function useParticipantIdQuery(
       if (!sellerAddress || !tokenAddress) {
         throw new Error('Vendedor e token da reserva não estão disponíveis');
       }
-      return getParticipantID(sellerAddress, tokenAddress);
+      return getParticipantID(sellerAddress, tokenAddress, network.value);
     },
     enabled: computed(() => Boolean(seller.value && token.value)),
   });

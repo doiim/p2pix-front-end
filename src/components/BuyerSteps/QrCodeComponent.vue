@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onUnmounted, ref, watch } from 'vue';
+import { computed, onUnmounted, ref, shallowRef, watch } from 'vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import { type Offer } from '@/utils/bbPay';
@@ -27,31 +27,35 @@ const submitting = ref<boolean>(false);
 const copyFeedback = ref<boolean>(false);
 const copyFeedbackTimeout = ref<NodeJS.Timeout | null>(null);
 
+// The lock exists on the chain it was created on: every read below stays on
+// that chain, even if the wallet switches network while it runs.
+const lockNetwork = shallowRef(network.value);
+
 // The lock feeds the PIX target, which feeds the solicitation; each stage is
 // its own cache entry, so re-entering this screen reuses what already resolved.
 const lockQuery = useLockQuery(
-  network,
+  lockNetwork,
   computed(() => props.lockID),
 );
 const sellerAddress = computed(() => lockQuery.data.value?.sellerAddress);
 const tokenAddress = computed(() => lockQuery.data.value?.tokenAddress);
 const participantQuery = useParticipantIdQuery(
-  network,
+  lockNetwork,
   sellerAddress,
   tokenAddress,
 );
-// The lock exists on the chain it was created on. After a network switch the
-// reads follow the new chain, where this id is another lock: no charge then.
-const lockChainId = network.value.id;
+// On another network the release would go to that chain's P2Pix, where this
+// id is another lock: no charge until the wallet is back on the lock's chain.
 const offer = computed<Offer | null>(() => {
   const lock = lockQuery.data.value;
   const participantId = participantQuery.data.value;
-  if (network.value.id !== lockChainId || !lock || !participantId) return null;
+  if (network.value.id !== lockNetwork.value.id || !lock || !participantId)
+    return null;
   return {
     amount: lock.amount,
     sellerId: participantId,
     lockID: BigInt(props.lockID),
-    chainId: lockChainId,
+    chainId: lockNetwork.value.id,
   };
 });
 const solicitationQuery = useLockSolicitationQuery(offer);
