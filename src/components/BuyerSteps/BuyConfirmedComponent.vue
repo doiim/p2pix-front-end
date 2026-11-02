@@ -14,17 +14,23 @@ import CustomButton from '@/components/ui/CustomButton.vue';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import type { WalletTransaction } from '@/model/WalletTransaction';
 import { useUser } from '@/composables/useUser';
-import { onMounted, ref, watch } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import ListingComponent from '@/components/ListingComponent/ListingComponent.vue';
-import { erc20Abi, UserRejectedRequestError } from 'viem';
 import ReputationNewLimitLine from '@/components/BuyerSteps/Reputation/ReputationNewLimitLine.vue';
 import type { LimitChange } from '@/utils/reputation';
+import SwapOrderStatus from '@/components/Swap/SwapOrderStatus.vue';
+import { cancelSwap, requoteSwap } from '@/blockchain/swap';
+import { findSwapToken } from '@/model/BuyToken';
+import { TokenEnum } from '@/model/NetworkEnum';
+import { erc20Abi, parseEther, UserRejectedRequestError, type Hex } from 'viem';
 
 // props
 const props = defineProps<{
   tokenAmount: number | undefined;
   isCurrentStep: boolean;
   newLimit: LimitChange | null;
+  /** Present when the buyer asked for another token after the release. */
+  swap?: { uid: Hex | null; token: string };
 }>();
 
 const user = useUser();
@@ -163,6 +169,21 @@ const watchToken = async () => {
 // Emits
 const emit = defineEmits(['makeAnotherTransaction']);
 
+const swapToken = computed(() =>
+  props.swap ? findSwapToken(user.network.value, props.swap.token) : undefined,
+);
+const brzAddress = computed(
+  () => user.network.value.tokens[TokenEnum.BRZ].address,
+);
+const requoteBought = () =>
+  props.tokenAmount
+    ? requoteSwap(
+        props.swap?.token ?? '',
+        parseEther(String(props.tokenAmount)),
+      )
+    : Promise.reject(new Error('No purchase amount to swap'));
+const keepBrz = (uid: Hex) => cancelSwap(uid, brzAddress.value);
+
 // observer
 // Not `watch(props)`: the late `newLimit` update must not re-run the subgraph and RPC reads.
 watch(
@@ -221,6 +242,15 @@ onMounted(async () => {
           {{ watchTokenAlert.message }}
         </div>
       </div>
+      <SwapOrderStatus
+        v-if="props.swap && swapToken"
+        :order-uid="props.swap.uid"
+        :token="swapToken.symbol"
+        :token-address="swapToken.address"
+        :keep="TokenEnum.BRZ"
+        :requote="requoteBought"
+        :cancel="keepBrz"
+      />
       <button
         type="button"
         class="border-amber-500 border-2 rounded default-button text-white p-2 px-50 min-w-[198px]"

@@ -1,14 +1,16 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { onClickOutside } from '@vueuse/core';
+import { formatUnits, parseEther, zeroAddress } from 'viem';
 import { useUser } from '@/composables/useUser';
 import CustomButton from '@/components/ui/CustomButton.vue';
+import TokenSelector from '@/components/Swap/TokenSelector.vue';
 import { postProcessKey } from '@/utils/pixKeyFormat';
-import { TokenEnum } from '@/model/NetworkEnum';
-import { getTokenImage } from '@/utils/imagesPath';
 import { floorCents, formatBrlFixed } from '@/utils/reputation';
 import { useConnectModal } from '@/wallet/useConnectModal';
-import ChevronDown from '@/assets/chevron.svg';
+import { defaultUiToken, findSwapToken } from '@/model/BuyToken';
+import { IMPACT_WARN_BPS, quoteBrzCost } from '@/blockchain/swap';
+import { useSwapQuote } from '@/composables/useSwapQuote';
 
 // Import the bank list
 import bankList from '@/utils/files/isbpList.json';
@@ -22,7 +24,6 @@ interface Bank {
 }
 
 // html references
-const tokenDropdownRef = ref<HTMLElement | null>(null);
 const bankFieldRef = ref<HTMLElement | null>(null);
 const formRef = ref<HTMLFormElement | null>(null);
 
@@ -35,9 +36,53 @@ const identification = ref<string>('');
 const account = ref<string>('');
 const branch = ref<string>('');
 const accountType = ref<string>('');
-const selectTokenToggle = ref<boolean>(false);
 const savingsVariation = ref<string>('');
 const errors = ref<{ [key: string]: string }>({});
+
+// Pay with: BRZ deposits as is; a swap token first buys the offer's BRZ on CoW.
+const payToken = ref<string>(defaultUiToken(user.network.value));
+const swapToken = computed(() =>
+  findSwapToken(user.network.value, payToken.value),
+);
+const cost = useSwapQuote<{
+  cost: bigint;
+  decimals: number;
+  impactBps: number;
+}>();
+const costLabel = computed(() =>
+  cost.result.value
+    ? Number(
+        formatUnits(cost.result.value.cost, cost.result.value.decimals),
+      ).toFixed(2)
+    : null,
+);
+
+let quoteTimer: ReturnType<typeof setTimeout> | undefined;
+const refreshCost = (): void => {
+  clearTimeout(quoteTimer);
+  // The old cost must not sit beside a new input while the debounce runs.
+  cost.result.value = null;
+  cost.failed.value = false;
+  cost.quoting.value = !!swapToken.value && Number(offer.value) > 0;
+  quoteTimer = setTimeout(() => {
+    const token = swapToken.value;
+    cost.run(
+      token && Number(offer.value) > 0
+        ? () =>
+            quoteBrzCost(
+              token.symbol,
+              parseEther(String(offer.value)),
+              walletAddress.value ?? zeroAddress,
+            )
+        : null,
+    );
+  }, 500);
+};
+watch([offer, payToken], refreshCost);
+watch(user.network, () => {
+  // Swap tokens exist only on chains with a CoW config.
+  if (!swapToken.value) payToken.value = defaultUiToken(user.network.value);
+});
 
 // Bank selection
 const bankSearchQuery = ref<string>('');
@@ -137,21 +182,7 @@ const handleSubmit = (e: Event): void => {
     savingsVariation: savingsVariation.value || '',
   };
 
-  emit('approveTokens', data);
-};
-
-// Token selection
-const toggleTokenSelection = (): void => {
-  selectTokenToggle.value = !selectTokenToggle.value;
-};
-
-onClickOutside(tokenDropdownRef, () => {
-  selectTokenToggle.value = false;
-});
-
-const handleSelectedToken = (token: TokenEnum): void => {
-  user.setSelectedToken(token);
-  selectTokenToggle.value = false;
+  emit('approveTokens', data, swapToken.value?.symbol);
 };
 </script>
 
@@ -176,65 +207,37 @@ const handleSelectedToken = (token: TokenEnum): void => {
           step=".01"
           required
         />
-        <div ref="tokenDropdownRef" class="relative overflow-visible shrink-0">
-          <button
-            type="button"
-            class="flex flex-row items-center p-2 bg-gray-300 hover:bg-gray-200 focus:outline-indigo-800 focus:outline-2 rounded-3xl min-w-fit gap-2 transition-colors"
-            :aria-expanded="selectTokenToggle"
-            @click="toggleTokenSelection()"
-          >
-            <img
-              alt="Imagem do token"
-              class="sm:w-fit w-4"
-              :src="getTokenImage(selectedToken)"
-            />
-            <span
-              class="text-gray-900 sm:text-lg text-md font-medium"
-              id="token"
-            >
-              {{ selectedToken }}
-            </span>
-            <ChevronDown
-              class="shrink-0 text-gray-900 transition-all duration-500 ease-in-out"
-              :class="{ 'scale-y-[-1]': selectTokenToggle }"
-              alt="Expandir"
-            />
-          </button>
-          <transition name="dropdown">
-            <div
-              v-if="selectTokenToggle"
-              class="mt-2 text-gray-900 absolute right-0 z-50 w-full min-w-max"
-            >
-              <div
-                class="bg-white rounded-xl z-10 border border-gray-300 drop-shadow-md shadow-md overflow-clip"
-              >
-                <div
-                  v-for="token in TokenEnum"
-                  :key="token"
-                  class="flex menu-button gap-2 px-4 cursor-pointer hover:bg-gray-300 transition-colors"
-                  @click="handleSelectedToken(token)"
-                >
-                  <img
-                    :alt="token + ' logo'"
-                    width="20"
-                    height="20"
-                    :src="getTokenImage(token)"
-                  />
-                  <span
-                    class="text-gray-900 py-4 text-end font-semibold text-sm"
-                  >
-                    {{ token }}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </transition>
-        </div>
+        <TokenSelector v-model="payToken" />
       </div>
       <div class="custom-divide py-2 mb-2"></div>
       <p class="text-gray-500 font-normal text-sm">
         ~ R$ {{ formatBrlFixed(floorCents(Number(offer))) }}
       </p>
+    </div>
+    <div
+      v-if="swapToken"
+      class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg gap-1 text-sm text-center"
+    >
+      <span class="text-gray-500"
+        >Você paga até ~
+        {{ cost.quoting.value ? 'cotando…' : (costLabel ?? '—') }}
+        {{ payToken }}. A CoW Swap troca por {{ offer || 0 }}
+        {{ selectedToken }} antes do depósito; se a ordem não executar, o
+        {{ payToken }} fica na sua carteira.</span
+      >
+      <span
+        v-if="
+          cost.result.value && cost.result.value.impactBps > IMPACT_WARN_BPS
+        "
+        class="text-amber-600"
+        >Impacto de preço de
+        {{ (cost.result.value.impactBps / 100).toFixed(1) }}% pela liquidez
+        disponível agora.</span
+      >
+      <span v-if="cost.failed.value" class="text-red-500"
+        >Sem cotação para {{ payToken }} agora. Tente outro valor ou escolha
+        {{ selectedToken }}.</span
+      >
     </div>
     <!-- CPF or CNPJ input -->
     <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg">
@@ -375,7 +378,14 @@ const handleSelectedToken = (token: TokenEnum): void => {
       />
     </Transition>
     <!-- Action buttons -->
-    <CustomButton v-if="walletAddress" type="submit" text="Aprovar tokens" />
+    <CustomButton
+      v-if="walletAddress"
+      type="submit"
+      :text="
+        swapToken ? `Trocar ${payToken} por ${selectedToken}` : 'Aprovar tokens'
+      "
+      :isDisabled="!!swapToken && (cost.quoting.value || !cost.result.value)"
+    />
     <CustomButton
       v-else
       text="Conectar carteira"
