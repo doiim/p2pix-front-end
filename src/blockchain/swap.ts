@@ -148,20 +148,29 @@ export const releaseAndSwap = async (
 ): Promise<Released> => {
   const release: ReleaseArgs = [lockID, proof];
   // The Pix is paid: without a swap config on this chain, just release.
-  if (!useUser().network.value.swap) {
-    const receipt = await releaseLock(...release);
-    return { uid: null, blockNumber: receipt.blockNumber };
-  }
+  if (!useUser().network.value.swap) return releaseOnly(release);
   const ctx = swapContext();
   const aa = await getActiveAaContext();
   const owner = aa ? aa.account.address : (await eoa()).account;
-  const lock = await getBuyerLock(lockID, owner);
-  const order = await priceBuyOrder(ctx, intent, owner, lock.amount).catch(
-    deliverBrzOnly('quote'),
-  );
-  return aa
-    ? releaseWithOrderAa(ctx, release, owner, order)
-    : releaseWithOrderEoa(ctx, release, owner, order);
+  const order = await getBuyerLock(lockID, owner)
+    .then((lock) => priceBuyOrder(ctx, intent, owner, lock.amount))
+    .catch(deliverBrzOnly('quote'));
+  if (!order) return releaseOnly(release);
+  // The release rides with the order's calls; if that bundle fails, release
+  // alone so a swap step never holds the paid BRZ back.
+  return (
+    aa
+      ? releaseWithOrderAa(ctx, release, owner, order)
+      : releaseWithOrderEoa(ctx, release, owner, order)
+  ).catch((cause) => {
+    deliverBrzOnly('release with order')(cause);
+    return releaseOnly(release);
+  });
+};
+
+const releaseOnly = async (release: ReleaseArgs): Promise<Released> => {
+  const receipt = await releaseLock(...release);
+  return { uid: null, blockNumber: receipt.blockNumber };
 };
 
 /** `release`'s own arguments: the lock id and the Pix proof. */
@@ -173,16 +182,14 @@ const releaseWithOrderAa = async (
   ctx: SwapContext,
   release: ReleaseArgs,
   owner: Address,
-  order: CowOrder | null,
+  order: CowOrder,
 ): Promise<Released> => {
-  const uid = order
-    ? await submit(ctx, order, owner, presigned(owner)).catch(
-        deliverBrzOnly('order'),
-      )
-    : null;
+  const uid = await submit(ctx, order, owner, presigned(owner)).catch(
+    deliverBrzOnly('order'),
+  );
   const receipt = await releaseLock(
     ...release,
-    order && uid ? presignCalls(await contractsOf(ctx), order, uid) : [],
+    uid ? presignCalls(await contractsOf(ctx), order, uid) : [],
   );
   return { uid, blockNumber: receipt.blockNumber };
 };
@@ -191,12 +198,8 @@ const releaseWithOrderEoa = async (
   ctx: SwapContext,
   release: ReleaseArgs,
   owner: Address,
-  order: CowOrder | null,
+  order: CowOrder,
 ): Promise<Released> => {
-  if (!order) {
-    const receipt = await releaseLock(...release);
-    return { uid: null, blockNumber: receipt.blockNumber };
-  }
   const { wallet } = await eoa();
   const uid = (await canBatchAtomically(wallet, owner, ctx.network.id))
     ? await submit(ctx, order, owner, presigned(owner)).catch(

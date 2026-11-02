@@ -137,6 +137,8 @@ export const cancelOrders = async (
   });
 };
 
+const COW_TIMEOUT_MS = 10_000;
+
 const call = async (
   swap: SwapConfig,
   path: string,
@@ -147,6 +149,9 @@ const call = async (
     method,
     headers: body ? { 'Content-Type': 'application/json' } : undefined,
     body: body ? JSON.stringify(body) : undefined,
+    // The release waits on the quote and the order post: a hung order book
+    // must fail (and fall back to BRZ only), not stall it.
+    signal: AbortSignal.timeout(COW_TIMEOUT_MS),
   });
   // Some errors (e.g. a malformed uid in the path) come back as plain text.
   const json: unknown = response.headers
