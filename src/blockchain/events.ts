@@ -46,7 +46,10 @@ const getNetworksLiquidity = async (
 };
 
 // A lock and its Pix target live on one chain: read that chain's own client
-// and P2Pix, never the selected one, which can change mid-read.
+// and P2Pix, never the selected one. Lock ids are per-contract counters, so
+// lock #7 on another chain is someone else's lock; reading the selected chain
+// let a network switch mid-read cache that lock under the original chain's
+// key, and the QR then posted a Pix charge with the wrong amount and seller.
 const p2pixOn = (network: NetworkConfig) => ({
   client: getPublicClient(network.id),
   address: (network.contracts?.p2pix as ChainContract).address,

@@ -28,7 +28,10 @@ const copyFeedback = ref<boolean>(false);
 const copyFeedbackTimeout = ref<NodeJS.Timeout | null>(null);
 
 // The lock exists on the chain it was created on: every read below stays on
-// that chain, even if the wallet switches network while it runs.
+// that chain, even if the wallet switches network while it runs. Do not pass
+// the live `network` here: lock ids repeat across chains, so after a switch
+// the reads would fetch another chain's lock #N and the solicitation would
+// post (and save in localStorage for good) a Pix charge for the wrong lock.
 const lockNetwork = shallowRef(network.value);
 
 // The lock feeds the PIX target, which feeds the solicitation; each stage is
