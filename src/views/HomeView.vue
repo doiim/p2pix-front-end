@@ -22,7 +22,7 @@ import type { ValidDeposit } from '@/model/ValidDeposit';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import type { Address } from 'viem';
-import type { PixProof } from '@/utils/pixProof';
+import { releaseErrorMessage, type PixProof } from '@/utils/pixProof';
 
 enum Step {
   Search,
@@ -134,7 +134,8 @@ const releaseTransaction = async (proof: PixProof) => {
       console.error(err);
     }
   } catch (err) {
-    console.log(err);
+    console.error(err);
+    user.showToast('error', releaseErrorMessage(err));
     showBuyAlert.value = false;
     flowStep.value = Step.Buy;
   } finally {

@@ -1,3 +1,4 @@
+import type { Address } from 'viem';
 import { toPixProof, type PixProof, type RawProof } from './pixProof';
 
 export interface Participant {
@@ -30,6 +31,53 @@ export interface Solicitation {
   /** Bacen EMV "copia e cola" payload. */
   textoQrCode?: string;
 }
+
+const solicitationKey = (
+  chainId: number,
+  p2pix: Address,
+  lockID: bigint,
+): string => `p2pix.solicitation.${chainId}.${p2pix.toLowerCase()}.${lockID}`;
+
+/**
+ * The charge already created for this lock on this network, if any. Kept in
+ * localStorage so a reload, a revert or a later visit reuses it: a lock whose
+ * fiat leg was paid must never be charged twice.
+ */
+export const loadSolicitation = (
+  chainId: number,
+  p2pix: Address,
+  lockID: bigint,
+): Solicitation | null => {
+  try {
+    const raw = localStorage.getItem(solicitationKey(chainId, p2pix, lockID));
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const numero =
+      'numeroSolicitacao' in parsed ? parsed.numeroSolicitacao : undefined;
+    const texto = 'textoQrCode' in parsed ? parsed.textoQrCode : undefined;
+    if (typeof numero !== 'string' || numero === '') return null;
+    if (texto !== undefined && typeof texto !== 'string') return null;
+    return { numeroSolicitacao: numero, textoQrCode: texto };
+  } catch {
+    return null;
+  }
+};
+
+export const saveSolicitation = (
+  chainId: number,
+  p2pix: Address,
+  lockID: bigint,
+  solicitation: Solicitation,
+): void => {
+  try {
+    localStorage.setItem(
+      solicitationKey(chainId, p2pix, lockID),
+      JSON.stringify(solicitation),
+    );
+  } catch {
+    // Storage unavailable: the charge still lives in the component state.
+  }
+};
 
 // Specs for BB Pay Sandbox
 // https://apoio.developers.bb.com.br/sandbox/spec/665797498bb48200130fc32c

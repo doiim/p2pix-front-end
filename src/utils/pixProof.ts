@@ -1,4 +1,6 @@
 import {
+  ContractFunctionRevertedError,
+  UserRejectedRequestError,
   encodePacked,
   keccak256,
   type Address,
@@ -93,4 +95,57 @@ export const pixProofDigest = (proof: PixProof, bank: BankConfig): Hex => {
       ],
     ),
   );
+};
+
+/** The connected account is not the buyer of the lock being released. */
+export class NotLockBuyerError extends Error {
+  constructor() {
+    super('Connected account is not the buyer of this lock');
+    this.name = 'NotLockBuyerError';
+  }
+}
+
+/** What the buyer reads when `release` reverts, by the contract's own error. */
+const RELEASE_ERRORS: Record<string, string> = {
+  ProofExpired:
+    'A prova de pagamento venceu. Busque uma nova prova e envie novamente.',
+  InvalidAttestor: 'O atestador desta prova não é aceito pelo contrato.',
+  PixTargetMismatch: 'O Pix foi pago a outra chave, não à deste lock.',
+  AlreadyReleased: 'Este lock já foi liberado.',
+  LockExpired: 'Este lock expirou.',
+  MalformedProof: 'A prova de pagamento está malformada.',
+};
+
+const isWalletRejection = (e: unknown): boolean =>
+  e instanceof UserRejectedRequestError ||
+  (typeof e === 'object' && e !== null && 'code' in e && e.code === 4001) ||
+  // The passkey library wraps WebAuthn's NotAllowedError (cancel, timeout).
+  (e instanceof Error &&
+    /NotAllowedError|Failed to request credential/.test(
+      `${e.name} ${e.message}`,
+    ));
+
+/**
+ * The pt-BR message to show when submitting the release fails: the contract's
+ * revert decoded into words, a cancelled wallet prompt, or a generic sentence.
+ * The raw error (English) stays in the console, never in the toast.
+ */
+export const releaseErrorMessage = (err: unknown): string => {
+  const causes: unknown[] = [];
+  for (let e = err; e !== undefined && causes.length < 10; ) {
+    causes.push(e);
+    e = e instanceof Error ? e.cause : undefined;
+  }
+  const revert = causes.find((e) => e instanceof ContractFunctionRevertedError);
+  const name =
+    revert instanceof ContractFunctionRevertedError
+      ? revert.data?.errorName
+      : undefined;
+  if (name && RELEASE_ERRORS[name]) return RELEASE_ERRORS[name];
+  if (causes.some((e) => e instanceof NotLockBuyerError)) {
+    return 'A carteira conectada não é a compradora desta reserva.';
+  }
+  if (causes.some(isWalletRejection)) return 'Ação cancelada na carteira.';
+  console.error('Release failed:', err);
+  return 'Não foi possível enviar para a rede.';
 };

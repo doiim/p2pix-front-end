@@ -1,23 +1,18 @@
-<script lang="ts">
-// Module scope: the charge survives a remount, so a release that reverts
-// (HomeView goes back to Step.Buy) reuses the solicitation already created for
-// this lock instead of charging the buyer's Pix twice. Map<lockID, charge>;
-// one entry per lock bought in this page load.
-const solicitations = new Map<string, import('@/utils/bbPay').Solicitation>();
-</script>
-
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue';
+import type { Address } from 'viem';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import CustomModal from '@/components/ui/CustomModal.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import {
   createSolicitation,
   getSolicitation,
+  loadSolicitation,
+  saveSolicitation,
   type Offer,
   type Solicitation,
 } from '@/utils/bbPay';
-import type { PixProof } from '@/utils/pixProof';
+import { releaseErrorMessage, type PixProof } from '@/utils/pixProof';
 import { getParticipantID } from '@/blockchain/events';
 import { getUnreleasedLockById } from '@/blockchain/events';
 import { useUser } from '@/composables/useUser';
@@ -98,6 +93,7 @@ const submitProof = async () => {
     emit('pixValidated', latest);
   } catch (error) {
     console.error('Error refreshing proof:', error);
+    useUser().showToast('error', releaseErrorMessage(error));
   } finally {
     submitting.value = false;
   }
@@ -125,39 +121,43 @@ const copyToClipboard = async () => {
   }
 };
 
+const createLockSolicitation = async (
+  chainId: number,
+  p2pix: Address,
+  lockID: bigint,
+): Promise<Solicitation> => {
+  const { tokenAddress, sellerAddress, amount } =
+    await getUnreleasedLockById(lockID);
+  const participantId = await getParticipantID(sellerAddress, tokenAddress);
+  const offer: Offer = {
+    amount,
+    sellerId: participantId,
+    lockID,
+    chainId,
+  };
+  const response = await createSolicitation(offer);
+  saveSolicitation(chainId, p2pix, lockID, response);
+  return response;
+};
+
 onMounted(async () => {
-  // A remount for a lock that already has a charge re-renders that one: the
-  // fiat leg may already be paid, so creating another charge would double-charge.
-  const cached = solicitations.get(props.lockID);
-
-  if (cached) {
-    solicitationData.value = cached;
-
-    if (cached.textoQrCode) {
-      qrCode.value = cached.textoQrCode;
-      await generateQrCodeSvg(qrCode.value);
+  try {
+    const user = useUser();
+    const chainId = user.network.value.id;
+    const lockID = BigInt(props.lockID);
+    const p2pix = user.network.value.contracts?.p2pix;
+    if (!p2pix || !('address' in p2pix)) {
+      throw new Error('P2Pix contract not configured for this network');
     }
 
-    void pollForProof(cached.numeroSolicitacao);
-    return;
-  }
-
-  try {
-    const { tokenAddress, sellerAddress, amount } = await getUnreleasedLockById(
-      BigInt(props.lockID),
-    );
-
-    const participantId = await getParticipantID(sellerAddress, tokenAddress);
-
-    const offer: Offer = {
-      amount,
-      sellerId: participantId,
-      lockID: BigInt(props.lockID),
-      chainId: useUser().network.value.id,
-    };
-
-    const response = await createSolicitation(offer);
-    solicitations.set(props.lockID, response);
+    // A lock that already has a charge (remount after a revert, reload, later
+    // visit) re-renders that one: the fiat leg may already be paid, so creating
+    // another charge would double-charge.
+    // The prover documents no answer for an expired charge (only 402/202/proof),
+    // so a stored charge is reused as is; one the bank expired is not replaced.
+    const cached = loadSolicitation(chainId, p2pix.address, lockID);
+    const response =
+      cached ?? (await createLockSolicitation(chainId, p2pix.address, lockID));
     solicitationData.value = response;
 
     if (response.textoQrCode) {
@@ -168,6 +168,7 @@ onMounted(async () => {
     void pollForProof(response.numeroSolicitacao);
   } catch (error) {
     console.error('Error creating solicitation:', error);
+    useUser().showToast('error', 'Não foi possível gerar a cobrança Pix.');
   }
 });
 

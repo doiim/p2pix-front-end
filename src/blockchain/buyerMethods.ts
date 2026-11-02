@@ -2,7 +2,7 @@ import { getContract } from './provider';
 import { p2PixAbi } from './abi';
 import { getActiveAaContext, sendAaOperation } from './aa/operations';
 import type { AaCall } from './aa/types';
-import type { PixProof } from '@/utils/pixProof';
+import { NotLockBuyerError, type PixProof } from '@/utils/pixProof';
 import {
   type Abi,
   type ContractFunctionReturnType,
@@ -211,7 +211,7 @@ export const releaseLock = async (
     });
     const { token: lockToken, buyerAddress } = toLock(lock);
     if (buyerAddress.toLowerCase() !== aa.account.address.toLowerCase()) {
-      throw new Error('Active smart account is not the buyer of this lock');
+      throw new NotLockBuyerError();
     }
 
     const call: AaCall = {
@@ -244,7 +244,7 @@ export const releaseLock = async (
     args: [lockID],
   });
   if (toLock(lock).buyerAddress.toLowerCase() !== account.toLowerCase()) {
-    throw new Error('Connected account is not the buyer of this lock');
+    throw new NotLockBuyerError();
   }
 
   const { request } = await client.simulateContract({
