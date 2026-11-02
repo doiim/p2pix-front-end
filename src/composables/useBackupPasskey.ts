@@ -36,15 +36,20 @@ export function useBackupPasskey() {
   );
 
   const statusQuery = useQuery({
-    queryKey: computed(() => [
-      ...queryKeyRoots.backupPasskey,
-      network.value.id,
-      walletAddress.value ?? '0x',
-    ]),
-    queryFn: () => {
-      const address = walletAddress.value;
-      if (!address) throw new UserFacingError('Carteira não conectada');
-      return isBackupPasskeyInstalled(getPublicClient(), address);
+    queryKey: computed(
+      () =>
+        [
+          ...queryKeyRoots.backupPasskey,
+          network.value.id,
+          walletAddress.value ?? '0x',
+        ] as const,
+    ),
+    // Only the key's values: reading the selected chain let a network switch
+    // mid-read store chain B's backup status under chain A, which then showed
+    // or hid "Adicionar passkey de backup" on the wrong network.
+    queryFn: ({ queryKey: [, chainId, address] }) => {
+      if (address === '0x') throw new UserFacingError('Carteira não conectada');
+      return isBackupPasskeyInstalled(getPublicClient(chainId), address);
     },
     enabled: computed(() => isEligible.value && Boolean(walletAddress.value)),
   });

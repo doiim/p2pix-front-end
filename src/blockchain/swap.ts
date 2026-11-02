@@ -317,12 +317,18 @@ export const tokenDecimals = (network: NetworkConfig, address: Address) =>
   );
 
 /** Survives a reload between lock and release; losing it only means BRZ-only. */
-export const saveSwapIntent = (lockID: string, intent: SwapIntent) =>
-  sessionStorage.setItem(intentKey(lockID), JSON.stringify(intent));
+export const saveSwapIntent = (
+  chainId: number,
+  lockID: string,
+  intent: SwapIntent,
+) => sessionStorage.setItem(intentKey(chainId, lockID), JSON.stringify(intent));
 
-export const loadSwapIntent = (lockID: string): SwapIntent | null => {
+export const loadSwapIntent = (
+  chainId: number,
+  lockID: string,
+): SwapIntent | null => {
   const raw: unknown = JSON.parse(
-    sessionStorage.getItem(intentKey(lockID)) ?? 'null',
+    sessionStorage.getItem(intentKey(chainId, lockID)) ?? 'null',
   );
   return typeof raw === 'object' &&
     raw !== null &&
@@ -412,7 +418,11 @@ const cached = <T>(key: string, read: () => Promise<T>): Promise<T> => {
   return pending;
 };
 
-const intentKey = (lockID: string) => `p2pix:swap-intent:${lockID}`;
+// Lock ids are per-contract counters: lock #N exists on every chain. Without
+// the chain in the key, a BRZ-only purchase on chain B picked up the swap
+// intent of lock #N on chain A and prompted a swap nobody asked for.
+const intentKey = (chainId: number, lockID: string) =>
+  `p2pix:swap-intent:${chainId}:${lockID}`;
 
 /**
  * Buy order capped at the released BRZ minus the fee reserve. Null when the

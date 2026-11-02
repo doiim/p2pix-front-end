@@ -163,7 +163,8 @@ const confirmBuyClick = async (
     }
     flowStep.value = Step.Search;
   } finally {
-    if (swapIntent && lockID.value) saveSwapIntent(lockID.value, swapIntent);
+    if (swapIntent && lockID.value)
+      saveSwapIntent(selectedDeposit.network.id, lockID.value, swapIntent);
   }
 };
 
@@ -175,7 +176,7 @@ const releaseTransaction = async (proof: PixProof) => {
   const networkName = network.value.name;
 
   try {
-    const intent = loadSwapIntent(lockID.value);
+    const intent = loadSwapIntent(network.value.id, lockID.value);
     releaseNotice.value = intent
       ? promptsNotice(await separatePrompts(true), {
           sell: TokenEnum.BRZ,

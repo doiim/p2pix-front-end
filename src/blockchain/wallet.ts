@@ -1,7 +1,8 @@
 import { formatEther, isAddressEqual, type Address } from 'viem';
 import { getContract } from './provider';
+import { p2PixAbi } from './abi';
 import { getSender, sendContractCalls } from './send';
-import { getValidDeposits, getUnreleasedLockById } from './events';
+import { getValidDeposits, getUnreleasedLockById, p2pixOn } from './events';
 import { toLock } from './buyerMethods';
 import { escapeForGraphQL } from '@/utils/escapeForGraphQL';
 
@@ -22,12 +23,18 @@ export const getWalletDeposits = async (
     .sort((a, b) => b.blockNumber - a.blockNumber);
 };
 
-const readLockStatus = async (id: bigint): Promise<LockStatus> => {
-  const { address, abi, client } = await getContract();
+// A lock id only means something with its chain: the subgraph rows come from
+// `network`, so the status is read from that chain's P2Pix too. Reading the
+// selected chain showed another chain's lock #N status after a network switch.
+const readLockStatus = async (
+  id: bigint,
+  network: NetworkConfig,
+): Promise<LockStatus> => {
+  const { address, client } = p2pixOn(network);
   // getLocksStatus returns [locks, status]; we only need status
   const [, status] = await client.readContract({
     address,
-    abi,
+    abi: p2PixAbi,
     functionName: 'getLocksStatus',
     args: [[id]],
   });
@@ -163,7 +170,7 @@ export const getWalletTransactions = async (
   // Process lock added events
   for (const lock of body.data?.lockAddeds ?? []) {
     // Get lock status from the contract
-    const lockStatus = await readLockStatus(BigInt(lock.lockID));
+    const lockStatus = await readLockStatus(BigInt(lock.lockID), network);
 
     transactions.push({
       id: lock.id,

@@ -50,7 +50,7 @@ const getNetworksLiquidity = async (
 // lock #7 on another chain is someone else's lock; reading the selected chain
 // let a network switch mid-read cache that lock under the original chain's
 // key, and the QR then posted a Pix charge with the wrong amount and seller.
-const p2pixOn = (network: NetworkConfig) => ({
+export const p2pixOn = (network: NetworkConfig) => ({
   client: getPublicClient(network.id),
   address: (network.contracts?.p2pix as ChainContract).address,
 });
