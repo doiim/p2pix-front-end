@@ -25,69 +25,75 @@ export interface AnalyticsData {
   totalReleases: string;
 }
 
-// The shapes below mirror the selections in the query documents at the bottom
-// of this file. Every selected field is present in the response, so the
-// processors read them directly; the single trust point is the cast of the
-// parsed body in `executeQuery`.
-type EventFields = {
-  id: string;
-  seller: string;
-  token: string;
-  amount: string;
-  blockNumber: string;
-  blockTimestamp: string;
-  transactionHash: string;
+// Field selections of the query documents below. The subgraph is a remote
+// server: `rowsOf` checks each row against its selection before use, so a
+// changed schema or a hostile endpoint fails loudly instead of feeding
+// `undefined` into the explorer.
+const DEPOSIT_FIELDS = [
+  'id',
+  'seller',
+  'token',
+  'amount',
+  'blockNumber',
+  'blockTimestamp',
+  'transactionHash',
+] as const;
+const LOCK_ADDED_FIELDS = [
+  'id',
+  'seller',
+  'buyer',
+  'lockID',
+  'amount',
+  'blockNumber',
+  'blockTimestamp',
+  'transactionHash',
+] as const;
+const LOCK_RELEASED_FIELDS = [
+  'id',
+  'buyer',
+  'lockId',
+  'amount',
+  'blockNumber',
+  'blockTimestamp',
+  'transactionHash',
+] as const;
+const LOCK_RETURNED_FIELDS = [
+  'id',
+  'buyer',
+  'lockId',
+  'blockNumber',
+  'blockTimestamp',
+  'transactionHash',
+] as const;
+const AMOUNT_FIELDS = ['amount', 'blockTimestamp'] as const;
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null;
+
+const hasFields =
+  <F extends string>(fields: readonly F[]) =>
+  (row: unknown): row is Record<F, string> =>
+    isRecord(row) && fields.every((f) => typeof row[f] === 'string');
+
+/** One collection of the response, every row checked against `fields`. */
+const rowsOf = <F extends string>(
+  data: Record<string, unknown>,
+  collection: string,
+  fields: readonly F[],
+): Record<F, string>[] => {
+  const rows = data[collection];
+  if (rows === undefined || rows === null) return [];
+  if (!Array.isArray(rows) || !rows.every(hasFields(fields))) {
+    throw new Error(`Resposta inesperada do subgraph em ${collection}`);
+  }
+  return rows;
 };
 
-type LockAddedFields = EventFields & { buyer: string; lockID: string };
-
-type LockReleasedFields = {
-  id: string;
-  buyer: string;
-  lockId: string;
-  amount: string;
-  blockNumber: string;
-  blockTimestamp: string;
-  transactionHash: string;
-};
-
-type LockReturnedFields = {
-  id: string;
-  buyer: string;
-  lockId: string;
-  blockNumber: string;
-  blockTimestamp: string;
-  transactionHash: string;
-};
-
-type ActivityResponse = {
-  depositAddeds?: EventFields[];
-  depositWithdrawns?: EventFields[];
-  lockAddeds?: LockAddedFields[];
-  lockReleaseds?: LockReleasedFields[];
-  lockReturneds?: LockReturnedFields[];
-};
-
-type AnalyticsAmountFields = { amount: string; blockTimestamp: string };
-
-type AnalyticsResponse = {
-  depositAddeds?: AnalyticsAmountFields[];
-  depositWithdrawns?: AnalyticsAmountFields[];
-  lockAddeds?: AnalyticsAmountFields[];
-  lockReleaseds?: AnalyticsAmountFields[];
-  lockReturneds?: { blockTimestamp: string }[];
-};
-
-type GraphQLBody<T> = {
-  data?: T;
-  errors?: { message?: string }[];
-};
-
-const executeQuery = async <T>(
+const executeQuery = async (
   url: string,
   query: string,
   variables: Record<string, unknown> = {},
-): Promise<T> => {
+): Promise<Record<string, unknown>> => {
   const response = await fetch(url, {
     method: 'POST',
     headers: {
@@ -103,15 +109,17 @@ const executeQuery = async <T>(
     throw new Error(`Erro HTTP: status ${response.status}`);
   }
 
-  const body = (await response.json()) as GraphQLBody<T>;
-
-  if (body.errors) {
-    throw new Error(body.errors[0]?.message || 'Falha ao buscar os dados');
+  const body: unknown = await response.json();
+  if (!isRecord(body)) throw new Error('Resposta inesperada do subgraph');
+  if (Array.isArray(body.errors) && body.errors.length > 0) {
+    const first: unknown = body.errors[0];
+    throw new Error(
+      isRecord(first) && typeof first.message === 'string'
+        ? first.message
+        : 'Falha ao buscar os dados',
+    );
   }
-
-  // The document fixes the field selection; the server returns exactly the
-  // requested shape or omits the data key.
-  return (body.data ?? {}) as T;
+  return isRecord(body.data) ? body.data : {};
 };
 
 const ALL_ACTIVITY_QUERY = `
@@ -259,9 +267,9 @@ const formatAmount = (amount: string): string => {
   return num.toFixed(2);
 };
 
-const processActivityData = (data: ActivityResponse): Transaction[] => {
+const processActivityData = (data: Record<string, unknown>): Transaction[] => {
   const activities: Transaction[] = [
-    ...(data.depositAddeds ?? []).map(
+    ...rowsOf(data, 'depositAddeds', DEPOSIT_FIELDS).map(
       (deposit): Transaction => ({
         id: deposit.id,
         blockNumber: deposit.blockNumber,
@@ -275,7 +283,7 @@ const processActivityData = (data: ActivityResponse): Transaction[] => {
         timestamp: formatTimestamp(deposit.blockTimestamp),
       }),
     ),
-    ...(data.depositWithdrawns ?? []).map(
+    ...rowsOf(data, 'depositWithdrawns', DEPOSIT_FIELDS).map(
       (withdrawal): Transaction => ({
         id: withdrawal.id,
         blockNumber: withdrawal.blockNumber,
@@ -290,7 +298,7 @@ const processActivityData = (data: ActivityResponse): Transaction[] => {
         timestamp: formatTimestamp(withdrawal.blockTimestamp),
       }),
     ),
-    ...(data.lockAddeds ?? []).map(
+    ...rowsOf(data, 'lockAddeds', LOCK_ADDED_FIELDS).map(
       (lock): Transaction => ({
         id: lock.id,
         blockNumber: lock.blockNumber,
@@ -300,11 +308,11 @@ const processActivityData = (data: ActivityResponse): Transaction[] => {
         seller: lock.seller,
         buyer: lock.buyer,
         amount: lock.amount,
-        token: lock.token,
+        token: undefined, // the lockAddeds selection has no token
         timestamp: formatTimestamp(lock.blockTimestamp),
       }),
     ),
-    ...(data.lockReleaseds ?? []).map(
+    ...rowsOf(data, 'lockReleaseds', LOCK_RELEASED_FIELDS).map(
       (release): Transaction => ({
         id: release.id,
         blockNumber: release.blockNumber,
@@ -318,7 +326,7 @@ const processActivityData = (data: ActivityResponse): Transaction[] => {
         timestamp: formatTimestamp(release.blockTimestamp),
       }),
     ),
-    ...(data.lockReturneds ?? []).map(
+    ...rowsOf(data, 'lockReturneds', LOCK_RETURNED_FIELDS).map(
       (returnTx): Transaction => ({
         id: returnTx.id,
         blockNumber: returnTx.blockNumber,
@@ -339,37 +347,39 @@ const processActivityData = (data: ActivityResponse): Transaction[] => {
   );
 };
 
-const processAnalyticsData = (data: AnalyticsResponse): AnalyticsData => {
+const processAnalyticsData = (data: Record<string, unknown>): AnalyticsData => {
   let totalVolume = 0;
   let totalTransactions = 0;
   let totalLocks = 0;
   let totalDeposits = 0;
   let totalReleases = 0;
 
-  for (const deposit of data.depositAddeds ?? []) {
+  for (const deposit of rowsOf(data, 'depositAddeds', AMOUNT_FIELDS)) {
     totalVolume += parseFloat(deposit.amount);
     totalTransactions++;
     totalDeposits++;
   }
 
-  for (const withdrawal of data.depositWithdrawns ?? []) {
+  for (const withdrawal of rowsOf(data, 'depositWithdrawns', AMOUNT_FIELDS)) {
     totalVolume += parseFloat(withdrawal.amount);
     totalTransactions++;
   }
 
-  for (const lock of data.lockAddeds ?? []) {
+  for (const lock of rowsOf(data, 'lockAddeds', AMOUNT_FIELDS)) {
     totalVolume += parseFloat(lock.amount);
     totalTransactions++;
     totalLocks++;
   }
 
-  for (const release of data.lockReleaseds ?? []) {
+  for (const release of rowsOf(data, 'lockReleaseds', AMOUNT_FIELDS)) {
     totalVolume += parseFloat(release.amount);
     totalTransactions++;
     totalReleases++;
   }
 
-  totalTransactions += (data.lockReturneds ?? []).length;
+  totalTransactions += rowsOf(data, 'lockReturneds', [
+    'blockTimestamp',
+  ] as const).length;
 
   return {
     totalVolume: formatAmount(totalVolume.toString()),
@@ -389,11 +399,11 @@ export const fetchActivity = async (
 ): Promise<Transaction[]> => {
   const url = network.subgraphUrls[0];
   const data = address
-    ? await executeQuery<ActivityResponse>(url, USER_ACTIVITY_QUERY, {
+    ? await executeQuery(url, USER_ACTIVITY_QUERY, {
         userAddress: address,
         first: 50,
       })
-    : await executeQuery<ActivityResponse>(url, ALL_ACTIVITY_QUERY, {
+    : await executeQuery(url, ALL_ACTIVITY_QUERY, {
         first: 50,
       });
 
@@ -403,9 +413,6 @@ export const fetchActivity = async (
 export const fetchAnalytics = async (
   network: NetworkConfig,
 ): Promise<AnalyticsData> => {
-  const data = await executeQuery<AnalyticsResponse>(
-    network.subgraphUrls[0],
-    ANALYTICS_QUERY,
-  );
+  const data = await executeQuery(network.subgraphUrls[0], ANALYTICS_QUERY);
   return processAnalyticsData(data);
 };
