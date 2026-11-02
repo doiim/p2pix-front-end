@@ -1,62 +1,70 @@
-import { useUser } from '@/composables/useUser';
 import { formatEther, isAddress, toHex } from 'viem';
 import type { Address } from 'viem';
-import { Networks } from '@/config/networks';
-import { getContract, getPublicClient } from './provider';
+import { getPublicClient } from './provider';
 import { toLock } from './buyerMethods';
 import { p2PixAbi } from './abi';
+import { Networks } from '@/config/networks';
 import type { ValidDeposit } from '@/model/ValidDeposit';
-import type { NetworkConfig } from '@/model/NetworkEnum';
+import type { NetworkConfig, TokenEnum } from '@/model/NetworkEnum';
 import { escapeForGraphQL } from '@/utils/escapeForGraphQL';
 import type { UnreleasedLock } from '@/model/UnreleasedLock';
-import { ChainContract } from 'viem';
+import type { ChainContract } from 'viem';
 
-const getNetworksLiquidity = async (): Promise<void> => {
-  const user = useUser();
-  user.setLoadingNetworkLiquidity(true);
-
-  try {
-    // Each network is read with its own token, client and subgraph, and one
-    // network failing must neither block the others nor read as zero liquidity.
-    const results = await Promise.allSettled(
-      Networks.map(async (network) =>
-        getValidDeposits(
-          network.tokens[user.selectedToken.value].address,
-          network,
-        ),
-      ),
-    );
-
-    const failedNetworks = Networks.filter((network, index) => {
-      const result = results[index];
-      if (result.status === 'fulfilled') return false;
-      console.error(
-        `[liquidity] could not read ${network.name}`,
-        result.reason,
-      );
-      return true;
-    });
-
-    user.setDepositsValidList(
-      results.flatMap((result) =>
-        result.status === 'fulfilled' ? result.value : [],
-      ),
-    );
-    user.setFailedLiquidityNetworks(failedNetworks);
-  } finally {
-    user.setLoadingNetworkLiquidity(false);
-  }
+export type NetworksLiquidity = {
+  deposits: ValidDeposit[];
+  failedNetworks: NetworkConfig[];
 };
+
+/**
+ * Deposits visible on every configured network for the selected `token`.
+ * Each network is read with its own token, client and subgraph, and one
+ * network failing must neither block the others nor read as zero liquidity:
+ * the failures are returned so the buy screen can name them.
+ */
+const getNetworksLiquidity = async (
+  token: TokenEnum,
+): Promise<NetworksLiquidity> => {
+  const results = await Promise.allSettled(
+    Networks.map((network) =>
+      getValidDeposits(network.tokens[token].address, network),
+    ),
+  );
+
+  const failedNetworks = Networks.filter((network, index) => {
+    const result = results[index];
+    if (result.status === 'fulfilled') return false;
+    console.error(`[liquidity] could not read ${network.name}`, result.reason);
+    return true;
+  });
+
+  return {
+    deposits: results.flatMap((result) =>
+      result.status === 'fulfilled' ? result.value : [],
+    ),
+    failedNetworks,
+  };
+};
+
+// A lock and its Pix target live on one chain: read that chain's own client
+// and P2Pix, never the selected one. Lock ids are per-contract counters, so
+// lock #7 on another chain is someone else's lock; reading the selected chain
+// let a network switch mid-read cache that lock under the original chain's
+// key, and the QR then posted a Pix charge with the wrong amount and seller.
+export const p2pixOn = (network: NetworkConfig) => ({
+  client: getPublicClient(network.id),
+  address: (network.contracts?.p2pix as ChainContract).address,
+});
 
 const getParticipantID = async (
   seller: Address,
   token: Address,
+  network: NetworkConfig,
 ): Promise<string> => {
-  const { address, abi, client } = await getContract();
+  const { address, client } = p2pixOn(network);
 
   const participantIDHex = await client.readContract({
     address,
-    abi,
+    abi: p2PixAbi,
     functionName: 'getPixTarget',
     args: [seller, token],
   });
@@ -148,7 +156,7 @@ const getValidDeposits = async (
   sellersList.forEach((seller, index) => {
     const mappedBalance = balanceResults[index];
 
-    if (!mappedBalance.error && mappedBalance.result) {
+    if (mappedBalance && !mappedBalance.error && mappedBalance.result) {
       const validDeposit: ValidDeposit = {
         token,
         blockNumber: 0,
@@ -164,13 +172,14 @@ const getValidDeposits = async (
 
 const getUnreleasedLockById = async (
   lockID: bigint,
+  network: NetworkConfig,
 ): Promise<UnreleasedLock> => {
-  const { address, abi, client } = await getContract();
+  const { address, client } = p2pixOn(network);
 
   const { amount, token, seller } = toLock(
     await client.readContract({
       address,
-      abi,
+      abi: p2PixAbi,
       functionName: 'mapLocks',
       args: [lockID],
     }),

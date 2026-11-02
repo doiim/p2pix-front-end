@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue';
 import { onClickOutside } from '@vueuse/core';
 import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import { postProcessKey } from '@/utils/pixKeyFormat';
 import { TokenEnum } from '@/model/NetworkEnum';
@@ -28,7 +29,8 @@ const formRef = ref<HTMLFormElement | null>(null);
 
 // Reactive state
 const user = useUser();
-const { walletAddress, selectedToken } = user;
+const { selectedToken } = user;
+const walletAddress = useWalletAddress();
 
 const offer = ref<string>('');
 const identification = ref<string>('');

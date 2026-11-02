@@ -3,6 +3,8 @@ import { computed, nextTick, ref, useTemplateRef, watch } from 'vue';
 import { onClickOutside } from '@vueuse/core';
 import { useUser } from '@/composables/useUser';
 import { useReputation } from '@/composables/useReputation';
+import { useNetworkDepositsQuery } from '@/queries/deposits';
+import { useWalletAddress } from '@/queries/wallet';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import ReputationChecking from '@/components/BuyerSteps/Reputation/ReputationChecking.vue';
@@ -43,14 +45,17 @@ const emit = defineEmits<{
 const user = useUser();
 const reputation = useReputation();
 
-const {
-  walletAddress,
-  network,
-  selectedToken,
-  depositsValidList,
-  loadingNetworkLiquidity,
-  failedLiquidityNetworks,
-} = user;
+const { network, selectedToken } = user;
+const walletAddress = useWalletAddress();
+
+const depositsQuery = useNetworkDepositsQuery(selectedToken);
+const depositsValidList = computed(
+  () => depositsQuery.data.value?.deposits ?? [],
+);
+const failedLiquidityNetworks = computed(
+  () => depositsQuery.data.value?.failedNetworks ?? [],
+);
+const loadingNetworkLiquidity = computed(() => depositsQuery.isPending.value);
 
 // A network whose read failed has unknown liquidity, not zero liquidity.
 const selectedNetworkUnread = computed(() =>

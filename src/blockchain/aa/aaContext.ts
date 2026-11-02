@@ -87,15 +87,15 @@ const createKernelAccount = async (
   });
 };
 
-const createContext = async (
-  runtime: AaRuntime,
+/** Sending rail (bundler + both paymasters) for an already-built account. */
+export const createAaContext = async (
+  { network, publicClient }: Pick<AaRuntime, 'network' | 'publicClient'>,
   account: SmartAccount,
 ): Promise<AaContext> => {
-  const { network, publicClient } = runtime;
   const bundlerUrl = network.aa?.bundlerUrl;
   const sponsorshipPolicy = sponsorshipPolicyId();
-  // Callers already checked isAaAvailable; this narrows the types.
-  if (!bundlerUrl || !sponsorshipPolicy) {
+  // Callers already checked the bundler; the policy is only needed for sponsoring.
+  if (!bundlerUrl) {
     throw new Error(`AA is not configured for chain ${network.id}`);
   }
 
@@ -119,11 +119,21 @@ const createContext = async (
     account,
     network,
     pimlicoClient,
-    sponsoredClient: createSmartAccountClient({
-      ...base,
-      paymasterContext: { sponsorshipPolicyId: sponsorshipPolicy },
+    selfPayClient: createSmartAccountClient({
+      account,
+      chain: network,
+      bundlerTransport: http(bundlerUrl),
+      client: publicClient,
       userOperation: { estimateFeesPerGas },
     }),
+    // Only when a sponsorship policy is configured; recovery pays its own gas without one.
+    sponsoredClient: sponsorshipPolicy
+      ? createSmartAccountClient({
+          ...base,
+          paymasterContext: { sponsorshipPolicyId: sponsorshipPolicy },
+          userOperation: { estimateFeesPerGas },
+        })
+      : undefined,
     // Only when the network names a fee token; unset means sponsorship only.
     erc20Client: feeToken
       ? createSmartAccountClient({
@@ -170,6 +180,6 @@ export const getAaContextForRuntime = async (
   return cachePromise(
     aaContextCache,
     `${runtime.network.id}:${runtime.ownerKind}:${account.address.toLowerCase()}`,
-    () => createContext(runtime, account),
+    () => createAaContext(runtime, account),
   );
 };

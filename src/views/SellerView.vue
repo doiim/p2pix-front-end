@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
 import SellerComponent from '@/components/SellerSteps/SellerComponent.vue';
 import AccountLayout from '@/components/SmartAccount/AccountLayout.vue';
@@ -8,7 +8,9 @@ import OfferTabs from '@/components/SmartAccount/OfferTabs.vue';
 import SendNetwork from '@/components/SellerSteps/SendNetwork.vue';
 import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import { useUser } from '@/composables/useUser';
-import { approveTokens, addDeposit } from '@/blockchain/sellerMethods';
+import { useMutation } from '@tanstack/vue-query';
+import { approveTokens } from '@/blockchain/sellerMethods';
+import { useAddDepositMutation } from '@/queries/mutations';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import type { Participant } from '@/utils/bbPay';
 
@@ -22,36 +24,33 @@ const user = useUser();
 user.setSellerView(true);
 
 const flowStep = ref<Step>(Step.Sell);
-const loading = ref<boolean>(false);
 const showAlert = ref<boolean>(false);
+
+const approveMutation = useMutation({ mutationFn: approveTokens });
+const addDepositMutation = useAddDepositMutation();
+const loading = computed(
+  () => approveMutation.isPending.value || addDepositMutation.isPending.value,
+);
 
 // Verificar tipagem
 const approveOffer = async (args: Participant) => {
-  loading.value = true;
   try {
-    await approveTokens(args);
+    await approveMutation.mutateAsync(args);
     flowStep.value = Step.Network;
-    loading.value = false;
   } catch (err) {
     console.log(err);
     flowStep.value = Step.Sell;
-    loading.value = false;
   }
 };
 
 const sendNetwork = async () => {
-  loading.value = true;
   try {
-    if (user.seller.value) {
-      await addDeposit();
-      flowStep.value = Step.Sell;
-      loading.value = false;
-      showAlert.value = true;
-    }
+    await addDepositMutation.mutateAsync();
+    flowStep.value = Step.Sell;
+    showAlert.value = true;
   } catch (err) {
     console.log(err);
     flowStep.value = Step.Network;
-    loading.value = false;
   }
 };
 </script>

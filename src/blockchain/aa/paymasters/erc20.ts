@@ -33,29 +33,6 @@ const paidTokenFor = (context: AaContext): Address => {
   return context.network.tokens[feeToken].address;
 };
 
-/** Verify the configured token against Pimlico before creating a PIX lock. */
-export const assertErc20PaymasterTokenSupported = async (
-  context: AaContext,
-  applicationToken: Address,
-): Promise<Address> => {
-  const token = paidTokenFor(context);
-  if (token.toLowerCase() !== applicationToken.toLowerCase()) {
-    throw new Error('P2Pix token differs from the configured paymaster token');
-  }
-  const quotes = await context.pimlicoClient.getTokenQuotes({
-    chain: context.network,
-    tokens: [token],
-  });
-  if (
-    !quotes.some((quote) => quote.token.toLowerCase() === token.toLowerCase())
-  ) {
-    throw new Error(
-      'Configured ERC-20 paymaster token is not supported by Pimlico',
-    );
-  }
-  return token;
-};
-
 /**
  * Prepare one exact ERC-20-paymaster UserOperation and bind the displayed
  * maximum cost to it.

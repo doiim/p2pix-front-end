@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch, onMounted } from 'vue';
+import { ref, watch } from 'vue';
 import { useUser } from '@/composables/useUser';
 import { onClickOutside } from '@vueuse/core';
 import { getNetworkImage } from '@/utils/imagesPath';
@@ -12,10 +12,8 @@ import TwitterIcon from '@/assets/twitterIcon.svg';
 import LinkedinIcon from '@/assets/linkedinIcon.svg';
 import GithubIcon from '@/assets/githubIcon.svg';
 import type { NetworkConfig } from '@/model/NetworkEnum';
-import {
-  getEffectiveWalletAddress,
-  resetAaAccountCache,
-} from '@/blockchain/aa/operations';
+import { resetAaAccountCache } from '@/blockchain/aa/operations';
+import { useWalletAddress } from '@/queries/wallet';
 import { shortAddress } from '@/utils/shortAddress';
 
 interface MenuOption {
@@ -31,7 +29,7 @@ interface MenuOption {
 }
 
 const user = useUser();
-const { walletAddress, sellerView, network } = user;
+const { sellerView, network } = user;
 
 const menuOpenToggle = ref<boolean>(false);
 const infoMenuOpenToggle = ref<boolean>(false);
@@ -44,49 +42,19 @@ const { open: connectWallet } = useConnectModal();
 const connection = useConnection();
 const switchChain = useSwitchChain();
 const disconnect = useDisconnect();
-let addressResolution = 0;
-
-const syncEffectiveAddress = async () => {
-  const resolution = ++addressResolution;
-  const connectorAddress = connection.address.value;
-
-  if (!connectorAddress) {
-    user.setWalletAddress(null);
-    return;
-  }
-  try {
-    const effective = await getEffectiveWalletAddress(connectorAddress);
-    if (resolution === addressResolution) {
-      user.setWalletAddress(effective);
-    }
-  } catch (error) {
-    if (resolution === addressResolution) user.setWalletAddress(null);
-    console.error('[aa] failed to derive the effective wallet address', error);
-  }
-};
-
-onMounted(() => {
-  // On mount, immediately sync from wagmi (handles session restore after page reload)
-  void syncEffectiveAddress();
-});
-
-watch(connection.address, () => {
-  void syncEffectiveAddress();
-});
+const walletAddress = useWalletAddress();
 
 watch(connection.chainId, (newChainId) => {
+  // The AA cache and the displayed address are bound to the previous chain's
+  // runtime; mirror the supported branch so a switch to an unsupported chain
+  // doesn't leave stale Kernel context or a misleading address on screen.
+  resetAaAccountCache();
+
   if (newChainId === undefined || !Networks.some((n) => n.id === newChainId)) {
     user.setNetwork(DEFAULT_NETWORK);
-    // The AA cache and the displayed address are bound to the previous chain's
-    // runtime; mirror the supported branch so a switch to an unsupported chain
-    // doesn't leave stale Kernel context or a misleading address on screen.
-    resetAaAccountCache();
-    void syncEffectiveAddress();
     return;
   }
   user.setNetworkById(newChainId);
-  resetAaAccountCache();
-  void syncEffectiveAddress();
 });
 
 const formatWalletAddress = (): string => {
@@ -97,7 +65,6 @@ const formatWalletAddress = (): string => {
 
 const disconnectUser = async (): Promise<void> => {
   resetAaAccountCache();
-  user.setWalletAddress(null);
   if (connection.isConnected.value) {
     await disconnect.mutateAsync();
   }

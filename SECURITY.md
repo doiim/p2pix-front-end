@@ -23,7 +23,7 @@ P2Pix is self-custodial for signing on injected and WalletConnect EOAs and WebAu
 
 - _Rationale:_ Gas sponsorship / ERC-20 paymaster improves UX; non-custodial.
 - _Disclosure:_ The relayer observes transaction traffic.
-- _Escape path:_ Any ERC-4337 bundler can relay the UserOp; the endpoint is a literal in `src/config/networks.ts`, so routing around Pimlico requires editing it and rebuilding (UI switch is an open gap).
+- _Escape path:_ Any ERC-4337 bundler can relay the UserOp; the endpoint is a literal in `src/config/networks.ts`, so routing around Pimlico requires editing it and rebuilding (UI switch is an open gap). With no bundler at all, any funded EOA can call `handleOps` on the EntryPoint (manual, see [`docs/RECOVERY.md`](./docs/RECOVERY.md)). The backup-passkey recovery uses the same bundler; where P2Pix sponsors it (`aa.sponsorSweep`), it also relies on the sponsorship policy, which P2Pix funds and can pause (elsewhere the account pays its own gas in ETH).
 
 ### WalletConnect relay (`wss://relay.walletconnect.com`, …)
 
@@ -34,8 +34,12 @@ P2Pix is self-custodial for signing on injected and WalletConnect EOAs and WebAu
 ### Magic email/Google login (`magic-sdk`, `@magic-ext/oauth2`, MIT)
 
 - **What it is:** email and Google login through our own Magic account. The Magic-held login key is an EOA that owns the user's Kernel smart account (smart-account rail, `ARCHITECTURE.md` §2). Enabled only when `VITE_MAGIC_PUBLISHABLE_KEY` is set; the publishable key is public and ships in the bundle.
-- **What it sees or can block:** Magic holds the login key (custodial-ish: you do not hold it and it cannot be exported by this app), sees your email or Google identity, IP and the messages it is asked to sign, and can block or lose access to the key. Signing is not on-device for this login, unlike injected and passkey wallets.
-- **Escape path:** on chains with the smart-account rail, Enviar, in the account panel on `/` and `/seller`, sends each of the smart account's tokens, one at a time, to any address (needs BRZ for gas). On chains without it (e.g. Rootstock Testnet) the Magic EOA itself is your account — there is no Kernel and Enviar does not apply, and the key stays with Magic. Prefer a passkey or injected wallet for funds you cannot afford to have gated by Magic.
+- **What it sees or can block:** Magic holds the login key (you do not hold it by default), sees your email or Google identity, IP and the messages it is asked to sign, and can block or lose access to the key. Signing is not on-device for this login, unlike injected and passkey wallets.
+- **Escape path:** everything is in the account panel beside the offer card.
+  - While Magic works: **Enviar** moves your tokens to any address. **Exportar chave** shows your key inside Magic's own screen; the app never sees it (not yet tested against Magic).
+  - Before Magic fails: **Adicionar passkey de backup** adds a second key on your device. It is as powerful as the Magic key, so guard it like a password. Each network needs its own, and it cannot be replaced or removed yet.
+  - After Magic fails: **Entrar** → "Recuperar com passkey de backup" sends everything to an address you choose, with no Magic login.
+  - Without the smart-account rail, the Magic key is the account: export it while Magic works. Steps: [`docs/RECOVERY.md`](./docs/RECOVERY.md). Prefer a passkey or an injected wallet for funds you cannot afford to have gated by Magic.
 
 ### Google OAuth (Magic social login)
 
@@ -45,9 +49,9 @@ P2Pix is self-custodial for signing on injected and WalletConnect EOAs and WebAu
 
 ### Passkey (`@doiim/passkeys`; no third party beyond the RPC and Pimlico)
 
-- **What it is:** WebAuthn login through `@doiim/passkeys` 0.5.0-alpha.0 (MIT, maintained by doiim; github.com/doiim/passkeys), pinned to an exact version, plus permissionless Kernel v0.3.1. It is a new supply-chain root: a doiim-maintained package whose own dependencies are `ox` ^0.11 and `permissionless`. The key stays in your authenticator. There is no server: the public key is recovered from the WebAuthn signature (P-256 recovery), and the on-chain reads (code, nonce, ETH balance) choose between the two candidate keys; if still ambiguous, a second assertion restricted to that credential settles it. `localStorage` (`doiim:passkey*`) is a cache and session pointer only — never used as `allowCredentials`.
+- **What it is:** WebAuthn login through `@doiim/passkeys` (MIT, maintained by doiim; github.com/doiim/passkeys), pinned to an exact pre-release (`0.6.0-alpha.1`) in `package.json`, plus permissionless Kernel v0.3.1. It is a new supply-chain root: a doiim-maintained package whose own dependencies are `ox` ^0.14 and `permissionless` ^0.3. Its `smart-account` entry also supplies the backup-passkey helpers (register, install as a Kernel validator, detect, recover), so the code that can move funds from a lost-passkey account is in this package too. The key stays in your authenticator. There is no server: the public key is recovered from the WebAuthn signature (P-256 recovery), and the on-chain reads (code, nonce, ETH balance) choose between the two candidate keys; if still ambiguous, a second assertion restricted to that credential settles it. `localStorage` (`doiim:passkey*`) is a cache and session pointer only — never used as `allowCredentials`.
 - **What it sees or can block:** no operator beyond the configured RPC (Alchemy, reads above) and the Pimlico bundler/paymaster below. The credential is bound to the RP id, and passkeys are enabled only on owned origins: `p2pix.co`, `demo.p2pix.co` and their subdomains, `localhost` in development, or the host named by `VITE_PASSKEY_RP_ID` (which must serve `https://<rpId>/.well-known/webauthn`). They are disabled on IPFS gateways (every CID shares one origin and could ask the passkey to sign), on ENS gateways without that override, on IP literals and on lookalike domains.
-- **Escape path:** Enviar in the account panel, or use an injected wallet.
+- **Escape path:** Enviar in the account panel, or use an injected wallet. The same package supplies the backup-passkey helpers for Magic accounts (a second validator on-chain, see the Magic entry); it adds no server or domain.
 
 ### Alchemy RPC + The Graph (reads)
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { onMounted, watch } from 'vue';
+import { computed, ref } from 'vue';
 import { useUser } from '@/composables/useUser';
-import { useGraphQL } from '@/composables/useGraphQL';
+import { useActivityQuery, useAnalyticsQuery } from '@/queries/activity';
 import FormCard from '@/components/ui/FormCard.vue';
 import LoadingComponent from '@/components/ui/LoadingComponent.vue';
 import AnalyticsCard from '@/components/Explorer/AnalyticsCard.vue';
@@ -10,19 +10,47 @@ import TransactionTable from '@/components/Explorer/TransactionTable.vue';
 const user = useUser();
 const { network } = user;
 
-const {
-  searchAddress,
-  selectedType,
-  transactions,
-  analytics,
-  loading,
-  error,
-  analyticsLoading,
-  fetchAllActivity,
-  fetchUserActivity,
-  fetchAnalytics,
-  clearData,
-} = useGraphQL(network);
+// The feed and the analytics are two independent queries; `searchAddress`
+// and `selectedType` filter the cached feed, so typing never refetches the
+// analytics.
+const searchAddress = ref('');
+const selectedType = ref('all');
+
+const activityQuery = useActivityQuery(network, searchAddress);
+const analyticsQuery = useAnalyticsQuery(network);
+
+const transactions = computed(() => {
+  let filtered = activityQuery.data.value ?? [];
+
+  if (selectedType.value !== 'all') {
+    filtered = filtered.filter((tx) => tx.type === selectedType.value);
+  }
+
+  if (searchAddress.value) {
+    const searchLower = searchAddress.value.toLowerCase();
+    filtered = filtered.filter(
+      (tx) =>
+        tx.seller?.toLowerCase().includes(searchLower) ||
+        tx.buyer?.toLowerCase().includes(searchLower),
+    );
+  }
+
+  return filtered;
+});
+
+const analytics = computed(
+  () =>
+    analyticsQuery.data.value ?? {
+      totalVolume: '0',
+      totalTransactions: '0',
+      totalLocks: '0',
+      totalDeposits: '0',
+      totalReleases: '0',
+    },
+);
+const loading = activityQuery.isPending;
+const error = computed(() => activityQuery.error.value?.message ?? null);
+const analyticsLoading = analyticsQuery.isPending;
 
 const transactionTypes = [
   { key: 'all', label: 'Todas' },
@@ -35,27 +63,6 @@ const transactionTypes = [
 const handleTypeFilter = (type: string) => {
   selectedType.value = type;
 };
-
-watch(searchAddress, async (newAddress) => {
-  if (newAddress.trim()) {
-    await fetchUserActivity(newAddress.trim());
-  } else {
-    await fetchAllActivity();
-  }
-});
-
-watch(
-  network,
-  async () => {
-    clearData();
-    await Promise.all([fetchAllActivity(), fetchAnalytics()]);
-  },
-  { deep: true },
-);
-
-onMounted(async () => {
-  await Promise.all([fetchAllActivity(), fetchAnalytics()]);
-});
 </script>
 
 <template>

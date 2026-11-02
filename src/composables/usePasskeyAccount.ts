@@ -1,16 +1,10 @@
 import { computed, ref } from 'vue';
+import { useQuery } from '@tanstack/vue-query';
 import {
   getTokenBalances,
   type TokenBalance,
 } from '@doiim/passkeys/smart-account';
-import { readStoredSession } from '@doiim/passkeys/storage';
-import {
-  encodeFunctionData,
-  erc20Abi,
-  zeroAddress,
-  type Address,
-  type Hex,
-} from 'viem';
+import { encodeFunctionData, erc20Abi, type Address, type Hex } from 'viem';
 
 import { getAaOwnerKind, isAaAvailable } from '@/blockchain/aa/aaContext';
 import {
@@ -22,6 +16,8 @@ import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
 import { useUser } from '@/composables/useUser';
 import { TokenEnum } from '@/model/NetworkEnum';
+import { queryKeyRoots } from '@/queries/keys';
+import { useWalletAddress } from '@/queries/wallet';
 import { getNetworkImage, getTokenImage } from '@/utils/imagesPath';
 
 export type SendParams = {
@@ -77,16 +73,13 @@ const assertSendFunds = (params: SendParams, funds: Balances): void => {
 };
 
 // Module-level state: the account page and every screen inside it share one
-// instance (same pattern as useUser).
+// instance (same pattern as useUser). Balances live in the vue-query cache.
 const busy = ref(false);
 const error = ref<string | null>(null);
-const balancesLoaded = ref(false);
-const balances = ref<TokenBalance[]>([]);
-const ethBalance = ref<bigint>(0n);
-const smartAccountAddress = ref<Address | null>(null);
 
 export function usePasskeyAccount() {
   const user = useUser();
+  const walletAddress = useWalletAddress();
 
   const isReady = computed(() => {
     if (!isAaAvailable(user.network.value)) return false;
@@ -94,10 +87,56 @@ export function usePasskeyAccount() {
     // address means the AA smart account never resolved, so the account is
     // not actually usable even when an owner kind exists.
     return (
-      Boolean(user.walletAddress.value) &&
+      Boolean(walletAddress.value) &&
       Boolean(getAaOwnerKind(getCurrentAccount().connector?.id))
     );
   });
+
+  const readBalances = async (
+    chainId: number = user.network.value.id,
+  ): Promise<Balances> => {
+    const context = await getActiveAaContext();
+    if (!context) throw new Error('Contexto da conta inteligente indisponível');
+    // The context follows the selected network: a read keyed on another chain
+    // must not store this one's balances under its key.
+    if (context.network.id !== chainId) {
+      throw new Error('A rede mudou durante a leitura do saldo');
+    }
+    const result = await getTokenBalances(
+      getPublicClient(chainId),
+      context.account.address,
+      Object.values(context.network.tokens).map((token) => token.address),
+    );
+    return {
+      context,
+      result,
+    };
+  };
+
+  // The key carries the chain, so a read that resolves after a network switch
+  // lands under the old key instead of overwriting the current one.
+  const balancesQuery = useQuery({
+    queryKey: computed(
+      () =>
+        [
+          ...queryKeyRoots.passkeyBalances,
+          user.network.value.id,
+          walletAddress.value,
+        ] as const,
+    ),
+    queryFn: async ({ queryKey: [, chainId] }) => {
+      const { result } = await readBalances(chainId);
+      return { eth: result.eth, tokens: result.tokens };
+    },
+    enabled: isReady,
+    retry: false,
+  });
+
+  const balances = computed(() => balancesQuery.data.value?.tokens ?? []);
+  const ethBalance = computed(() => balancesQuery.data.value?.eth ?? 0n);
+  // Stays false on a failed read on purpose: consumers must render `error`
+  // (never the loading state) when a read fails.
+  const balancesLoaded = computed(() => Boolean(balancesQuery.data.value));
 
   // No token means the chain's native coin, which has its own read.
   const tokenRead = (token: TokenEnum) =>
@@ -120,37 +159,17 @@ export function usePasskeyAccount() {
     })),
   );
 
-  const readBalances = async (): Promise<Balances> => {
-    const context = await getActiveAaContext();
-    if (!context) throw new Error('Contexto da conta inteligente indisponível');
-    smartAccountAddress.value = context.account.address;
-    const result = await getTokenBalances(
-      getPublicClient(),
-      context.account.address,
-      Object.values(context.network.tokens).map((token) => token.address),
-    );
-    return {
-      context,
-      result,
-    };
-  };
-
   const refreshBalances = async (): Promise<void> => {
-    try {
-      const { context, result } = await readBalances();
-      // A network switch may have happened while this request was in flight.
-      if (context.network.id !== user.network.value.id) return;
-      ethBalance.value = result.eth;
-      balances.value = result.tokens;
-      balancesLoaded.value = true;
+    const result = await balancesQuery.refetch();
+    if (!result.error) {
       error.value = null;
-    } catch (cause) {
-      console.error('[account] balance read failed', cause);
-      // `balancesLoaded` stays false on purpose: consumers must render `error`
-      // (never the loading state) when a read fails.
-      error.value =
-        cause instanceof Error ? cause.message : 'Falha ao buscar os saldos';
+      return;
     }
+    console.error('[account] balance read failed', result.error);
+    error.value =
+      result.error instanceof Error
+        ? result.error.message
+        : 'Falha ao buscar os saldos';
   };
 
   const explorerTxUrl = (
@@ -180,14 +199,15 @@ export function usePasskeyAccount() {
             ];
       assertSendFunds(params, funds);
 
-      // Unset fee token: sendAaOperation sponsors before reading either
-      // argument, so the zero address placeholder is never used.
-      const feeToken = context.network.aa?.feeToken;
       const receipt = await sendAaOperation(
         context,
         calls,
-        feeToken ? context.network.tokens[feeToken].address : zeroAddress,
-        feeToken && params.token === feeToken ? params.amount : 0n,
+        params.token === undefined
+          ? undefined
+          : {
+              token: context.network.tokens[params.token].address,
+              amount: params.amount,
+            },
       );
       const { userOpHash } = receipt;
       if (!receipt.success) {
@@ -215,15 +235,9 @@ export function usePasskeyAccount() {
     }
   };
 
-  /** Forget everything tied to the previous chain/session. */
+  /** Forget the error of the previous chain/session; the balances are keyed
+   * by both, so they need no clearing. */
   const reset = (): void => {
-    smartAccountAddress.value =
-      user.walletAddress.value ??
-      readStoredSession()?.smartAccountAddress ??
-      null;
-    balances.value = [];
-    ethBalance.value = 0n;
-    balancesLoaded.value = false;
     error.value = null;
   };
 
@@ -233,7 +247,8 @@ export function usePasskeyAccount() {
     balancesLoaded,
     balances,
     ethBalance,
-    smartAccountAddress,
+    // The connected address is the smart account: one source.
+    smartAccountAddress: walletAddress,
     isReady,
     symbolOf,
     decimalsOf,

@@ -15,6 +15,9 @@ import WalletConnectIcon from '@/assets/wallet/walletconnect.svg';
 import ChevronIcon from '@/assets/chevronDown.svg';
 import copyIcon from '@/assets/copyPix.svg?url';
 import { isPasskeyAvailable } from '@/wallet/wagmi';
+import { useRouter } from 'vue-router';
+import { rpId } from '@/config/aa';
+import { useAccountRouter } from '@/composables/account/useAccountRouter';
 import { useUser } from '@/composables/useUser';
 import { useConnectModal } from '@/wallet/useConnectModal';
 import {
@@ -30,6 +33,16 @@ const { isOpen, close } = useConnectModal();
 const user = useUser();
 const { mutateAsync: connectAsync } = useConnect();
 const connectors = useConnectors();
+const router = useRouter();
+const accountRouter = useAccountRouter();
+
+// Recovery lives in the account panel beside the offer card on the home page.
+const openRecovery = () => {
+  close();
+  accountRouter.reset();
+  accountRouter.push('recovery');
+  void router.push('/');
+};
 
 type Connector = (typeof connectors.value)[number];
 
@@ -406,6 +419,14 @@ onBeforeUnmount(() => {
                 <span class="row-title">Continuar com Google</span>
               </span>
               <span v-if="loadingKey === 'google'" class="spinner small" />
+            </button>
+            <button
+              v-if="rpId"
+              type="button"
+              class="self-center text-sm text-gray-600 underline hover:text-gray-900 cursor-pointer"
+              @click="openRecovery"
+            >
+              Perdeu o acesso ao e-mail? Recuperar com passkey de backup
             </button>
           </section>
 
