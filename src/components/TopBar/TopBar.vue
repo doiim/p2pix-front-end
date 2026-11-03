@@ -16,6 +16,7 @@ import { resetAaAccountCache } from '@/blockchain/aa/operations';
 import { useWalletAddress } from '@/queries/wallet';
 import { usePasskeyAccount } from '@/composables/usePasskeyAccount';
 import { shortAddress } from '@/utils/shortAddress';
+import { walletErrorMessage } from '@/utils/walletPrompts';
 
 interface MenuOption {
   label: string;
@@ -89,7 +90,11 @@ const networkChange = async (targetNetwork: NetworkConfig): Promise<void> => {
       // Passkey switchChain rejects chains without AA support, so the app
       // network stays put; chains with AA succeed and the chainId watcher
       // resets the AA cache.
-      console.log('Error changing network', error);
+      console.error('Error changing network', error);
+      user.showToast(
+        'error',
+        walletErrorMessage(error, 'Não foi possível trocar de rede.'),
+      );
     }
   } else {
     user.setNetwork(targetNetwork);
