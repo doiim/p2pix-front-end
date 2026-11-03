@@ -12,6 +12,7 @@ import ReputationDetailsPanel from '@/components/BuyerSteps/Reputation/Reputatio
 import ReputationLimitRow from '@/components/BuyerSteps/Reputation/ReputationLimitRow.vue';
 import ReputationMaxButton from '@/components/BuyerSteps/Reputation/ReputationMaxButton.vue';
 import TokenSelector from '@/components/Swap/TokenSelector.vue';
+import SwapFailureBanner from '@/components/Swap/SwapFailureBanner.vue';
 import { verifyNetworkLiquidity } from '@/utils/networkLiquidity';
 import {
   LIMIT_ROW_SENTENCES,
@@ -220,7 +221,7 @@ const liquidityRow = computed<{
     limitState.value === null &&
     !loadingNetworkLiquidity.value &&
     !selectedNetworkUnread.value &&
-    !swapQuote.failed.value;
+    swapQuote.reason.value === null;
   if (!blocked) return null;
   const cents = maxOfferCents.value;
   return {
@@ -424,6 +425,11 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
 <template>
   <form class="main-container" @submit="handleSubmit">
     <slot />
+    <SwapFailureBanner
+      v-if="swapQuote.reason.value"
+      :reason="swapQuote.reason.value"
+      :token="buyToken"
+    />
     <div
       class="amount-box flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg"
     >
@@ -516,15 +522,11 @@ const announceRow = (variant: LimitRowVariant, limitTokens: bigint): void =>
           disponível agora.</span
         >
       </div>
-      <div class="flex justify-center" v-if="swapQuote.failed.value">
-        <span class="text-red-500 font-normal text-sm text-center"
-          >Sem cotação para {{ buyToken }} agora. Tente outro valor ou escolha
-          {{ TokenEnum.BRZ }}.</span
-        >
-      </div>
       <div
         class="flex justify-center"
-        v-else-if="!validDecimals && !loadingNetworkLiquidity"
+        v-if="
+          !swapQuote.reason.value && !validDecimals && !loadingNetworkLiquidity
+        "
       >
         <span class="text-red-500 font-normal text-sm"
           >Por favor utilize no máximo 2 casas decimais</span

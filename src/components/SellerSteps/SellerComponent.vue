@@ -10,6 +10,7 @@ import { useUser } from '@/composables/useUser';
 import { useWalletAddress } from '@/queries/wallet';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import TokenSelector from '@/components/Swap/TokenSelector.vue';
+import SwapFailureBanner from '@/components/Swap/SwapFailureBanner.vue';
 import { postProcessKey } from '@/utils/pixKeyFormat';
 import { floorCents, formatBrlFixed } from '@/utils/reputation';
 import { useConnectModal } from '@/wallet/useConnectModal';
@@ -34,7 +35,6 @@ const formRef = ref<HTMLFormElement | null>(null);
 
 // Reactive state
 const user = useUser();
-const { selectedToken } = user;
 const walletAddress = useWalletAddress();
 
 const offer = ref<string>('');
@@ -60,7 +60,7 @@ const refreshCost = (): void => {
   clearTimeout(quoteTimer);
   // The old cost must not sit beside a new input while the debounce runs.
   cost.result.value = null;
-  cost.failed.value = false;
+  cost.reason.value = null;
   cost.quoting.value = !!swapToken.value && Number(offer.value) > 0;
   quoteTimer = setTimeout(() => {
     const token = swapToken.value;
@@ -213,6 +213,11 @@ const handleSubmit = (e: Event): void => {
 <template>
   <form ref="formRef" @submit="handleSubmit" class="main-container">
     <slot />
+    <SwapFailureBanner
+      v-if="swapToken && cost.reason.value"
+      :reason="cost.reason.value"
+      :token="payToken"
+    />
     <!-- Offer input -->
     <div class="flex flex-col w-full bg-white sm:px-10 px-6 py-5 rounded-lg">
       <div class="flex justify-between items-center gap-4">
@@ -241,23 +246,15 @@ const handleSubmit = (e: Event): void => {
     <div
       v-if="
         swapToken &&
-        (cost.failed.value ||
-          (cost.result.value && cost.result.value.impactBps > IMPACT_WARN_BPS))
+        cost.result.value &&
+        cost.result.value.impactBps > IMPACT_WARN_BPS
       "
       class="flex flex-col w-full bg-white sm:px-10 px-6 py-4 rounded-lg gap-1 text-sm text-center"
     >
-      <span
-        v-if="
-          cost.result.value && cost.result.value.impactBps > IMPACT_WARN_BPS
-        "
-        class="text-amber-600"
+      <span class="text-amber-600"
         >Impacto de preço de
         {{ (cost.result.value.impactBps / 100).toFixed(1) }}% pela liquidez
         disponível agora.</span
-      >
-      <span v-if="cost.failed.value" class="text-red-500"
-        >Sem cotação para {{ payToken }} agora. Tente outro valor ou escolha
-        {{ selectedToken }}.</span
       >
     </div>
     <!-- CPF or CNPJ input -->
