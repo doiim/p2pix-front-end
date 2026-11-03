@@ -103,7 +103,13 @@ const showBuyAlert = ref<boolean>(false);
 const showLockRecoveryAlert = ref<boolean>(false);
 const swapResult = ref<{ uid: Hex | null; token: string }>();
 const releaseNotice = ref<string | null>(null);
-const paramLockID = window.history.state?.lockID;
+const stateLockID: unknown = window.history.state?.lockID;
+// history.state is not ours to trust: anything but a plain lock id opens the search step.
+const paramLockID =
+  (typeof stateLockID === 'string' || typeof stateLockID === 'number') &&
+  /^\d+$/.test(String(stateLockID))
+    ? String(stateLockID)
+    : undefined;
 // Set when the contract refused the lock with AmountNotAllowed: the search step reopens with that press.
 const searchRefusal = ref<BuyPress | null>(null);
 // The limit before and after the last release, for the purchase-complete screen; null when unknown or unchanged.
@@ -111,7 +117,10 @@ const newLimit = ref<LimitChange | null>(null);
 
 // A refusal belongs to the search step it reopened: leaving that step (e.g. to resume a pending lock) drops it.
 watch(flowStep, (step) => {
-  if (step !== Step.Search) searchRefusal.value = null;
+  if (step === Step.Search) return;
+  searchRefusal.value = null;
+  // The open-purchase alert belongs to the search step; it must not wait there for the next visit.
+  showModal.value = false;
 });
 
 const confirmBuyClick = async (
@@ -246,7 +255,7 @@ const checkForUnreleasedLocks = async (): Promise<void> => {
     lockID.value = String(lock.lockID);
     tokenAmount.value = lock.amount;
     sellerAddress.value = lock.sellerAddress;
-    showModal.value = true;
+    showModal.value = flowStep.value === Step.Search;
   } else {
     flowStep.value = Step.Search;
     showModal.value = false;
