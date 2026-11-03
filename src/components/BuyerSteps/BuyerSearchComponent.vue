@@ -171,8 +171,9 @@ const ignoreAllowlist = ref(false);
 const allowlisted = computed(() =>
   ignoreAllowlist.value ? false : proofFound.value,
 );
+// Two getters, not one tuple: a fresh tuple counts as changed on every recompute and re-issues the read.
 watch(
-  () => [selectedDeposit.value?.seller, walletAddress.value] as const,
+  [() => selectedDeposit.value?.seller, walletAddress],
   async ([seller, buyer], _, onCleanup) => {
     let stale = false;
     onCleanup(() => {
@@ -180,7 +181,8 @@ watch(
     });
     proofFound.value = seller && buyer ? null : false;
     if (!seller || !buyer) return;
-    const proof = await findAllowlistProof(seller, buyer);
+    // A failed lookup only keeps the normal limit.
+    const proof = await findAllowlistProof(seller, buyer).catch(() => []);
     if (!stale) proofFound.value = proof.length > 0;
   },
   { immediate: true },

@@ -1,5 +1,5 @@
 import { isAddress, isHex, type Address, type Hex } from 'viem';
-import { allowlistRoot, sameAddress, shortHex } from './allowlist';
+import { allowlistRoot, shortHex } from './allowlist';
 
 /**
  * Allowlists live only in this browser and in the file the seller downloads:
@@ -9,7 +9,7 @@ import { allowlistRoot, sameAddress, shortHex } from './allowlist';
  */
 export type AllowlistEntry = {
   address: Address;
-  /** Seller's private label; never sent to the network. */
+  /** Seller's label; never on-chain, but it is in the file the seller shares. */
   nickname?: string;
 };
 
@@ -41,13 +41,25 @@ const readJson = (key: string): unknown => {
   }
 };
 
-const writeJson = (key: string, value: unknown): void => {
+/** `false` when storage is full or unavailable; the downloaded file is the backup. */
+const writeJson = (key: string, value: unknown): boolean => {
   try {
     localStorage.setItem(key, JSON.stringify(value));
+    return true;
   } catch {
-    // Storage full or unavailable; the downloaded file is the backup.
+    return false;
   }
 };
+
+/** Bounds for an imported file, so a huge one cannot freeze the page. */
+export const MAX_ALLOWLIST_ENTRIES = 5000;
+const MAX_FILE_BYTES = 2 * 1024 * 1024;
+
+/** pt-BR reason a picked file is too big to read, if it is. */
+export const fileSizeError = (file: File): string | undefined =>
+  file.size > MAX_FILE_BYTES
+    ? 'Arquivo grande demais. Use o .json baixado nesta página.'
+    : undefined;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
@@ -61,15 +73,18 @@ const toEntry = (value: unknown): AllowlistEntry | null => {
 };
 
 /** Valid entries only, first occurrence of each address kept. */
-const toEntries = (value: unknown): AllowlistEntry[] =>
-  (Array.isArray(value) ? value : [])
+const toEntries = (value: unknown): AllowlistEntry[] => {
+  const seen = new Set<string>();
+  return (Array.isArray(value) ? value : [])
     .map(toEntry)
     .filter((entry): entry is AllowlistEntry => entry !== null)
-    .filter(
-      (entry, index, all) =>
-        all.findIndex((other) => sameAddress(other.address, entry.address)) ===
-        index,
-    );
+    .filter((entry) => {
+      const key = entry.address.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+};
 
 export const entryLabel = (entry: AllowlistEntry): string =>
   entry.nickname ?? shortHex(entry.address);
@@ -86,7 +101,7 @@ export const writeOwnAllowlist = (
   chainId: number,
   owner: Address,
   entries: readonly AllowlistEntry[],
-): void => writeJson(ownKey(chainId, owner), entries);
+): boolean => writeJson(ownKey(chainId, owner), entries);
 
 export const toAllowlistFile = (
   chainId: number,
@@ -114,6 +129,9 @@ export const parseAllowlistFile = (text: string): AllowlistFile | null => {
   })();
   if (!isRecord(value)) return null;
   const { chainId, seller, root, entries } = value;
+  if (Array.isArray(entries) && entries.length > MAX_ALLOWLIST_ENTRIES) {
+    return null;
+  }
   if (typeof chainId !== 'number' || typeof seller !== 'string') return null;
   if (!isAddress(seller) || typeof root !== 'string' || !isHex(root)) {
     return null;
@@ -162,7 +180,7 @@ export const readReceivedAllowlists = (): ReceivedAllowlist[] => {
 
 export const writeReceivedAllowlists = (
   lists: readonly ReceivedAllowlist[],
-): void => writeJson(RECEIVED_KEY, lists);
+): boolean => writeJson(RECEIVED_KEY, lists);
 
 /** Opens the system file dialog; stays pending if the user cancels. */
 export const pickAllowlistFile = (): Promise<File | null> =>

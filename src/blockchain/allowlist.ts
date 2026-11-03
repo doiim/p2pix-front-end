@@ -40,11 +40,11 @@ export const findAllowlistProof = async (
   seller: Address,
   buyer: Address,
 ): Promise<Hex[]> => {
+  const chainId = useUser().network.value.id;
   // The proof only lifts a limit; a failed read must not block the lock.
   const root = await readAllowlistRoot(seller).catch(() => zeroHash);
   if (root === zeroHash) return [];
 
-  const chainId = useUser().network.value.id;
   const received = readReceivedAllowlists().filter(
     (list) => list.chainId === chainId && sameAddress(list.seller, seller),
   );

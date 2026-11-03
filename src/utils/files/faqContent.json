@@ -62,7 +62,7 @@
       },
       {
         "title": "Como libero um comprador?",
-        "content": "No menu da carteira, abra 'Compradores confiáveis'; adicione o endereço que aparece no topo do app do comprador; grave a lista na rede e confirme na carteira; baixe a lista (.json) e envie o arquivo aos compradores. Sempre que você grava uma lista nova, os arquivos anteriores deixam de valer."
+        "content": "No menu da carteira, abra 'Compradores confiáveis'; adicione o endereço que aparece no topo do app do comprador (o apelido é opcional e vai junto no arquivo que você envia); grave a lista na rede e confirme na carteira; baixe a lista (.json) e envie o arquivo aos compradores. Sempre que você grava uma lista nova, os arquivos anteriores deixam de valer."
       },
       {
         "title": "A lista de compradores é pública?",

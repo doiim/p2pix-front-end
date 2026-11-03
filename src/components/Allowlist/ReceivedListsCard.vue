@@ -9,6 +9,7 @@ import { isOnAllowlist, sameAddress, shortHex } from '@/utils/allowlist';
 import {
   addressesOf,
   parseAllowlistFile,
+  fileSizeError,
   pickAllowlistFile,
   readReceivedAllowlists,
   writeReceivedAllowlists,
@@ -32,7 +33,11 @@ const roots = ref<Record<string, Hex | null>>({});
 
 const keyOf = (list: ReceivedAllowlist) => list.seller.toLowerCase();
 
+let rootsRequest = 0;
+
 const loadRoots = async () => {
+  const request = ++rootsRequest;
+  roots.value = {};
   const chainId = user.network.value.id;
   const sellers = lists.value.filter((list) => list.chainId === chainId);
   const entries = await Promise.all(
@@ -41,7 +46,7 @@ const loadRoots = async () => {
       await readAllowlistRoot(list.seller).catch(() => null),
     ]),
   );
-  roots.value = Object.fromEntries(entries);
+  if (request === rootsRequest) roots.value = Object.fromEntries(entries);
 };
 
 watch([() => user.network.value.id, lists], () => void loadRoots(), {
@@ -60,14 +65,19 @@ const networkStatus = (list: ReceivedAllowlist) => {
   return root === list.root ? 'Ativa na rede' : 'Não é a lista atual';
 };
 
-const persist = (next: ReceivedAllowlist[]) => {
+const persist = (next: ReceivedAllowlist[]): boolean => {
   lists.value = next;
-  writeReceivedAllowlists(next);
+  return writeReceivedAllowlists(next);
 };
 
 const importFile = async () => {
   const picked = await pickAllowlistFile();
   if (!picked) return;
+  const tooBig = fileSizeError(picked);
+  if (tooBig) {
+    user.showToast('error', tooBig);
+    return;
+  }
   const file = parseAllowlistFile(await picked.text());
   if (!file) {
     user.showToast(
@@ -76,19 +86,45 @@ const importFile = async () => {
     );
     return;
   }
+  const current = lists.value.find(
+    (list) =>
+      list.chainId === file.chainId && sameAddress(list.seller, file.seller),
+  );
+  if (current && current.root !== file.root) {
+    // The on-chain root is only readable on the connected network.
+    const onChain =
+      file.chainId === user.network.value.id
+        ? await readAllowlistRoot(file.seller).catch(() => null)
+        : null;
+    if (onChain === current.root) {
+      user.showToast('error', 'Você já tem a lista atual deste vendedor.');
+      return;
+    }
+  }
   const others = lists.value.filter(
     (list) =>
       list.chainId !== file.chainId || !sameAddress(list.seller, file.seller),
   );
-  persist([
+  const saved = persist([
     ...others,
     { ...file, fileName: picked.name, importedAt: Date.now() },
   ]);
-  user.showToast('success', 'Lista importada');
+  if (saved) user.showToast('success', 'Lista importada');
+  else {
+    user.showToast(
+      'error',
+      'A lista foi importada, mas não ficou salva neste navegador.',
+    );
+  }
 };
 
-const remove = (target: ReceivedAllowlist) =>
-  persist(lists.value.filter((list) => list !== target));
+const remove = (target: ReceivedAllowlist) => {
+  if (persist(lists.value.filter((list) => list !== target))) return;
+  user.showToast(
+    'error',
+    'A lista saiu daqui, mas continua salva neste navegador.',
+  );
+};
 </script>
 
 <template>

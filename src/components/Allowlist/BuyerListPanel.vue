@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { useUser } from '@/composables/useUser';
 import type { TrustedBuyers } from '@/composables/useTrustedBuyers';
 import {
+  fileSizeError,
   pickAllowlistFile,
   type AllowlistEntry,
 } from '@/utils/allowlistStorage';
@@ -30,6 +31,11 @@ const cards = computed((): Card[] => {
 });
 
 const importFile = async (file: File) => {
+  const tooBig = fileSizeError(file);
+  if (tooBig) {
+    user.showToast('error', tooBig);
+    return;
+  }
   const error = props.list.importFile(await file.text(), file.name);
   if (error) user.showToast('error', error);
 };

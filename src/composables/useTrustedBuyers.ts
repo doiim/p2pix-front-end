@@ -9,6 +9,7 @@ import {
   addressesOf,
   allowlistFileName,
   downloadAllowlistFile,
+  MAX_ALLOWLIST_ENTRIES,
   parseAllowlistFile,
   readOwnAllowlist,
   toAllowlistFile,
@@ -116,6 +117,9 @@ export function useTrustedBuyers() {
     if (walletAddress.value && sameAddress(address, walletAddress.value)) {
       return 'Este é o endereço da sua carteira. Adicione o do comprador.';
     }
+    if (draft.value.length >= MAX_ALLOWLIST_ENTRIES) {
+      return `A lista aceita até ${MAX_ALLOWLIST_ENTRIES} endereços.`;
+    }
     const label = nickname.trim();
     const entry: AllowlistEntry = label
       ? { address: address as Address, nickname: label }
@@ -144,11 +148,12 @@ export function useTrustedBuyers() {
     removed.value = removed.value.filter((item) => !sameAddress(item, address));
   };
 
-  const commitRoot = async (root: Hex): Promise<boolean> => {
+  /** `id` is the load the write belongs to; a switch mid-prompt drops its state updates. */
+  const commitRoot = async (root: Hex, id: number): Promise<boolean> => {
     busy.value = true;
     try {
       await writeAllowlistRoot(root);
-      onChainRoot.value = root;
+      if (id === loadId) onChainRoot.value = root;
       return true;
     } catch (error) {
       console.error('[allowlist] setRoot failed', error);
@@ -164,12 +169,36 @@ export function useTrustedBuyers() {
     }
   };
 
+  /**
+   * After a write: true when the page still shows the load it started from.
+   * If something reloaded it meanwhile for the same account and chain, reload
+   * again so the page reflects what was just written; otherwise drop it.
+   */
+  const isCurrent = (id: number, chainId: number, owner: Address): boolean => {
+    if (id === loadId) return true;
+    const sameAccount =
+      user.network.value.id === chainId &&
+      !!walletAddress.value &&
+      sameAddress(walletAddress.value, owner);
+    if (sameAccount) void load();
+    return false;
+  };
+
   const save = async () => {
     const owner = walletAddress.value;
     if (!owner) return;
     const entries = draft.value;
-    if (!(await commitRoot(allowlistRoot(addressesOf(entries))))) return;
-    writeOwnAllowlist(user.network.value.id, owner, entries);
+    const chainId = user.network.value.id;
+    const id = loadId;
+    if (!(await commitRoot(allowlistRoot(addressesOf(entries)), id))) return;
+    // Keyed by the chain and account the root was written for, not the current ones.
+    if (!writeOwnAllowlist(chainId, owner, entries)) {
+      user.showToast(
+        'error',
+        'A lista foi gravada na rede, mas não ficou salva neste navegador. Baixe o arquivo.',
+      );
+    }
+    if (!isCurrent(id, chainId, owner)) return;
     saved.value = entries;
     startedFresh.value = false;
     resetEdits();
@@ -178,7 +207,12 @@ export function useTrustedBuyers() {
 
   /** Root goes to zero; the addresses stay in this browser. */
   const deactivate = async (): Promise<boolean> => {
-    if (!(await commitRoot(zeroHash))) return false;
+    const owner = walletAddress.value;
+    if (!owner) return false;
+    const chainId = user.network.value.id;
+    const id = loadId;
+    if (!(await commitRoot(zeroHash, id))) return false;
+    if (!isCurrent(id, chainId, owner)) return true;
     resetEdits();
     justSaved.value = false;
     return true;
@@ -203,7 +237,9 @@ export function useTrustedBuyers() {
     }
     mismatch.value = null;
     if (file.root === onChainRoot.value) {
-      writeOwnAllowlist(file.chainId, owner, file.entries);
+      if (!writeOwnAllowlist(file.chainId, owner, file.entries)) {
+        return 'Não foi possível salvar a lista neste navegador.';
+      }
       saved.value = file.entries;
       resetEdits();
       return undefined;
