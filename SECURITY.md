@@ -98,6 +98,7 @@ Every request below is triggered by **first-party** code in this front-end (not 
   - _Purpose:_ Price quotes and order relay to solvers; settlement is on-chain.
   - _Data exposed:_ Address (zero address before connecting and for the panel's prices), token pair, amounts, timing.
   - _Escape path:_ Pick BRZ — the trade makes no request; the panel quotes only the held tokens that have a swap pair. The endpoint is `swap.apiUrl` in `src/config/networks.ts`.
+  - _Stored data:_ `localStorage` key `p2pix:sell-swap:<chainId>:<owner address>` holds the seller's live sell-side order: its uid, the token paid and the offer's participant data (CPF/CNPJ, bank account, branch, ISPB, amount) that the deposit needs once the order fills. It lets a reload resume the order instead of stranding the BRZ it delivers. It is removed on a successful deposit, on "Ficar com", when the order expires or is cancelled, and when another swap starts; otherwise it stays until the user clears site data. Per browser and per account, never sent anywhere but back to the prover when the deposit registers the seller.
 
 - **`https://api.p2pix.co` / `https://demo.api.p2pix.co`** (P2Pix prover) — _on user action (trade)_
   - _Trigger:_ Seller registration (`/register`), buyer charge creation (`/request`), release polling (`/release`).

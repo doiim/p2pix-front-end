@@ -4,6 +4,7 @@
 
 import {
   erc20Abi,
+  isHex,
   parseUnits,
   type Address,
   type Hex,
@@ -14,6 +15,7 @@ import { getSender, sendContractCalls } from './send';
 import type { AaCall } from './aa/types';
 import { getBuyerLock, releaseCall, releaseLock } from './buyerMethods';
 import type { PixProof } from '@/utils/pixProof';
+import type { Participant } from '@/utils/bbPay';
 import { getPublicClient, getWalletClient } from './provider';
 import {
   CANCELLATION_TYPES,
@@ -366,6 +368,111 @@ export const loadSwapIntent = (
     typeof raw.amount === 'string' &&
     /^\d+(\.\d+)?$/.test(raw.amount)
     ? { token: raw.token, amount: raw.amount }
+    : null;
+};
+
+/** A sell-side order waiting to fill, with what the deposit needs after it does. */
+export type PendingSellSwap = {
+  uid: Hex;
+  symbol: string;
+  participant: Participant;
+};
+
+const pendingKey = (chainId: number, owner: Address) =>
+  `p2pix:sell-swap:${chainId}:${owner.toLowerCase()}`;
+
+const field = (value: object, key: string): unknown =>
+  key in value ? Object.getOwnPropertyDescriptor(value, key)?.value : undefined;
+
+const toParticipant = (raw: unknown): Participant | null => {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const offer = field(raw, 'offer');
+  const chainID = field(raw, 'chainID');
+  const identification = field(raw, 'identification');
+  const accountType = field(raw, 'accountType');
+  const account = field(raw, 'account');
+  const branch = field(raw, 'branch');
+  const bankIspb = field(raw, 'bankIspb');
+  const savingsVariation = field(raw, 'savingsVariation');
+  const optional = (v: unknown): v is string | undefined =>
+    v === undefined || typeof v === 'string';
+  return typeof offer === 'string' &&
+    typeof chainID === 'number' &&
+    typeof identification === 'string' &&
+    typeof accountType === 'string' &&
+    typeof account === 'string' &&
+    typeof branch === 'string' &&
+    optional(bankIspb) &&
+    optional(savingsVariation)
+    ? {
+        offer,
+        chainID,
+        identification,
+        accountType,
+        account,
+        branch,
+        bankIspb,
+        savingsVariation,
+      }
+    : null;
+};
+
+/**
+ * Survives a reload while the seller's order is live or filled but not yet
+ * deposited. Keyed by chain and owner so only that account resumes it.
+ * Storage may be unavailable; the screen state still carries the order.
+ */
+export const savePendingSellSwap = (
+  chainId: number,
+  owner: Address,
+  pending: PendingSellSwap,
+) => {
+  try {
+    localStorage.setItem(
+      pendingKey(chainId, owner),
+      JSON.stringify({ chainId, owner, ...pending }),
+    );
+  } catch (cause) {
+    console.error('[swap] pending order not stored', cause);
+  }
+};
+
+const readStored = (key: string): string | null => {
+  try {
+    return localStorage.getItem(key);
+  } catch {
+    return null;
+  }
+};
+
+export const clearPendingSellSwap = (chainId: number, owner: Address) => {
+  try {
+    localStorage.removeItem(pendingKey(chainId, owner));
+  } catch (cause) {
+    console.error('[swap] pending order not cleared', cause);
+  }
+};
+
+export const loadPendingSellSwap = (
+  chainId: number,
+  owner: Address,
+): PendingSellSwap | null => {
+  const raw = parseJson(readStored(pendingKey(chainId, owner)));
+  if (typeof raw !== 'object' || raw === null) return null;
+  const participant =
+    'participant' in raw ? toParticipant(raw.participant) : null;
+  return participant &&
+    'chainId' in raw &&
+    raw.chainId === chainId &&
+    'owner' in raw &&
+    typeof raw.owner === 'string' &&
+    raw.owner.toLowerCase() === owner.toLowerCase() &&
+    'uid' in raw &&
+    typeof raw.uid === 'string' &&
+    isHex(raw.uid) &&
+    'symbol' in raw &&
+    typeof raw.symbol === 'string'
+    ? { uid: raw.uid, symbol: raw.symbol, participant }
     : null;
 };
 

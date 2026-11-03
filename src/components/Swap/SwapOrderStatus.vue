@@ -28,7 +28,12 @@ const props = defineProps<{
   cancel: (uid: Hex) => Promise<void>;
 }>();
 
-const emit = defineEmits<{ fulfilled: []; live: [live: boolean] }>();
+const emit = defineEmits<{
+  fulfilled: [];
+  /** Expired or cancelled: nothing was bought. */
+  unfilled: [];
+  live: [live: boolean];
+}>();
 
 const user = useUser();
 const uid = ref<Hex | null>(props.orderUid);
@@ -104,6 +109,7 @@ watch(
   () => order.value?.status,
   (status) => {
     if (status === 'fulfilled') emit('fulfilled');
+    if (status === 'expired' || status === 'cancelled') emit('unfilled');
   },
 );
 
