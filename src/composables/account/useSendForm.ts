@@ -15,6 +15,7 @@ import {
 } from '@/composables/usePasskeyAccount';
 import { formatTokenAmount } from '@/utils/formatTokenAmount';
 import { useUser } from '@/composables/useUser';
+import { useWalletAddress } from '@/queries/wallet';
 import type { NetworkConfig } from '@/model/NetworkEnum';
 
 type SendCta =
@@ -53,12 +54,8 @@ const lastSent = ref<
 export function useSendForm() {
   const account = usePasskeyAccount();
   const { showToast, selectedToken, network } = useUser();
+  const walletAddress = useWalletAddress();
 
-  const self = computed(() =>
-    [account.smartAccountAddress.value, getCurrentAccount().address]
-      .filter((a): a is `0x${string}` => Boolean(a))
-      .map((a) => a.toLowerCase()),
-  );
   const decimals = computed(() => account.decimalsOf(token.value));
   const symbol = computed(() => account.symbolOf(token.value));
   const amount = computed(() => parseAmount(amountInput.value, decimals.value));
@@ -85,7 +82,9 @@ export function useSendForm() {
   const receiverAddress = computed(() => {
     const text = receiver.value.trim();
     if (!isAddress(text) || text.toLowerCase() === zeroAddress) return null;
-    return self.value.includes(text.toLowerCase()) ? null : getAddress(text);
+    return text.toLowerCase() === walletAddress.value?.toLowerCase()
+      ? null
+      : getAddress(text);
   });
 
   const cta = computed<SendCta>(() => {
@@ -112,6 +111,7 @@ export function useSendForm() {
   };
 
   const setMax = async (): Promise<void> => {
+    const forToken = token.value;
     const reserve = await gasReserve().catch((cause) => {
       console.error(cause);
       return null;
@@ -120,11 +120,14 @@ export function useSendForm() {
       showToast('error', 'Não foi possível estimar a taxa de rede.');
       return;
     }
+    // The token was switched while the estimate ran: the reserve is not for this one.
+    if (token.value !== forToken) return;
     const spendable = maxAmount.value - reserve;
-    amountInput.value = formatUnits(
-      spendable > 0n ? spendable : 0n,
-      decimals.value,
-    );
+    if (spendable <= 0n) {
+      showToast('error', 'O saldo não cobre a taxa de rede.');
+      return;
+    }
+    amountInput.value = formatUnits(spendable, decimals.value);
   };
 
   const pasteAddress = async (): Promise<void> => {
