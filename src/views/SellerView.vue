@@ -13,6 +13,7 @@ import { useMutation } from '@tanstack/vue-query';
 import { approveTokens } from '@/blockchain/sellerMethods';
 import { buyBrz, cancelSwap, separatePrompts } from '@/blockchain/swap';
 import { useAddDepositMutation } from '@/queries/mutations';
+import CustomButton from '@/components/ui/CustomButton.vue';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import { findSwapToken } from '@/model/BuyToken';
 import { TokenEnum, type SwapToken } from '@/model/NetworkEnum';
@@ -41,6 +42,13 @@ const swap = ref<{
   token: SwapToken;
   uid: Hex | null;
 }>();
+
+// Leaving while the order is live would stop its poll and strand the filled BRZ.
+const orderLive = ref(false);
+// The order filled: the BRZ is in the wallet, so only the deposit is left to retry.
+const brzReady = ref(false);
+const DEPOSIT_RETRY =
+  'O BRZ já está na sua carteira. Tente o depósito de novo.';
 
 const brzAddress = computed(
   () => user.network.value.tokens[TokenEnum.BRZ].address,
@@ -80,18 +88,21 @@ const sendOffer = async (args: Participant) => {
     await approveMutation.mutateAsync(args);
     loadingMessage.value = 'Enviando oferta para a rede…';
     await addDepositMutation.mutateAsync();
+    brzReady.value = false;
     showAlert.value = true;
   } catch (err) {
     console.error(err);
     user.showToast(
       'error',
-      walletErrorMessage(
-        err,
-        'Não foi possível criar a oferta. Tente novamente.',
-      ),
+      brzReady.value
+        ? DEPOSIT_RETRY
+        : walletErrorMessage(
+            err,
+            'Não foi possível criar a oferta. Tente novamente.',
+          ),
     );
   } finally {
-    flowStep.value = Step.Sell;
+    flowStep.value = brzReady.value ? Step.Swap : Step.Sell;
     sending.value = false;
     loadingMessage.value = defaultMessage;
   }
@@ -99,6 +110,8 @@ const sendOffer = async (args: Participant) => {
 
 /** Buys the offer's BRZ with `token`; the deposit follows once it fills. */
 const startSwap = async (args: Participant, token: SwapToken) => {
+  brzReady.value = false;
+  swapStarting.value = true;
   const notice =
     promptsNotice(await separatePrompts(false).catch(() => []), {
       sell: token.symbol,
@@ -106,7 +119,6 @@ const startSwap = async (args: Participant, token: SwapToken) => {
     }) ?? 'A ordem de troca está sendo enviada.';
   // The deposit cannot ride in the order: it needs the BRZ the order delivers.
   loadingMessage.value = `${notice} Quando a troca executar, a carteira ainda pede a aprovação e o depósito do ${TokenEnum.BRZ}.`;
-  swapStarting.value = true;
   const uid = await buySwapBrz(args, token).catch((cause) => {
     console.error('[swap] sell-side order failed', cause);
     return null;
@@ -120,10 +132,14 @@ const startSwap = async (args: Participant, token: SwapToken) => {
 const buySwapBrz = (args: Participant, token: SwapToken) =>
   buyBrz(token.symbol, parseEther(String(args.offer)));
 
-const requoteSwap = () =>
-  swap.value
-    ? buySwapBrz(swap.value.participant, swap.value.token)
-    : Promise.reject(new Error('No pending swap'));
+// The new uid goes back into `swap` too: the card is remounted from it.
+const requoteSwap = async () => {
+  const pending = swap.value;
+  if (!pending) throw new Error('No pending swap');
+  const uid = await buySwapBrz(pending.participant, pending.token);
+  pending.uid = uid;
+  return uid;
+};
 
 const keepToken = (uid: Hex) =>
   swap.value
@@ -131,7 +147,11 @@ const keepToken = (uid: Hex) =>
     : Promise.reject(new Error('No pending swap'));
 
 const swapFilled = () => {
-  if (swap.value) approveOffer(swap.value.participant);
+  // After a failed deposit the status card remounts and reports the same fill
+  // again; only "Tentar o depósito" retries then, or a rejection re-prompts forever.
+  if (!swap.value || brzReady.value) return;
+  brzReady.value = true;
+  approveOffer(swap.value.participant);
 };
 </script>
 
@@ -155,7 +175,9 @@ const swapFilled = () => {
     </div>
     <div v-if="flowStep == Step.Swap && swap" class="page">
       <div v-if="!loading" class="main-container">
+        <!-- Once filled, the token is spent: no "Cotar de novo" or "Ficar com" for it. -->
         <SwapOrderStatus
+          v-if="!brzReady"
           :order-uid="swap.uid"
           :token="TokenEnum.BRZ"
           :token-address="brzAddress"
@@ -163,8 +185,17 @@ const swapFilled = () => {
           :requote="requoteSwap"
           :cancel="keepToken"
           @fulfilled="swapFilled"
+          @live="orderLive = $event"
         />
+        <template v-if="brzReady">
+          <p class="text-white text-sm">{{ DEPOSIT_RETRY }}</p>
+          <CustomButton
+            text="Tentar o depósito"
+            @buttonClicked="swap && approveOffer(swap.participant)"
+          />
+        </template>
         <button
+          v-else-if="!orderLive"
           type="button"
           class="text-white underline text-sm"
           @click="flowStep = Step.Sell"

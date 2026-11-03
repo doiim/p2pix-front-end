@@ -26,6 +26,7 @@ import { lockKey, queryKeyRoots } from '@/queries/keys';
 import type { ValidDeposit } from '@/model/ValidDeposit';
 import CustomAlert from '@/components/ui/CustomAlert.vue';
 import {
+  clearSwapIntent,
   loadSwapIntent,
   releaseAndSwap,
   saveSwapIntent,
@@ -178,7 +179,7 @@ const releaseTransaction = async (proof: PixProof) => {
   try {
     const intent = loadSwapIntent(network.value.id, lockID.value);
     releaseNotice.value = intent
-      ? promptsNotice(await separatePrompts(true), {
+      ? promptsNotice(await separatePrompts(true).catch(() => []), {
           sell: TokenEnum.BRZ,
           buy: intent.token,
         })
@@ -201,6 +202,7 @@ const releaseTransaction = async (proof: PixProof) => {
       });
       released = { uid: null, blockNumber: receipt.blockNumber };
     }
+    clearSwapIntent(network.value.id, lockID.value);
     // Not awaited: the screen shows now and the line appears once the read lands. refresh() never rejects.
     void reputation.refresh({ minBlock: released.blockNumber }).then((read) => {
       newLimit.value =

@@ -180,7 +180,7 @@ const AMOUNT_NOT_ALLOWED_SELECTOR = encodeErrorResult({
 const MAX_CAUSE_DEPTH = 10;
 const HEX_PATTERN = /0x[0-9a-fA-F]+/g;
 
-const causeChain = (err: unknown, depth: number): object[] =>
+export const causeChain = (err: unknown, depth: number): object[] =>
   depth === 0 || typeof err !== 'object' || err === null
     ? []
     : [err, ...causeChain('cause' in err ? err.cause : undefined, depth - 1)];

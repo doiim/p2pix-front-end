@@ -37,6 +37,8 @@ import {
   quote,
   type OrderState,
 } from '@/utils/cowApi';
+import { isPasskeyCancelled } from '@doiim/passkeys';
+import { causeChain } from './reputation';
 import { useUser } from '@/composables/useUser';
 import {
   TokenEnum,
@@ -97,7 +99,8 @@ export const quoteBrzCost = async (
     SELL_REFERENCE_BRZ,
   );
   return {
-    cost: real.sellAmount + real.feeAmount,
+    // The order may spend this much; the screen shows it as the ceiling.
+    cost: withHeadroom(real.sellAmount + real.feeAmount),
     decimals: await tokenDecimals(ctx.network, token.address),
     impactBps,
   };
@@ -162,11 +165,31 @@ export const releaseAndSwap = async (
     aa
       ? releaseWithOrderAa(ctx, release, owner, order)
       : releaseWithOrderEoa(ctx, release, owner, order)
-  ).catch((cause) => {
+  ).catch(async (cause) => {
+    // A declined prompt is the user's answer, not a swap failure.
+    if (isWalletRejection(cause)) throw cause;
     deliverBrzOnly('release with order')(cause);
+    // The bundle may have mined before the wait failed: never release twice.
+    const lock = await getBuyerLock(lockID, owner).catch(() => null);
+    // `release` zeroes amount and expirationBlock; `unlockExpired` only the amount.
+    if (lock?.amount === 0n && lock.expirationBlock === 0n) {
+      return {
+        uid: null,
+        blockNumber: await getPublicClient().getBlockNumber({ cacheTime: 0 }),
+      };
+    }
     return releaseOnly(release);
   });
 };
+
+/** A declined wallet prompt (EIP-1193 4001) or a cancelled passkey ceremony. */
+const isWalletRejection = (err: unknown): boolean =>
+  isPasskeyCancelled(err) ||
+  causeChain(err, 8).some(
+    (e) =>
+      ('code' in e && e.code === 4001) ||
+      ('name' in e && e.name === 'UserRejectedRequestError'),
+  );
 
 const releaseOnly = async (release: ReleaseArgs): Promise<Released> => {
   const receipt = await releaseLock(...release);
@@ -238,8 +261,11 @@ export const separatePrompts = async (
   return withRelease ? ['release', 'approve', 'sign'] : ['approve', 'sign'];
 };
 
-/** Sells the BRZ now in the account at the current price. */
-export const requoteSwap = async (symbol: string): Promise<Hex> => {
+/** Sells up to `brzAmount` of the BRZ now in the account at the current price. */
+export const requoteSwap = async (
+  symbol: string,
+  brzAmount: bigint,
+): Promise<Hex> => {
   const ctx = swapContext();
   const token = swapToken(ctx, symbol);
   const aa = await getActiveAaContext();
@@ -251,7 +277,8 @@ export const requoteSwap = async (symbol: string): Promise<Hex> => {
     functionName: 'balanceOf',
     args: [owner],
   });
-  const sellAmount = balance - feeReserve(ctx.network);
+  const spendable = balance - feeReserve(ctx.network);
+  const sellAmount = spendable < brzAmount ? spendable : brzAmount;
   if (sellAmount <= 0n) throw new Error('No BRZ left to swap');
 
   const q = await quote(ctx.swap, {
@@ -323,13 +350,14 @@ export const saveSwapIntent = (
   intent: SwapIntent,
 ) => sessionStorage.setItem(intentKey(chainId, lockID), JSON.stringify(intent));
 
+export const clearSwapIntent = (chainId: number, lockID: string) =>
+  sessionStorage.removeItem(intentKey(chainId, lockID));
+
 export const loadSwapIntent = (
   chainId: number,
   lockID: string,
 ): SwapIntent | null => {
-  const raw: unknown = JSON.parse(
-    sessionStorage.getItem(intentKey(chainId, lockID)) ?? 'null',
-  );
+  const raw = parseJson(sessionStorage.getItem(intentKey(chainId, lockID)));
   return typeof raw === 'object' &&
     raw !== null &&
     'token' in raw &&
@@ -351,9 +379,14 @@ const swapContext = (): SwapContext => {
 
 const brz = (network: NetworkConfig) => network.tokens[TokenEnum.BRZ].address;
 
-/** BRZ kept back for the paymaster's charge on the smart-account rail. */
+/**
+ * BRZ kept back for the paymaster's charge, only where BRZ is the fee token;
+ * a sponsored rail charges nothing.
+ */
 const feeReserve = (network: NetworkConfig) =>
-  network.aa?.minFeeBalance ?? MIN_FEE_BALANCE_WEI_DEFAULT;
+  network.aa?.feeToken === TokenEnum.BRZ
+    ? (network.aa.minFeeBalance ?? MIN_FEE_BALANCE_WEI_DEFAULT)
+    : 0n;
 
 const nowSeconds = () => Math.floor(Date.now() / 1000);
 
@@ -423,6 +456,15 @@ const cached = <T>(key: string, read: () => Promise<T>): Promise<T> => {
 // intent of lock #N on chain A and prompted a swap nobody asked for.
 const intentKey = (chainId: number, lockID: string) =>
   `p2pix:swap-intent:${chainId}:${lockID}`;
+
+/** Stored text is untrusted: anything unparsable reads as absent. */
+const parseJson = (text: string | null): unknown => {
+  try {
+    return JSON.parse(text ?? 'null');
+  } catch {
+    return null;
+  }
+};
 
 /**
  * Buy order capped at the released BRZ minus the fee reserve. Null when the

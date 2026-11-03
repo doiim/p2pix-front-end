@@ -17,10 +17,12 @@ export const useSwapQuote = <T>() => {
     failed.value = false;
     quoting.value = request !== null;
     if (!request) return;
-    const value = await request().catch((cause) => {
-      console.error('[swap] quote failed', cause);
-      return null;
-    });
+    const value = await Promise.resolve()
+      .then(request)
+      .catch((cause) => {
+        console.error('[swap] quote failed', cause);
+        return null;
+      });
     // A slower, older quote must not overwrite the one for the current input.
     if (mine !== latest) return;
     quoting.value = false;

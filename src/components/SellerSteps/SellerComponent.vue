@@ -58,6 +58,10 @@ const cost = useSwapQuote<{
 let quoteTimer: ReturnType<typeof setTimeout> | undefined;
 const refreshCost = (): void => {
   clearTimeout(quoteTimer);
+  // The old cost must not sit beside a new input while the debounce runs.
+  cost.result.value = null;
+  cost.failed.value = false;
+  cost.quoting.value = !!swapToken.value && Number(offer.value) > 0;
   quoteTimer = setTimeout(() => {
     const token = swapToken.value;
     cost.run(

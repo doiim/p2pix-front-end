@@ -28,7 +28,7 @@ const props = defineProps<{
   cancel: (uid: Hex) => Promise<void>;
 }>();
 
-const emit = defineEmits<{ fulfilled: [] }>();
+const emit = defineEmits<{ fulfilled: []; live: [live: boolean] }>();
 
 const user = useUser();
 const uid = ref<Hex | null>(props.orderUid);
@@ -97,6 +97,9 @@ const requote = () =>
     await refresh();
   }, 'Não foi possível cotar de novo. Tente em instantes.');
 
+// Lets a parent keep the screen mounted (and this poll running) while the order can still fill.
+watch(isLive, (live) => emit('live', live), { immediate: true });
+
 watch(
   () => order.value?.status,
   (status) => {
@@ -106,16 +109,23 @@ watch(
 
 let poll: ReturnType<typeof setInterval> | undefined;
 
-onMounted(async () => {
-  decimals.value = await tokenDecimals(user.network.value, props.tokenAddress);
-  requoteNotice.value = promptsNotice(
-    await separatePrompts(false).catch(() => []),
-    { sell: props.keep, buy: props.token },
-  );
-  await refresh();
+// The poll starts first and synchronously: a failed side read must never leave a fill undetected.
+onMounted(() => {
   poll = setInterval(() => {
     if (isLive.value) refresh();
   }, 10_000);
+  refresh();
+  tokenDecimals(user.network.value, props.tokenAddress)
+    .then((value) => (decimals.value = value))
+    .catch((cause) => console.error('[swap] decimals unavailable', cause));
+  separatePrompts(false)
+    .catch(() => [])
+    .then((prompts) => {
+      requoteNotice.value = promptsNotice(prompts, {
+        sell: props.keep,
+        buy: props.token,
+      });
+    });
 });
 
 onUnmounted(() => clearInterval(poll));

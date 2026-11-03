@@ -15,7 +15,7 @@ import SwapOrderStatus from '@/components/Swap/SwapOrderStatus.vue';
 import { cancelSwap, requoteSwap } from '@/blockchain/swap';
 import { findSwapToken } from '@/model/BuyToken';
 import { TokenEnum } from '@/model/NetworkEnum';
-import { erc20Abi, UserRejectedRequestError, type Hex } from 'viem';
+import { erc20Abi, parseEther, UserRejectedRequestError, type Hex } from 'viem';
 import {
   useSellerLockStateQuery,
   useWalletDepositsQuery,
@@ -171,7 +171,13 @@ const swapToken = computed(() =>
 const brzAddress = computed(
   () => user.network.value.tokens[TokenEnum.BRZ].address,
 );
-const requoteBought = () => requoteSwap(props.swap?.token ?? '');
+const requoteBought = () =>
+  props.tokenAmount
+    ? requoteSwap(
+        props.swap?.token ?? '',
+        parseEther(String(props.tokenAmount)),
+      )
+    : Promise.reject(new Error('No purchase amount to swap'));
 const keepBrz = (uid: Hex) => cancelSwap(uid, brzAddress.value);
 
 // The buy flow re-enters this step after a purchase, so refresh what the
