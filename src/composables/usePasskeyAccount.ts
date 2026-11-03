@@ -24,6 +24,7 @@ import type { AaCall } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
 import { useUser } from '@/composables/useUser';
+import { UserFacingError, walletErrorMessage } from '@/utils/walletPrompts';
 import { Networks } from '@/config/networks';
 import { TokenEnum, type NetworkConfig } from '@/model/NetworkEnum';
 import { queryKeyRoots } from '@/queries/keys';
@@ -82,7 +83,7 @@ const assertSendFunds = (params: SendParams, funds: Balances): void => {
       : (balanceAt(funds.result.tokens, addressOf(funds.network, params.token))
           ?.balance ?? 0n);
   if (held < params.amount) {
-    throw new Error(
+    throw new UserFacingError(
       params.token === undefined
         ? 'Saldo insuficiente'
         : `Saldo de ${params.token} insuficiente`,
@@ -113,7 +114,7 @@ const sendCall = async (
     sender.chainId !== funds.network.id ||
     !isAddressEqual(sender.address, funds.owner)
   ) {
-    throw new Error('A conta ou a rede mudou; tente novamente');
+    throw new UserFacingError('A conta ou a rede mudou; tente novamente');
   }
   const result = await sendContractCalls(sender, [call], {
     outflow,
@@ -288,7 +289,7 @@ export function usePasskeyAccount() {
       return sent;
     } catch (cause) {
       console.error('[account] send failed', cause);
-      error.value = cause instanceof Error ? cause.message : 'Falha ao enviar';
+      error.value = walletErrorMessage(cause, 'Não foi possível enviar.');
       return null;
     } finally {
       busy.value = false;
