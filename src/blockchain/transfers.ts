@@ -182,19 +182,29 @@ export async function readTokenTransfers(
     network.id,
     wanted.map((l) => l.blockNumber),
   );
-  const rows = await Promise.all(
-    wanted.map(
-      async (log): Promise<TransferRow> => ({
-        tokenSymbol: symbols.get(lower(log.address)) ?? '',
-        token: log.address,
-        direction: lower(log.args.to ?? '') === me ? 'in' : 'out',
-        amount: log.args.value ?? 0n,
-        decimals: await decimalsOf(client, network.id, log.address),
-        txHash: log.transactionHash,
-        blockNumber: log.blockNumber,
-        timestamp: stamp(log.blockNumber),
-      }),
-    ),
+  // One token whose decimals() fails drops its rows (shown as partial), not the whole list.
+  const settled = await Promise.all(
+    wanted.map(async (log): Promise<TransferRow | null> => {
+      const decimals = await decimalsOf(client, network.id, log.address).catch(
+        (cause) => {
+          console.error('[transfers] decimals unavailable', log.address, cause);
+          return null;
+        },
+      );
+      return decimals === null
+        ? null
+        : {
+            tokenSymbol: symbols.get(lower(log.address)) ?? '',
+            token: log.address,
+            direction: lower(log.args.to ?? '') === me ? 'in' : 'out',
+            amount: log.args.value ?? 0n,
+            decimals,
+            txHash: log.transactionHash,
+            blockNumber: log.blockNumber,
+            timestamp: stamp(log.blockNumber),
+          };
+    }),
   );
-  return { rows, partial };
+  const rows = settled.filter((row): row is TransferRow => row !== null);
+  return { rows, partial: partial || rows.length < settled.length };
 }
