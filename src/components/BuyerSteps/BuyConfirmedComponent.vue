@@ -29,7 +29,7 @@ const props = defineProps<{
   tokenAmount: number | undefined;
   newLimit: LimitChange | null;
   /** Present when the buyer asked for another token after the release. */
-  swap?: { uid: Hex | null; token: string };
+  swap?: { uid: Hex | null; token: string; failure?: string };
   /** Rendered inside the offer column: the layout already shows the hero. */
   embedded?: boolean;
 }>();
@@ -250,6 +250,7 @@ onMounted(() => {
       <SwapOrderStatus
         v-if="props.swap && swapToken"
         :order-uid="props.swap.uid"
+        :failure="props.swap.failure"
         :token="swapToken.symbol"
         :token-address="swapToken.address"
         :keep="TokenEnum.BRZ"

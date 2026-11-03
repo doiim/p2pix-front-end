@@ -5,7 +5,9 @@ export type SwapFailure =
   | 'noLiquidity'
   | 'tooSmall'
   | 'unsupported'
-  | 'unavailable';
+  | 'unavailable'
+  /** The quote exists, but costs more than the BRZ the release delivers. */
+  | 'priceMoved';
 
 // CoW order-book `errorType`s. A Map, so an unlisted type never hits Object.prototype.
 const BY_ERROR_TYPE = new Map<string, SwapFailure>([
@@ -28,4 +30,17 @@ export const swapFailureText = (failure: SwapFailure, token: string): string =>
     tooSmall: `Valor baixo demais para trocar ${token}.`,
     unsupported: `${token} não pode ser trocado nesta rede.`,
     unavailable: 'Troca indisponível no momento. Tente de novo em instantes.',
+    priceMoved: `O preço de ${token} mudou e a troca não cabe no valor liberado.`,
   })[failure];
+
+/** After the release: the swap did not happen, and what the buyer holds instead. */
+export const brzOnlyText = (failure: SwapFailure, token: string): string => {
+  const reason = {
+    noLiquidity: `Sem liquidez para ${token}`,
+    tooSmall: `Valor baixo demais para trocar ${token}`,
+    unsupported: `${token} não pode ser trocado nesta rede`,
+    unavailable: 'Troca indisponível no momento',
+    priceMoved: `O preço de ${token} mudou`,
+  }[failure];
+  return `${reason}: você recebeu BRZ. Pode cotar de novo depois.`;
+};

@@ -34,6 +34,7 @@ import {
   type SwapIntent,
 } from '@/blockchain/swap';
 import { promptsNotice } from '@/utils/walletPrompts';
+import { brzOnlyText, type SwapFailure } from '@/utils/swapFailure';
 import { TokenEnum } from '@/model/NetworkEnum';
 import type { Address, Hex } from 'viem';
 import { releaseErrorMessage, type PixProof } from '@/utils/pixProof';
@@ -101,7 +102,7 @@ watch(flowStep, (step) => {
 });
 const showBuyAlert = ref<boolean>(false);
 const showLockRecoveryAlert = ref<boolean>(false);
-const swapResult = ref<{ uid: Hex | null; token: string }>();
+const swapResult = ref<{ uid: Hex | null; token: string; failure?: string }>();
 const releaseNotice = ref<string | null>(null);
 const stateLockID: unknown = window.history.state?.lockID;
 // history.state is not ours to trust: anything but a plain lock id opens the search step.
@@ -187,23 +188,34 @@ const releaseTransaction = async (proof: PixProof) => {
 
   try {
     const intent = loadSwapIntent(network.value.id, lockID.value);
-    releaseNotice.value = intent
-      ? promptsNotice(await separatePrompts(true).catch(() => []), {
-          sell: TokenEnum.BRZ,
-          buy: intent.token,
-        })
-      : null;
-    let released: { uid: Hex | null; blockNumber: bigint };
+    releaseNotice.value = null;
+    let released: {
+      uid: Hex | null;
+      blockNumber: bigint;
+      failure?: SwapFailure;
+    };
     if (intent) {
+      // Loading from the first await: before this, the step showed the receipt of a release not yet sent.
       swapReleasing.value = true;
       try {
+        releaseNotice.value = promptsNotice(
+          await separatePrompts(true).catch(() => []),
+          { sell: TokenEnum.BRZ, buy: intent.token },
+        );
         released = await releaseAndSwap(BigInt(lockID.value), proof, intent);
       } finally {
         swapReleasing.value = false;
       }
-      // The swap path bypasses the release mutation, so invalidate here.
-      await invalidateLocks();
-      swapResult.value = { uid: released.uid, token: intent.token };
+      // The swap path bypasses the release mutation, so invalidate here. The release is done:
+      // a failed refresh must not turn it into an error screen.
+      await invalidateLocks().catch(console.error);
+      swapResult.value = {
+        uid: released.uid,
+        token: intent.token,
+        failure: released.failure
+          ? brzOnlyText(released.failure, intent.token)
+          : undefined,
+      };
     } else {
       const receipt = await releaseLockMutation.mutateAsync({
         lockID: BigInt(lockID.value),

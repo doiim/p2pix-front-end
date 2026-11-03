@@ -8,8 +8,10 @@ import {
   separatePrompts,
   tokenDecimals,
 } from '@/blockchain/swap';
-import { promptsNotice } from '@/utils/walletPrompts';
-import type { OrderState, OrderStatus } from '@/utils/cowApi';
+import { promptsNotice, walletErrorMessage } from '@/utils/walletPrompts';
+import { classifySwapFailure, swapFailureText } from '@/utils/swapFailure';
+import { CowApiError, type OrderState, type OrderStatus } from '@/utils/cowApi';
+import { TokenEnum } from '@/model/NetworkEnum';
 import { ORDER_VALIDITY_SECONDS } from '@/blockchain/cowOrder';
 import { useUser } from '@/composables/useUser';
 
@@ -19,6 +21,8 @@ import { useUser } from '@/composables/useUser';
  */
 const props = defineProps<{
   orderUid: Hex | null;
+  /** pt-BR reason the order was not sent, shown while there is no uid. */
+  failure?: string;
   /** Token the order buys. */
   token: string;
   tokenAddress: Address;
@@ -79,12 +83,22 @@ const refresh = async (): Promise<void> => {
   });
 };
 
+// The token that is not BRZ: what a quote can have no route for.
+const swapSymbol = computed(() =>
+  props.token === TokenEnum.BRZ ? props.keep : props.token,
+);
+
 const run = async (action: () => Promise<void>, failure: string) => {
   busy.value = true;
   actionError.value = '';
   await action().catch((cause) => {
     console.error('[swap]', cause);
-    actionError.value = failure;
+    actionError.value = walletErrorMessage(
+      cause,
+      cause instanceof CowApiError
+        ? swapFailureText(classifySwapFailure(cause), swapSymbol.value)
+        : failure,
+    );
   });
   busy.value = false;
 };
@@ -143,6 +157,12 @@ onUnmounted(() => clearInterval(poll));
       <p class="text-gray-900">Troca para {{ token }}</p>
       <StatusBadge :status="badge.status" :custom-text="badge.text" />
     </div>
+    <p
+      v-if="uid === null && failure"
+      class="text-sm text-gray-900 font-semibold"
+    >
+      {{ failure }}
+    </p>
     <p v-if="received" class="text-2xl text-gray-900">
       {{ received }} {{ token }}
     </p>

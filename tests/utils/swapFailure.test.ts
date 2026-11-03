@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { CowApiError } from '@/utils/cowApi';
-import { classifySwapFailure, swapFailureText } from '@/utils/swapFailure';
+import {
+  brzOnlyText,
+  classifySwapFailure,
+  swapFailureText,
+} from '@/utils/swapFailure';
 
 describe('classifySwapFailure', () => {
   it.each([
@@ -31,6 +35,14 @@ describe('swapFailureText', () => {
     );
     expect(swapFailureText('unsupported', 'USDT')).toBe(
       'USDT não pode ser trocado nesta rede.',
+    );
+  });
+});
+
+describe('brzOnlyText', () => {
+  it('says the buyer holds BRZ and can quote again', () => {
+    expect(brzOnlyText('noLiquidity', 'USDT')).toBe(
+      'Sem liquidez para USDT: você recebeu BRZ. Pode cotar de novo depois.',
     );
   });
 });

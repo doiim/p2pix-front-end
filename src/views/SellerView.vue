@@ -27,6 +27,7 @@ import CustomAlert from '@/components/ui/CustomAlert.vue';
 import { findSwapToken } from '@/model/BuyToken';
 import { TokenEnum, type SwapToken } from '@/model/NetworkEnum';
 import { promptsNotice, walletErrorMessage } from '@/utils/walletPrompts';
+import { classifySwapFailure, swapFailureText } from '@/utils/swapFailure';
 import type { Participant } from '@/utils/bbPay';
 
 enum Step {
@@ -50,6 +51,8 @@ const swap = ref<{
   participant: Participant;
   token: SwapToken;
   uid: Hex | null;
+  /** pt-BR reason no order was sent. */
+  failure?: string;
 }>();
 
 // Leaving while the order is live would stop its poll and strand the filled BRZ.
@@ -142,22 +145,35 @@ const startSwap = async (args: Participant, token: SwapToken) => {
   brzReady.value = false;
   swapStarting.value = true;
   forgetSwap();
-  const notice =
-    promptsNotice(await separatePrompts(false).catch(() => []), {
-      sell: token.symbol,
-      buy: TokenEnum.BRZ,
-    }) ?? 'A ordem de troca está sendo enviada.';
-  // The deposit cannot ride in the order: it needs the BRZ the order delivers.
-  loadingMessage.value = `${notice} Quando a troca executar, a carteira ainda pede a aprovação e o depósito do ${TokenEnum.BRZ}.`;
-  const uid = await buySwapBrz(args, token).catch((cause) => {
-    console.error('[swap] sell-side order failed', cause);
-    return null;
-  });
-  swap.value = { participant: args, token, uid };
-  rememberSwap();
-  flowStep.value = Step.Swap;
-  swapStarting.value = false;
-  loadingMessage.value = 'A transação está sendo enviada para a rede.';
+  try {
+    const notice =
+      promptsNotice(await separatePrompts(false).catch(() => []), {
+        sell: token.symbol,
+        buy: TokenEnum.BRZ,
+      }) ?? 'A ordem de troca está sendo enviada.';
+    // The deposit cannot ride in the order: it needs the BRZ the order delivers.
+    loadingMessage.value = `${notice} Quando a troca executar, a carteira ainda pede a aprovação e o depósito do ${TokenEnum.BRZ}.`;
+    const sent = await buySwapBrz(args, token).then(
+      (uid) => ({ uid, failure: undefined }),
+      (cause) => {
+        console.error('[swap] sell-side order failed', cause);
+        return {
+          uid: null,
+          failure: walletErrorMessage(
+            cause,
+            swapFailureText(classifySwapFailure(cause), token.symbol),
+          ),
+        };
+      },
+    );
+    swap.value = { participant: args, token, ...sent };
+    rememberSwap();
+    flowStep.value = Step.Swap;
+  } finally {
+    // Whatever failed above, the screen must leave the loading state.
+    swapStarting.value = false;
+    loadingMessage.value = defaultMessage;
+  }
 };
 
 const buySwapBrz = (args: Participant, token: SwapToken) =>
@@ -169,6 +185,7 @@ const requoteSwap = async () => {
   if (!pending) throw new Error('No pending swap');
   const uid = await buySwapBrz(pending.participant, pending.token);
   pending.uid = uid;
+  pending.failure = undefined;
   rememberSwap();
   return uid;
 };
@@ -258,6 +275,7 @@ watch(
         <SwapOrderStatus
           v-if="!brzReady"
           :order-uid="swap.uid"
+          :failure="swap.failure"
           :token="TokenEnum.BRZ"
           :token-address="brzAddress"
           :keep="swap.token.symbol"

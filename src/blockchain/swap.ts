@@ -41,6 +41,7 @@ import {
 } from '@/utils/cowApi';
 import { isPasskeyCancelled } from '@doiim/passkeys';
 import { causeChain } from './reputation';
+import { classifySwapFailure, type SwapFailure } from '@/utils/swapFailure';
 import { useUser } from '@/composables/useUser';
 import {
   TokenEnum,
@@ -157,13 +158,24 @@ export const releaseAndSwap = async (
   const ctx = swapContext();
   const aa = await getActiveAaContext();
   const owner = aa ? aa.account.address : (await eoa()).account;
+  // Why the buyer ends up with BRZ only; read when no order uid comes back.
+  let failure: SwapFailure | null = null;
   const order = await getBuyerLock(lockID, owner)
     .then((lock) => priceBuyOrder(ctx, intent, owner, lock.amount))
-    .catch(deliverBrzOnly('quote'));
-  if (!order) return releaseOnly(release);
+    .catch((cause) => {
+      failure = classifySwapFailure(cause);
+      return deliverBrzOnly('quote')(cause);
+    });
+  if (!order) {
+    // No error and no order: the quote no longer fits the released BRZ.
+    return {
+      ...(await releaseOnly(release)),
+      failure: failure ?? 'priceMoved',
+    };
+  }
   // The release rides with the order's calls; if that bundle fails, release
   // alone so a swap step never holds the paid BRZ back.
-  return (
+  const released = await (
     aa
       ? releaseWithOrderAa(ctx, release, owner, order)
       : releaseWithOrderEoa(ctx, release, owner, order)
@@ -182,6 +194,9 @@ export const releaseAndSwap = async (
     }
     return releaseOnly(release);
   });
+  return released.uid
+    ? released
+    : { ...released, failure: failure ?? 'unavailable' };
 };
 
 /** A declined wallet prompt (EIP-1193 4001) or a cancelled passkey ceremony. */
@@ -201,7 +216,12 @@ const releaseOnly = async (release: ReleaseArgs): Promise<Released> => {
 /** `release`'s own arguments: the lock id and the Pix proof. */
 type ReleaseArgs = Parameters<typeof releaseCall>;
 
-type Released = { uid: Hex | null; blockNumber: bigint };
+type Released = {
+  uid: Hex | null;
+  blockNumber: bigint;
+  /** Set when `uid` is null: why only BRZ was delivered. */
+  failure?: SwapFailure;
+};
 
 const releaseWithOrderAa = async (
   ctx: SwapContext,
@@ -692,6 +712,8 @@ const presigned = (owner: Address) => ({
   signature: owner,
 });
 
+const CAPABILITIES_TIMEOUT_MS = 5_000;
+
 /**
  * EIP-5792: the wallet runs a call batch atomically as the EOA itself, so
  * `release` still credits the buyer. `ready` means after a one-time EIP-7702
@@ -702,9 +724,13 @@ const canBatchAtomically = async (
   account: Address,
   chainId: number,
 ) => {
-  const capabilities = await wallet
-    .getCapabilities({ account, chainId })
-    .catch(() => null);
+  // A wallet that never answers must not hold the release: no batching then.
+  const capabilities = await Promise.race([
+    wallet.getCapabilities({ account, chainId }),
+    new Promise<null>((resolve) =>
+      setTimeout(() => resolve(null), CAPABILITIES_TIMEOUT_MS),
+    ),
+  ]).catch(() => null);
   const status = capabilities?.atomic?.status;
   return status === 'supported' || status === 'ready';
 };
