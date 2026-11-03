@@ -1,12 +1,14 @@
-import { getContract } from './provider';
+import { getContract, getPublicClient } from './provider';
 import { p2PixAbi } from './abi';
 import type { AaCall } from './aa/types';
 import { findAllowlistProof } from './allowlist';
 import { getSender, sendContractCalls, type Sender } from './send';
+import { causeChain } from './reputation';
 import { NotLockBuyerError, type PixProof } from '@/utils/pixProof';
 import {
   type Abi,
   type ContractFunctionReturnType,
+  ContractFunctionRevertedError,
   decodeEventLog,
   encodeFunctionData,
   parseEther,
@@ -189,6 +191,34 @@ export const releaseCall = async (
 };
 
 /**
+ * A UserOperation that failed carries no revert reason; simulating `release`
+ * from the same smart account names it. If the simulation passes (the state
+ * changed since), `failure` stays the generic one.
+ */
+const explainReleaseFailure = async (
+  sender: Sender,
+  release: { address: Address; abi: Abi; args: readonly [bigint, PixProof] },
+  failure: Error,
+): Promise<Error> => {
+  const simulated = await getPublicClient(sender.chainId)
+    .simulateContract({
+      account: sender.address,
+      address: release.address,
+      abi: release.abi,
+      functionName: 'release',
+      args: release.args,
+    })
+    .then(
+      () => null,
+      (cause: unknown) => cause,
+    );
+  const reverted = causeChain(simulated, 10).some(
+    (e) => e instanceof ContractFunctionRevertedError,
+  );
+  return reverted ? new Error(failure.message, { cause: simulated }) : failure;
+};
+
+/**
  * Releases the lock with the prover's proof of Pix payment. `afterRelease`
  * calls ride in the same UserOperation as the release (the
  * smart-account rail only), e.g. the swap's approve + pre-signature.
@@ -203,16 +233,21 @@ export const releaseLock = async (
   await getBuyerLock(lockID, sender.address);
 
   // The swap's approve + pre-signature ride the release UserOperation: smart account only.
+  const release = { address, abi, args: [lockID, proof] } as const;
   const { success, receipt } = await sendContractCalls(
     sender,
-    [
-      { address, abi, functionName: 'release', args: [lockID, proof] },
-      ...afterRelease,
-    ],
+    [{ ...release, functionName: 'release' }, ...afterRelease],
     { aaOnly: afterRelease.length > 0 },
-  );
+  ).catch(async (cause) => {
+    throw sender.isSmartAccount
+      ? await explainReleaseFailure(sender, release, cause)
+      : cause;
+  });
   if (!success) {
-    throw new Error(`Falha na liberação: ${receipt.transactionHash}`);
+    const failure = new Error(`Falha na liberação: ${receipt.transactionHash}`);
+    throw sender.isSmartAccount
+      ? await explainReleaseFailure(sender, release, failure)
+      : failure;
   }
   return receipt;
 };

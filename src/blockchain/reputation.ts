@@ -190,7 +190,7 @@ export const causeChain = (err: unknown, depth: number): object[] =>
 // (`{code: -32521, message: '… reason: 0x…'}`, a plain object at the end of the chain); the ERC-20
 // paymaster quote rethrows as a plain Error (message text). A viem BaseError's message is skipped:
 // it repeats request details, not revert data.
-const revertDataCandidates = (err: object): string[] => [
+export const revertDataCandidates = (err: object): string[] => [
   ...(err instanceof ContractFunctionRevertedError && err.raw !== undefined
     ? [err.raw]
     : []),
