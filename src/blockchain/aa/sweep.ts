@@ -13,6 +13,7 @@ import type { UserOperation } from 'viem/account-abstraction';
 
 import type { NetworkConfig, TokenEnum } from '@/model/NetworkEnum';
 import type { AaCall, AaContext } from './types';
+import { UserFacingError } from '@/utils/walletPrompts';
 
 const FEE_HEADROOM_BPS = 2_000n;
 const BPS_DENOMINATOR = 10_000n;
@@ -131,17 +132,18 @@ export const sweepAccount = async (
   const { eth, tokens, skipped } = await readSweepBalances(context);
   // Sending the rest would leave these tokens behind unnoticed.
   if (skipped.length > 0) {
-    throw new Error(
+    throw new UserFacingError(
       `Não foi possível ler o saldo de ${skipped.join(', ')}. Tente novamente.`,
     );
   }
   if (eth === 0n && tokens.every((token) => token.balance === 0n)) {
-    throw new Error('Não há saldo para varrer');
+    throw new UserFacingError('Não há saldo para varrer');
   }
 
   const sponsored = isSweepSponsored(context.network);
   const client = sponsored ? context.sponsoredClient : context.selfPayClient;
-  if (!client) throw new Error('Patrocínio de gás não configurado nesta rede');
+  if (!client)
+    throw new UserFacingError('Patrocínio de gás não configurado nesta rede');
   const operation = sponsored
     ? { calls: sweepCalls(recipient, eth, tokens) }
     : await selfPayOperation(context, recipient, eth, tokens);
@@ -150,7 +152,8 @@ export const sweepAccount = async (
   const receipt = await client.waitForUserOperationReceipt({
     hash: userOpHash,
   });
-  if (!receipt.success) throw new Error(`Falha na varredura: ${userOpHash}`);
+  if (!receipt.success)
+    throw new UserFacingError(`Falha na varredura: ${userOpHash}`);
   return { userOpHash };
 };
 
@@ -174,7 +177,7 @@ const selfPayOperation = async (
   });
   const reserve = gasReserve(probe);
   if (eth <= reserve) {
-    throw new Error(
+    throw new UserFacingError(
       `Saldo de ETH insuficiente para o gás: a conta precisa de pelo menos ${formatEther(reserve)} ETH.`,
     );
   }

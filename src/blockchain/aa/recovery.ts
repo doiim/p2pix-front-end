@@ -10,6 +10,7 @@ import { requireRpId } from '@/config/aa';
 import type { NetworkConfig } from '@/model/NetworkEnum';
 import { createAaContext } from './aaContext';
 import type { AaContext } from './types';
+import { UserFacingError } from '@/utils/walletPrompts';
 
 const kernelAbi = parseAbi([
   'function isAllowedSelector(bytes21 vId, bytes4 selector) view returns (bool)',
@@ -57,7 +58,9 @@ export const loginWithBackupPasskey = async (): Promise<BackupLogin> => {
   const assertion = await authenticatePasskey({ rpId: requireRpId() });
   const handle = parseBackupUserHandle(assertion.userHandle);
   if (!handle) {
-    throw new Error('Esta passkey não é uma passkey de backup do P2Pix');
+    throw new UserFacingError(
+      'Esta passkey não é uma passkey de backup do P2Pix',
+    );
   }
   return { ...handle, credentialId: assertion.credentialId };
 };
@@ -69,14 +72,16 @@ export const createRecoveryContext = async (
   login: BackupLogin,
 ): Promise<AaContext> => {
   if (login.chainId !== undefined && login.chainId !== network.id) {
-    throw new Error('Esta passkey foi registrada em outra rede');
+    throw new UserFacingError('Esta passkey foi registrada em outra rede');
   }
   // Bundler only: the self-pay sweep needs no sponsorship policy.
   if (!network.aa?.bundlerUrl) {
-    throw new Error('A conta inteligente não está disponível nesta rede');
+    throw new UserFacingError(
+      'A conta inteligente não está disponível nesta rede',
+    );
   }
   if (!(await readBackupPasskeyInstalled(publicClient, login.address))) {
-    throw new Error(
+    throw new UserFacingError(
       'Esta conta não tem passkey de backup instalada nesta rede',
     );
   }
