@@ -88,11 +88,11 @@ const sendSponsored = async (
   calls: readonly AaCall[],
   onSent?: (hash: Hex) => void,
 ): Promise<UserOperationReceipt> => {
-  const hash = await aa.sponsoredClient.sendUserOperation({
-    calls: [...calls],
-  });
+  const client = aa.sponsoredClient;
+  if (!client) throw new Error('Patrocínio de gás não configurado');
+  const hash = await client.sendUserOperation({ calls: [...calls] });
   onSent?.(hash);
-  return aa.sponsoredClient.waitForUserOperationReceipt({ hash });
+  return client.waitForUserOperationReceipt({ hash });
 };
 
 /**

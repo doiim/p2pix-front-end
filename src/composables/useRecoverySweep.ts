@@ -41,6 +41,8 @@ export function useRecoverySweep() {
       context.value = null;
       address.value = null;
       balances.value = null;
+      lastUserOpHash.value = null;
+      error.value = null;
     },
     { flush: 'sync' },
   );
@@ -69,6 +71,7 @@ export function useRecoverySweep() {
 
   const login = () =>
     run(async () => {
+      lastUserOpHash.value = null;
       const found = await loginWithBackupPasskey();
       // The handle may pin a chain; the selected network follows it, unless a
       // connected wallet owns the network (TopBar only syncs wallet → app).
@@ -97,8 +100,8 @@ export function useRecoverySweep() {
     });
 
   const sweep = async (recipient: string) => {
+    const current = context.value;
     const result = await run(async () => {
-      const current = context.value;
       if (!current) {
         throw new UserFacingError('Entre com a passkey de backup primeiro');
       }
@@ -107,6 +110,8 @@ export function useRecoverySweep() {
       return sweepAccount(current, getAddress(recipient));
     });
     if (!result) return null;
+    // a network switch during the sweep already logged out: keep its hash off the new screen
+    if (context.value !== current) return result;
     lastUserOpHash.value = result.userOpHash;
     // The sweep already landed; a failed refresh must not read as a failed sweep.
     await run(refreshBalances);

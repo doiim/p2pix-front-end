@@ -7,6 +7,7 @@ import {
   withdrawDeposit,
 } from '@/blockchain/buyerMethods';
 import type { PixProof } from '@/utils/pixProof';
+import { getSender } from '@/blockchain/send';
 import { addDeposit } from '@/blockchain/sellerMethods';
 import { getExpiredLockIds, sweepExpiredLocks } from '@/blockchain/wallet';
 import type { NetworkConfig } from '@/model/NetworkEnum';
@@ -73,7 +74,8 @@ export const useAddLockMutation = () => {
         args.amount,
         args.skipAllowlist,
       ),
-    onSuccess: () => invalidateLocks(),
+    // Also after a failure: LockIdUnrecoverableError means the lock exists on-chain.
+    onSettled: () => invalidateLocks(),
   });
 };
 
@@ -92,9 +94,14 @@ export const useWithdrawDepositMutation = () => {
       // A subgraph outage (`null`) sends `unlockExpired([])`, a no-op: freeing
       // the offer's balance must not depend on the subgraph. `sweepExpiredLocks`
       // fails on the same outage instead, since the expired list is its whole job.
+      // The sender goes first: the sends refuse a rail that moved after it.
+      const sender = await getSender();
+      if (args.network.id !== sender.chainId) {
+        throw new Error('A rede da carteira mudou; tente novamente');
+      }
       const expiredLocks =
         (await getExpiredLockIds(args.seller, args.network)) ?? [];
-      return withdrawDeposit(args.amount, args.token, expiredLocks);
+      return withdrawDeposit(sender, args.amount, args.token, expiredLocks);
     },
     onSuccess: () => invalidateDeposits(),
   });

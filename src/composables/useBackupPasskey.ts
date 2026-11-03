@@ -4,10 +4,10 @@ import { useConnection } from '@wagmi/vue';
 import { isAddressEqual } from 'viem';
 import {
   encodeInstallBackupPasskey,
-  isBackupPasskeyInstalled,
   registerBackupPasskey,
 } from '@doiim/passkeys/smart-account';
 
+import { readBackupPasskeyInstalled } from '@/blockchain/aa/recovery';
 import { isAaAvailable } from '@/blockchain/aa/aaContext';
 import { getPublicClient } from '@/blockchain/provider';
 import { UserFacingError } from '@/utils/walletPrompts';
@@ -49,7 +49,7 @@ export function useBackupPasskey() {
     // or hid "Adicionar passkey de backup" on the wrong network.
     queryFn: ({ queryKey: [, chainId, address] }) => {
       if (address === '0x') throw new UserFacingError('Carteira não conectada');
-      return isBackupPasskeyInstalled(getPublicClient(chainId), address);
+      return readBackupPasskeyInstalled(getPublicClient(chainId), address);
     },
     enabled: computed(() => isEligible.value && Boolean(walletAddress.value)),
   });
@@ -89,7 +89,7 @@ export function useBackupPasskey() {
       await assertSameAccount();
       // The cached status can be stale (installed from another tab or
       // device); re-read the chain before replacing the credential.
-      if (await isBackupPasskeyInstalled(getPublicClient(chainId), address)) {
+      if (await readBackupPasskeyInstalled(getPublicClient(chainId), address)) {
         throw new UserFacingError('Esta conta já tem uma passkey de backup');
       }
       const credential = await registerBackupPasskey({

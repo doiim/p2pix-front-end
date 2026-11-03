@@ -10,6 +10,7 @@ import {
   type WalletClient,
 } from 'viem';
 import { getContract } from './provider';
+import { UserFacingError } from '@/utils/walletPrompts';
 import {
   getActiveAaContext,
   sendAaOperation,
@@ -136,7 +137,7 @@ const submitEoaCall = async (
 };
 
 // The wallet can replace a pending transaction: a speed-up still counts, a
-// cancel (or any other replacement) means the call did not run.
+// cancel (zero-value self-send) or any other replacement means the call did not run.
 const waitEoaReceipt = async (
   { client }: EoaSigner,
   hash: Hex,
@@ -146,6 +147,9 @@ const waitEoaReceipt = async (
     hash,
     onReplaced: (replaced) => (replacement = replaced.reason),
   });
+  if (replacement === 'cancelled') {
+    throw new UserFacingError('Transação cancelada na carteira.');
+  }
   const replaced = replacement !== undefined && replacement !== 'repriced';
   return { receipt, ok: receipt.status === 'success' && !replaced };
 };

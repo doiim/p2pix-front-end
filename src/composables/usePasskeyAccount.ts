@@ -24,6 +24,7 @@ import type { AaCall } from '@/blockchain/aa/types';
 import { getCurrentAccount, getPublicClient } from '@/blockchain/provider';
 import { appendHistory } from '@/composables/account/userOpHistory';
 import { useUser } from '@/composables/useUser';
+import { Networks } from '@/config/networks';
 import { TokenEnum, type NetworkConfig } from '@/model/NetworkEnum';
 import { queryKeyRoots } from '@/queries/keys';
 import { useWalletAddress } from '@/queries/wallet';
@@ -140,10 +141,14 @@ export function usePasskeyAccount() {
       Boolean(getAaOwnerKind(getCurrentAccount().connector?.id)),
   );
 
-  const readBalances = async (): Promise<Balances> => {
-    const owner = walletAddress.value;
-    if (!owner) throw new Error('Carteira não conectada');
-    const network = user.network.value;
+  // `chainId` and `owner` are the query key's values: a read keyed on one
+  // network or account never stores another one's balances under its key.
+  const readBalances = async (
+    chainId: number = user.network.value.id,
+    owner: Address | null = walletAddress.value,
+  ): Promise<Balances> => {
+    const network = Networks.find((n) => n.id === chainId);
+    if (!owner || !network) throw new Error('Carteira não conectada');
     const result = await getTokenBalances(
       getPublicClient(network.id),
       owner,
@@ -155,13 +160,16 @@ export function usePasskeyAccount() {
   // The key carries the chain, so a read that resolves after a network switch
   // lands under the old key instead of overwriting the current one.
   const balancesQuery = useQuery({
-    queryKey: computed(() => [
-      ...queryKeyRoots.passkeyBalances,
-      user.network.value.id,
-      walletAddress.value,
-    ]),
-    queryFn: async () => {
-      const { result } = await readBalances();
+    queryKey: computed(
+      () =>
+        [
+          ...queryKeyRoots.passkeyBalances,
+          user.network.value.id,
+          walletAddress.value,
+        ] as const,
+    ),
+    queryFn: async ({ queryKey: [, chainId, owner] }) => {
+      const { result } = await readBalances(chainId, owner);
       return { eth: result.eth, tokens: result.tokens };
     },
     enabled: isReady,

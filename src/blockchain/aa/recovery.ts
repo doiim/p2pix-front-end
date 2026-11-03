@@ -1,15 +1,45 @@
-import type { Address, PublicClient } from 'viem';
+import { concat, parseAbi, type Address, type PublicClient } from 'viem';
 import { authenticatePasskey } from '@doiim/passkeys';
 import {
-  isBackupPasskeyInstalled,
+  KERNEL_WEBAUTHN_VALIDATOR,
   parseBackupUserHandle,
   toKernelBackupPasskeyAccount,
 } from '@doiim/passkeys/smart-account';
 
 import { requireRpId } from '@/config/aa';
 import type { NetworkConfig } from '@/model/NetworkEnum';
-import { createAaContext, isAaAvailable } from './aaContext';
+import { createAaContext } from './aaContext';
 import type { AaContext } from './types';
+
+const kernelAbi = parseAbi([
+  'function isAllowedSelector(bytes21 vId, bytes4 selector) view returns (bool)',
+]);
+// `execute(bytes32,bytes)`: the selector the backup validator is granted.
+const EXECUTE_SELECTOR = '0xe9ae5c53';
+const VALIDATOR_TYPE = '0x01';
+
+/**
+ * Whether the backup validator is installed on `account`, with RPC errors
+ * propagated: the library's own check answers false on any failed read, which
+ * would offer (and let through) a second install over an existing backup.
+ * No code at the address is the one real "nothing installed": undeployed.
+ */
+export const readBackupPasskeyInstalled = async (
+  client: PublicClient,
+  account: Address,
+): Promise<boolean> => {
+  const code = await client.getCode({ address: account });
+  if (!code || code === '0x') return false;
+  return client.readContract({
+    address: account,
+    abi: kernelAbi,
+    functionName: 'isAllowedSelector',
+    args: [
+      concat([VALIDATOR_TYPE, KERNEL_WEBAUTHN_VALIDATOR]),
+      EXECUTE_SELECTOR,
+    ],
+  });
+};
 
 export type BackupLogin = {
   address: Address;
@@ -41,10 +71,11 @@ export const createRecoveryContext = async (
   if (login.chainId !== undefined && login.chainId !== network.id) {
     throw new Error('Esta passkey foi registrada em outra rede');
   }
-  if (!isAaAvailable(network)) {
+  // Bundler only: the self-pay sweep needs no sponsorship policy.
+  if (!network.aa?.bundlerUrl) {
     throw new Error('A conta inteligente não está disponível nesta rede');
   }
-  if (!(await isBackupPasskeyInstalled(publicClient, login.address))) {
+  if (!(await readBackupPasskeyInstalled(publicClient, login.address))) {
     throw new Error(
       'Esta conta não tem passkey de backup instalada nesta rede',
     );

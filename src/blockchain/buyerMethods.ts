@@ -2,7 +2,7 @@ import { getContract } from './provider';
 import { p2PixAbi } from './abi';
 import type { AaCall } from './aa/types';
 import { findAllowlistProof } from './allowlist';
-import { getSender, sendContractCalls } from './send';
+import { getSender, sendContractCalls, type Sender } from './send';
 import { NotLockBuyerError, type PixProof } from '@/utils/pixProof';
 import {
   type Abi,
@@ -132,12 +132,13 @@ export const addLock = async (
   );
 };
 
+/** `sender` is resolved by the caller, before it reads anything for the call. */
 export const withdrawDeposit = async (
+  sender: Sender,
   amount: string,
   token: Address,
   expiredLocks: bigint[] = [],
 ): Promise<boolean> => {
-  const sender = await getSender();
   const { address, abi } = await getContract();
   const { success } = await sendContractCalls(sender, [
     {

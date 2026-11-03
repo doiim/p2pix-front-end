@@ -65,7 +65,8 @@ const groupByMonth = (items: ActivityItem[]): ActivityGroup[] => {
 export function useAccountActivity() {
   const user = useUser();
   const account = usePasskeyAccount();
-  const local = ref<ActivityItem[]>([]);
+  // Bumped by refresh() to re-read the stored sends.
+  const sendsVersion = ref(0);
 
   const address = computed(
     () => account.smartAccountAddress.value?.toLowerCase() ?? null,
@@ -142,6 +143,25 @@ export function useAccountActivity() {
     ),
   );
 
+  // Derived from the current account and network, so a switch never shows the
+  // previous account's sends.
+  const local = computed((): ActivityItem[] => {
+    void sendsVersion.value;
+    const current = account.smartAccountAddress.value;
+    if (!current) return [];
+    return readHistory(user.network.value.id, current).map(
+      (e): ActivityItem => ({
+        id: e.id,
+        title: 'Enviado',
+        direction: 'out',
+        amount: BigInt(e.amount),
+        token: e.token,
+        timestamp: e.timestamp,
+        href: e.txHash ? account.explorerTxUrl(e.txHash) : null,
+      }),
+    );
+  });
+
   // The chain is the source of truth: drop local sends it already reports.
   const items = computed(() => {
     const onChain = new Set(transfers.value.map((t) => t.href));
@@ -154,19 +174,8 @@ export function useAccountActivity() {
   });
 
   const refresh = async (): Promise<void> => {
-    const current = account.smartAccountAddress.value;
-    if (!current) return;
-    local.value = readHistory(user.network.value.id, current).map(
-      (e): ActivityItem => ({
-        id: e.id,
-        title: 'Enviado',
-        direction: 'out',
-        amount: BigInt(e.amount),
-        token: e.token,
-        timestamp: e.timestamp,
-        href: e.txHash ? account.explorerTxUrl(e.txHash) : null,
-      }),
-    );
+    if (!account.smartAccountAddress.value) return;
+    sendsVersion.value++;
     await Promise.all([query.refetch(), transfersQuery.refetch()]);
   };
 

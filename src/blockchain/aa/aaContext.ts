@@ -94,8 +94,8 @@ export const createAaContext = async (
 ): Promise<AaContext> => {
   const bundlerUrl = network.aa?.bundlerUrl;
   const sponsorshipPolicy = sponsorshipPolicyId();
-  // Callers already checked isAaAvailable; this narrows the types.
-  if (!bundlerUrl || !sponsorshipPolicy) {
+  // Callers already checked the bundler; the policy is only needed for sponsoring.
+  if (!bundlerUrl) {
     throw new Error(`AA is not configured for chain ${network.id}`);
   }
 
@@ -126,11 +126,14 @@ export const createAaContext = async (
       client: publicClient,
       userOperation: { estimateFeesPerGas },
     }),
-    sponsoredClient: createSmartAccountClient({
-      ...base,
-      paymasterContext: { sponsorshipPolicyId: sponsorshipPolicy },
-      userOperation: { estimateFeesPerGas },
-    }),
+    // Only when a sponsorship policy is configured; recovery pays its own gas without one.
+    sponsoredClient: sponsorshipPolicy
+      ? createSmartAccountClient({
+          ...base,
+          paymasterContext: { sponsorshipPolicyId: sponsorshipPolicy },
+          userOperation: { estimateFeesPerGas },
+        })
+      : undefined,
     // Only when the network names a fee token; unset means sponsorship only.
     erc20Client: feeToken
       ? createSmartAccountClient({

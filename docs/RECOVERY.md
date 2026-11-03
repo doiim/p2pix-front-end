@@ -80,7 +80,7 @@ Network = AA network (Kernel account) or non-AA. "Bkp" = backup passkey installe
 
 ## Operator checklist
 
-1. Which login, which network, is a backup passkey installed (`isBackupPasskeyInstalled`, or the account panel's notice "Sua conta ainda não tem passkey de backup")?
+1. Which login, which network, is a backup passkey installed (`readBackupPasskeyInstalled`, or the account panel's notice "Sua conta ainda não tem passkey de backup")?
 2. Is the chain AA (`aa.bundlerUrl` set and the sponsorship policy configured)?
 3. Is the network sponsored for the sweep (`aa.sponsorSweep`, Arbitrum One), or does the account hold ETH for its own gas (also needed for (d))?
 4. Never ask a user for a seed or a private key; the export UI is Magic's, and the key goes straight into the user's own wallet.

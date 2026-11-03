@@ -67,7 +67,7 @@ const LOCK_RETURNED_FIELDS = [
 ] as const;
 const AMOUNT_FIELDS = ['amount', 'blockTimestamp'] as const;
 
-const isRecord = (v: unknown): v is Record<string, unknown> =>
+export const isRecord = (v: unknown): v is Record<string, unknown> =>
   typeof v === 'object' && v !== null;
 
 const hasFields =
@@ -76,7 +76,7 @@ const hasFields =
     isRecord(row) && fields.every((f) => typeof row[f] === 'string');
 
 /** One collection of the response, every row checked against `fields`. */
-const rowsOf = <F extends string>(
+export const rowsOf = <F extends string>(
   data: Record<string, unknown>,
   collection: string,
   fields: readonly F[],

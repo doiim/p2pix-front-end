@@ -129,16 +129,19 @@ export const sweepAccount = async (
   recipient: Address,
 ): Promise<{ userOpHash: Hex }> => {
   const { eth, tokens, skipped } = await readSweepBalances(context);
-  if (eth === 0n && tokens.every((token) => token.balance === 0n)) {
+  // Sending the rest would leave these tokens behind unnoticed.
+  if (skipped.length > 0) {
     throw new Error(
-      skipped.length > 0
-        ? `Não foi possível ler o saldo de ${skipped.join(', ')}`
-        : 'Não há saldo para varrer',
+      `Não foi possível ler o saldo de ${skipped.join(', ')}. Tente novamente.`,
     );
+  }
+  if (eth === 0n && tokens.every((token) => token.balance === 0n)) {
+    throw new Error('Não há saldo para varrer');
   }
 
   const sponsored = isSweepSponsored(context.network);
   const client = sponsored ? context.sponsoredClient : context.selfPayClient;
+  if (!client) throw new Error('Patrocínio de gás não configurado nesta rede');
   const operation = sponsored
     ? { calls: sweepCalls(recipient, eth, tokens) }
     : await selfPayOperation(context, recipient, eth, tokens);
