@@ -77,7 +77,7 @@ const passkey = computed(() =>
 );
 // No passkey ever used in this browser: creating one is the likely first step,
 // so it takes the main row and "login" moves to the small one. Read on open.
-const knownPasskey = ref(false);
+const knownPasskey = ref(hasKnownPasskey());
 const passkeyMain = computed(() => (knownPasskey.value ? 'login' : 'create'));
 const passkeyAlt = computed(() => (knownPasskey.value ? 'create' : 'login'));
 const walletConnect = computed(() => byId(WALLETCONNECT_ID));
@@ -142,7 +142,7 @@ const MAGIC_UNVERIFIED_ERROR =
   'Não foi possível verificar sua sessão de email/Google. Recarregue a página antes de entrar de novo.';
 
 const PASSKEY_LOGIN_ERROR =
-  'Não foi possível usar um passkey. Tente de novo, use um passkey de outro aparelho (QR) ou crie um novo.';
+  'Não foi possível usar um passkey. Tente de novo, use um passkey de outro aparelho (QR) ou use Criar passkey.';
 
 class WalletConnectStartError extends Error {}
 class PasskeyLoginError extends Error {}
@@ -180,7 +180,7 @@ const onConnector = (connector: Connector) =>
 // "not found" and "dismissed" are indistinguishable (NotAllowedError), so on
 // login both get the same way out: retry, another device (QR), or create.
 function onPasskey(connector: Connector, intent: 'login' | 'create') {
-  return run(connector.uid, async () => {
+  return run(`${connector.uid}:${intent}`, async () => {
     setPasskeyIntent(intent);
     try {
       await connectWith(connector);
@@ -443,9 +443,16 @@ onBeforeUnmount(() => {
                 <span class="row-title">{{
                   knownPasskey ? 'Entrar com passkey' : 'Criar passkey'
                 }}</span>
-                <span class="row-subtitle">Biometria ou PIN do aparelho</span>
+                <span class="row-subtitle">{{
+                  knownPasskey
+                    ? 'Biometria ou PIN do aparelho'
+                    : 'Cria uma conta nova com biometria ou PIN'
+                }}</span>
               </span>
-              <span v-if="loadingKey === passkey.uid" class="spinner small" />
+              <span
+                v-if="loadingKey === `${passkey.uid}:${passkeyMain}`"
+                class="spinner small"
+              />
             </button>
             <button
               type="button"
@@ -457,7 +464,15 @@ onBeforeUnmount(() => {
                 <span class="row-title text-sm">{{
                   knownPasskey ? 'Criar novo passkey' : 'Já tenho um passkey'
                 }}</span>
+                <span v-if="!knownPasskey" class="row-subtitle"
+                  >Entrar com uma passkey já salva (iCloud, Google ou neste
+                  aparelho)</span
+                >
               </span>
+              <span
+                v-if="loadingKey === `${passkey.uid}:${passkeyAlt}`"
+                class="spinner small"
+              />
             </button>
           </section>
 
