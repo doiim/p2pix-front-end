@@ -143,7 +143,7 @@ const confirmBuyClick = async (
     const newLockID = await addLockMutation.mutateAsync({
       sellerAddress: selectedDeposit.seller,
       tokenAddress: selectedDeposit.token,
-      amount: press.amount,
+      amount: press.wei,
       skipAllowlist: press.skipAllowlist,
     });
     lockID.value = String(newLockID);

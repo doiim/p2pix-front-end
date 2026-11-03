@@ -65,7 +65,7 @@ export const useAddLockMutation = () => {
     mutationFn: (args: {
       sellerAddress: Address;
       tokenAddress: Address;
-      amount: number;
+      amount: bigint;
       skipAllowlist?: boolean;
     }) =>
       addLock(

@@ -100,12 +100,11 @@ export const toLock = (
 export const addLock = async (
   sellerAddress: Address,
   tokenAddress: Address,
-  amount: number,
+  amount: bigint,
   skipAllowlist = false,
 ): Promise<bigint> => {
   const from = await getSender();
   const { address, abi } = await getContract();
-  const parsedAmount = parseEther(amount.toString());
   const proof = skipAllowlist
     ? []
     : await findAllowlistProof(sellerAddress, from.address);
@@ -117,21 +116,14 @@ export const addLock = async (
       address,
       abi,
       functionName: 'lock',
-      args: [sellerAddress, tokenAddress, parsedAmount, proof, []],
+      args: [sellerAddress, tokenAddress, amount, proof, []],
     },
   ]);
   if (!success) {
     throw new Error(`Falha na reserva: ${receipt.transactionHash}`);
   }
 
-  return getLockIdFromLogs(
-    abi,
-    logs,
-    sender,
-    sellerAddress,
-    parsedAmount,
-    address,
-  );
+  return getLockIdFromLogs(abi, logs, sender, sellerAddress, amount, address);
 };
 
 /** `sender` is resolved by the caller, before it reads anything for the call. */

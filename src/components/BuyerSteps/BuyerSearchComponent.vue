@@ -339,9 +339,11 @@ const { open: connectAccount } = useConnectModal();
 
 const emitConfirmButton = (checkedWithin: boolean): void => {
   const deposit = selectedDeposit.value;
-  if (!deposit) return;
+  const wei = lockWei.value;
+  if (!deposit || wei === null) return;
   const press = {
     amount: lockValue.value,
+    wei,
     checkedWithin,
     skipAllowlist: ignoreAllowlist.value,
   };
