@@ -3,7 +3,7 @@ import { p2PixAbi } from './abi';
 import type { AaCall } from './aa/types';
 import { findAllowlistProof } from './allowlist';
 import { getSender, sendContractCalls } from './send';
-import type { PixProof } from '@/utils/pixProof';
+import { NotLockBuyerError, type PixProof } from '@/utils/pixProof';
 import {
   type Abi,
   type ContractFunctionReturnType,
@@ -165,7 +165,7 @@ export const getBuyerLock = async (lockID: bigint, buyer: Address) => {
     }),
   );
   if (lock.buyerAddress.toLowerCase() !== buyer.toLowerCase()) {
-    throw new Error('A conta conectada não é a compradora desta reserva');
+    throw new NotLockBuyerError();
   }
   return lock;
 };

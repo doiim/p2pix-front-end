@@ -1,3 +1,4 @@
+import type { Address } from 'viem';
 import { toPixProof, type PixProof, type RawProof } from './pixProof';
 
 export interface Participant {
@@ -31,8 +32,11 @@ export interface Solicitation {
   textoQrCode?: string;
 }
 
-const solicitationKey = (chainId: number, lockID: bigint): string =>
-  `p2pix.solicitation.${chainId}.${lockID}`;
+const solicitationKey = (
+  chainId: number,
+  p2pix: Address,
+  lockID: bigint,
+): string => `p2pix.solicitation.${chainId}.${p2pix.toLowerCase()}.${lockID}`;
 
 /**
  * The charge already created for this lock on this network, if any. Kept in
@@ -41,14 +45,19 @@ const solicitationKey = (chainId: number, lockID: bigint): string =>
  */
 export const loadSolicitation = (
   chainId: number,
+  p2pix: Address,
   lockID: bigint,
 ): Solicitation | null => {
   try {
-    const raw = localStorage.getItem(solicitationKey(chainId, lockID));
-    const parsed = raw ? JSON.parse(raw) : null;
-    return parsed && typeof parsed.numeroSolicitacao === 'string'
-      ? parsed
-      : null;
+    const raw = localStorage.getItem(solicitationKey(chainId, p2pix, lockID));
+    const parsed: unknown = raw ? JSON.parse(raw) : null;
+    if (typeof parsed !== 'object' || parsed === null) return null;
+    const numero =
+      'numeroSolicitacao' in parsed ? parsed.numeroSolicitacao : undefined;
+    const texto = 'textoQrCode' in parsed ? parsed.textoQrCode : undefined;
+    if (typeof numero !== 'string' || numero === '') return null;
+    if (texto !== undefined && typeof texto !== 'string') return null;
+    return { numeroSolicitacao: numero, textoQrCode: texto };
   } catch {
     return null;
   }
@@ -56,12 +65,13 @@ export const loadSolicitation = (
 
 export const saveSolicitation = (
   chainId: number,
+  p2pix: Address,
   lockID: bigint,
   solicitation: Solicitation,
 ): void => {
   try {
     localStorage.setItem(
-      solicitationKey(chainId, lockID),
+      solicitationKey(chainId, p2pix, lockID),
       JSON.stringify(solicitation),
     );
   } catch {

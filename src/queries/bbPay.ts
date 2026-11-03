@@ -1,6 +1,8 @@
 import { computed, type Ref } from 'vue';
 import { useQuery } from '@tanstack/vue-query';
 
+import { p2pixOn } from '@/blockchain/events';
+import type { NetworkConfig } from '@/model/NetworkEnum';
 import {
   createSolicitation,
   getSolicitation,
@@ -17,7 +19,10 @@ import { queryKeyRoots } from './keys';
  * prover may have created the charge before the error. Another browser still
  * posts again; only a `lockId` idempotency key on the prover closes that.
  */
-export function useLockSolicitationQuery(offer: Ref<Offer | null>) {
+export function useLockSolicitationQuery(
+  offer: Ref<Offer | null>,
+  network: Ref<NetworkConfig>,
+) {
   return useQuery({
     queryKey: computed(() => [
       ...queryKeyRoots.solicitation,
@@ -27,10 +32,12 @@ export function useLockSolicitationQuery(offer: Ref<Offer | null>) {
     queryFn: async () => {
       if (!offer.value) throw new Error('Reserva não encontrada');
       const { chainId, lockID } = offer.value;
-      const cached = loadSolicitation(chainId, lockID);
+      // The stored charge is keyed by the contract of the lock's own chain.
+      const { address } = p2pixOn(network.value);
+      const cached = loadSolicitation(chainId, address, lockID);
       if (cached) return cached;
       const created = await createSolicitation(offer.value);
-      saveSolicitation(chainId, lockID, created);
+      saveSolicitation(chainId, address, lockID, created);
       return created;
     },
     enabled: computed(() => offer.value !== null),

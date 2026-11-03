@@ -61,7 +61,7 @@ const offer = computed<Offer | null>(() => {
     chainId: lockNetwork.value.id,
   };
 });
-const solicitationQuery = useLockSolicitationQuery(offer);
+const solicitationQuery = useLockSolicitationQuery(offer, lockNetwork);
 const proofQuery = usePixProofQuery(
   computed(() => solicitationQuery.data.value?.numeroSolicitacao ?? null),
 );

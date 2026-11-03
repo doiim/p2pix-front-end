@@ -1,5 +1,4 @@
 import {
-  BaseError,
   ContractFunctionRevertedError,
   encodePacked,
   keccak256,
@@ -8,6 +7,7 @@ import {
   type Hex,
 } from 'viem';
 import { p2PixAbi } from '@/blockchain/abi';
+import { UserFacingError, walletErrorMessage } from './walletPrompts';
 
 /** The `PixProof` struct `release(lockID, proof)` takes, as the ABI types it. */
 export type PixProof = ContractFunctionArgs<
@@ -108,22 +108,42 @@ const RELEASE_ERRORS: Record<string, string> = {
   MalformedProof: 'A prova de pagamento está malformada.',
 };
 
+/** The connected account is not the buyer of the lock being released. */
+export class NotLockBuyerError extends UserFacingError {
+  constructor() {
+    super('A carteira conectada não é a compradora desta reserva.');
+    this.name = 'NotLockBuyerError';
+  }
+}
+
+/** The error and its `cause` chain, outermost first (bounded). */
+const causeChain = (err: unknown): unknown[] => {
+  const causes: unknown[] = [];
+  for (let e = err; e !== undefined && causes.length < 10; ) {
+    causes.push(e);
+    e = e instanceof Error ? e.cause : undefined;
+  }
+  return causes;
+};
+
 /**
- * The message to show when submitting the release fails: the contract's
- * revert decoded into words, viem's short message for any other RPC or
- * wallet failure, the error's own message otherwise.
+ * The pt-BR message to show when submitting the release fails: the contract's
+ * revert decoded into words, our own sentence or a cancelled wallet prompt
+ * (`walletErrorMessage`), or a generic sentence. The raw error (English) stays
+ * in the console, never in the toast.
  */
 export const releaseErrorMessage = (err: unknown): string => {
-  if (!(err instanceof BaseError)) {
-    return err instanceof Error ? err.message : String(err);
-  }
-  const revert = err.walk((e) => e instanceof ContractFunctionRevertedError);
+  const causes = causeChain(err);
+  const revert = causes.find((e) => e instanceof ContractFunctionRevertedError);
   const name =
     revert instanceof ContractFunctionRevertedError
       ? revert.data?.errorName
       : undefined;
-  // One line: viem puts the revert signature on its own line.
-  return (
-    (name && RELEASE_ERRORS[name]) || err.shortMessage.replace(/\n+/g, ' ')
-  );
+  if (name && RELEASE_ERRORS[name]) return RELEASE_ERRORS[name];
+  const walletSide = causes
+    .map((cause) => walletErrorMessage(cause, ''))
+    .find(Boolean);
+  if (walletSide) return walletSide;
+  console.error('Release failed:', err);
+  return 'Não foi possível enviar para a rede.';
 };

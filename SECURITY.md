@@ -104,6 +104,7 @@ Every request below is triggered by **first-party** code in this front-end (not 
   - _Purpose:_ Pix charge creation and the proof of Pix payment.
   - _Data exposed:_ The seller's CPF/CNPJ, bank account, branch and ISPB; the trade amount; the participant number; the lock id and chain; the solicitation number.
   - _Escape path:_ No alternate path today (prover walkaway open gap).
+  - _Stored data:_ `localStorage` key `p2pix.solicitation.<chainId>.<p2pix contract>.<lockID>` holds the lock's charge: the solicitation number and the Pix "copia e cola" string. It lets a reload reuse the charge instead of creating (and billing) another. It stays until the user clears site data; per browser, never sent anywhere but back to the prover.
 
 Neither the build output nor any config in this repo sets a `connect-src` CSP; whether a deployment adds one at the gateway is outside this repo — see open gaps.
 
