@@ -147,7 +147,7 @@ const failedNetworks = computed(() =>
   </div>
   <div class="pt-2 border-t border-gray-200">
     <p
-      v-if="account.error.value && !account.balancesLoaded.value"
+      v-if="account.balanceError.value && !account.balancesLoaded.value"
       class="acct-empty text-red-500"
     >
       Não foi possível ler o saldo.
@@ -162,7 +162,10 @@ const failedNetworks = computed(() =>
     >
       Carregando…
     </p>
-    <p v-else-if="!rows.length && !elsewhere.length" class="acct-empty">
+    <p
+      v-else-if="!rows.length && !elsewhere.length && !failedNetworks.length"
+      class="acct-empty"
+    >
       Sua conta ainda não tem saldo.
     </p>
     <ul v-else-if="rows.length">
@@ -201,6 +204,12 @@ const failedNetworks = computed(() =>
         </li>
       </ul>
     </template>
+    <p
+      v-if="account.balanceError.value && account.balancesLoaded.value"
+      class="pt-2 text-sm text-gray-500"
+    >
+      Saldo desatualizado
+    </p>
     <p v-if="failedNetworks.length" class="pt-2 text-sm text-red-500">
       Não foi possível ler o saldo de: {{ failedNetworks.join(', ') }}
     </p>

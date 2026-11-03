@@ -95,6 +95,9 @@ const busy = ref(false);
 /** A send submitted (UserOperation or transaction) and waiting for its receipt. */
 const sending = ref(false);
 const error = ref<string | null>(null);
+let discoveryToken = 0;
+const discoveries = ref(0);
+const discovering = computed(() => discoveries.value > 0);
 // Every network, not just the selected one: funds left on another chain.
 const discovered = ref<DiscoveredBalances | null>(null);
 
@@ -167,7 +170,7 @@ export function usePasskeyAccount() {
 
   const balances = computed(() => balancesQuery.data.value?.tokens ?? []);
   const ethBalance = computed(() => balancesQuery.data.value?.eth ?? 0n);
-  // Stays false on a failed read on purpose: consumers must render `error`
+  // Stays false on a failed read on purpose: consumers must render `balanceError`
   // (never the loading state) when a read fails.
   const balancesLoaded = computed(() => Boolean(balancesQuery.data.value));
 
@@ -197,26 +200,37 @@ export function usePasskeyAccount() {
     })),
   );
 
+  // The read's own failure, per query key: `error` belongs to the send flow, and
+  // a failure of a previous network or account is not this one's.
+  const balanceError = computed(() => {
+    const cause = balancesQuery.error.value;
+    if (!cause) return null;
+    return cause instanceof Error ? cause.message : 'Falha ao buscar os saldos';
+  });
+  // The poll skips a tick while a read is in flight.
+  const reading = computed(() => balancesQuery.isFetching.value);
+
   const refreshBalances = async (): Promise<void> => {
     const result = await balancesQuery.refetch();
-    if (!result.error) {
-      error.value = null;
-      return;
-    }
-    console.error('[account] balance read failed', result.error);
-    error.value =
-      result.error instanceof Error
-        ? result.error.message
-        : 'Falha ao buscar os saldos';
+    if (result.error)
+      console.error('[account] balance read failed', result.error);
   };
 
   // Reads every network, so it runs on demand, never on each balance poll.
   const refreshDiscovered = async (): Promise<void> => {
     const owner = walletAddress.value;
     if (!owner) return;
-    const found = await discoverBalances(owner);
-    // The session may have changed while the networks were being read.
-    if (walletAddress.value === owner) discovered.value = found;
+    discoveryToken += 1;
+    const token = discoveryToken;
+    discoveries.value += 1;
+    try {
+      const found = await discoverBalances(owner);
+      // Only the latest request may land, and only for the same session.
+      if (token === discoveryToken && walletAddress.value === owner)
+        discovered.value = found;
+    } finally {
+      discoveries.value -= 1;
+    }
   };
 
   const explorerTxUrl = (
@@ -285,12 +299,15 @@ export function usePasskeyAccount() {
     busy,
     sending,
     error,
+    balanceError,
     balancesLoaded,
     balances,
     ethBalance,
     discovered,
     // The connected address (the Kernel on smart-account sessions): one source.
     smartAccountAddress: walletAddress,
+    reading,
+    discovering,
     isReady,
     isSmartAccount,
     symbolOf,

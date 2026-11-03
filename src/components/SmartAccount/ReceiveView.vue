@@ -74,10 +74,10 @@ watch(
   <p
     v-if="!address"
     class="acct-empty"
-    :class="{ 'text-red-500': account.error.value }"
+    :class="{ 'text-red-500': account.balanceError.value }"
   >
     {{
-      account.error.value
+      account.balanceError.value
         ? 'Não foi possível carregar o endereço.'
         : 'Carregando…'
     }}

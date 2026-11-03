@@ -29,7 +29,7 @@ const refresh = async () => {
   // Recovery opens the card with no wallet connected: there is nothing to read.
   if (!account.isReady.value) return;
   await account.refreshBalances();
-  if (account.error.value)
+  if (account.balanceError.value)
     user.showToast('error', 'Não foi possível ler o saldo.');
   void account.refreshDiscovered();
 };
@@ -38,8 +38,16 @@ const refresh = async () => {
 // other networks are re-read only on mount, on a switch and after a send.
 const visibility = useDocumentVisibility();
 useIntervalFn(() => {
-  if (visibility.value === 'visible' && !account.busy.value)
-    void account.refreshBalances();
+  if (
+    visibility.value === 'visible' &&
+    !account.busy.value &&
+    !account.reading.value
+  )
+    void account.refreshBalances().then(() => {
+      // Retried only while no result has landed and none is in flight.
+      if (!account.discovered.value && !account.discovering.value)
+        void account.refreshDiscovered();
+    });
 }, 15_000);
 
 // Switching between Comprar and Vender remounts the panel: keep the open
