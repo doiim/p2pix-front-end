@@ -8,7 +8,12 @@ import {
   getWalletDeposits,
   getWalletTransactions,
 } from '@/blockchain/wallet';
-import { getParticipantID, getUnreleasedLockById } from '@/blockchain/events';
+import {
+  getParticipantID,
+  getUnreleasedLockById,
+  p2pixOn,
+} from '@/blockchain/events';
+import { secondsToExpiry } from '@/utils/lockExpiry';
 import { getEffectiveWalletAddress } from '@/blockchain/aa/operations';
 import { useConnection } from '@wagmi/vue';
 import { useUser } from '@/composables/useUser';
@@ -90,6 +95,34 @@ export function useLockQuery(
     queryFn: () =>
       getUnreleasedLockById(BigInt(lockId.value ?? '0'), network.value),
     enabled: computed(() => Boolean(lockId.value)),
+  });
+}
+
+/**
+ * Seconds left on a lock as the contract counts them, read from the chain's
+ * latest block; re-read every minute (the caller ticks it down locally).
+ * `null` data means the chain's clock is unknown: show no countdown.
+ */
+export function useLockClockQuery(
+  network: Ref<NetworkConfig>,
+  lockId: Ref<string | null>,
+  expirationBlock: Ref<bigint | undefined>,
+) {
+  return useQuery({
+    queryKey: computed(() => [
+      ...queryKeyRoots.lockClock,
+      network.value.id,
+      lockId.value ?? '',
+    ]),
+    queryFn: async () =>
+      secondsToExpiry(
+        network.value.id,
+        expirationBlock.value ?? 0n,
+        await p2pixOn(network.value).client.getBlock(),
+      ),
+    enabled: computed(() => expirationBlock.value !== undefined),
+    refetchInterval: 60_000,
+    staleTime: 0,
   });
 }
 

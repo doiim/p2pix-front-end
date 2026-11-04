@@ -2,6 +2,8 @@
 import { ref } from 'vue';
 const props = defineProps<{
   type: string;
+  /** A line under the message, e.g. which reservation it is about. */
+  detail?: string;
 }>();
 
 const alertText = ref<string>('');
@@ -17,6 +19,14 @@ switch (props.type) {
     break;
   case 'redirect':
     alertText.value = 'Existe uma compra em aberto. Continuar?';
+    break;
+  case 'proving':
+    alertText.value =
+      'Processando pagamento e gerando a prova. Isso pode levar alguns minutos. Mantenha esta página aberta. Se fechar, a compra fica salva: volte por este mesmo navegador.';
+    break;
+  case 'releasing':
+    alertText.value =
+      'Enviando para a rede. Não feche nem recarregue a página.';
     break;
   case 'pixWarning':
     alertText.value =
@@ -57,6 +67,9 @@ switch (props.type) {
         >ATENÇÃO!</strong
       >
       {{ alertText }}
+      <span v-if="props.detail" class="block font-medium">{{
+        props.detail
+      }}</span>
     </p>
     <button
       v-if="props.type === 'redirect'"
@@ -75,7 +88,7 @@ switch (props.type) {
       Entendi
     </button>
     <button
-      v-else
+      v-else-if="props.type !== 'proving' && props.type !== 'releasing'"
       type="button"
       aria-label="Fechar alerta"
       class="flex items-center justify-center size-8 rounded cursor-pointer"

@@ -25,9 +25,24 @@ afterEach(() => {
 });
 
 describe('getSolicitation', () => {
-  it.each([402, 202, 503])('resolves null on %d', async (status) => {
+  it.each([402, 503])('is waiting on %d', async (status) => {
     vi.stubGlobal('fetch', answer(status, { error: 'not yet' }));
-    expect(await getSolicitation('1408799')).toBeNull();
+    expect(await getSolicitation('1408799')).toEqual({ status: 'waiting' });
+  });
+
+  it('is proving on a 202 that says so', async () => {
+    vi.stubGlobal('fetch', answer(202, { status: 'proving' }));
+    expect(await getSolicitation('1408799')).toEqual({ status: 'proving' });
+  });
+
+  it('does not claim payment on a 202 of another shape', async () => {
+    vi.stubGlobal('fetch', answer(202, { whatever: 1 }));
+    expect(await getSolicitation('1408799')).toEqual({ status: 'waiting' });
+  });
+
+  it('is unreachable on 502, not an error', async () => {
+    vi.stubGlobal('fetch', answer(502, { error: 'bank down' }));
+    expect(await getSolicitation('1408799')).toEqual({ status: 'unreachable' });
   });
 
   it('returns the proof with bigint numbers on 200', async () => {
@@ -35,13 +50,15 @@ describe('getSolicitation', () => {
       'fetch',
       answer(200, { numeroSolicitacao: '1408799', proof: RAW_PROOF }),
     );
-    const proof = await getSolicitation('1408799');
-    expect(proof).not.toBeNull();
-    expect(proof!.numeroSolicitacao).toBe(1408799n);
-    expect(proof!.timestamp).toBe(1766377317483n);
-    expect(proof!.attestor).toBe(RAW_PROOF.attestor);
-    expect(proof!.data).toBe(RAW_PROOF.data);
-    expect(proof!.signature).toBe(RAW_PROOF.signature);
+    const release = await getSolicitation('1408799');
+    expect(release.status).toBe('ready');
+    if (release.status !== 'ready') return;
+    const proof = release.proof;
+    expect(proof.numeroSolicitacao).toBe(1408799n);
+    expect(proof.timestamp).toBe(1766377317483n);
+    expect(proof.attestor).toBe(RAW_PROOF.attestor);
+    expect(proof.data).toBe(RAW_PROOF.data);
+    expect(proof.signature).toBe(RAW_PROOF.signature);
   });
 
   it('polls the release endpoint of the given solicitation', async () => {

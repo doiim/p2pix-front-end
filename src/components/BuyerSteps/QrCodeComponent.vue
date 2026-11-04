@@ -1,11 +1,24 @@
 <script setup lang="ts">
 import { computed, onUnmounted, ref, shallowRef, watch } from 'vue';
+import { useNow } from '@vueuse/core';
+import CustomAlert from '@/components/ui/CustomAlert.vue';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
+import {
+  countdownText,
+  EXPIRED_TEXT,
+  URGENT_SECONDS,
+} from '@/utils/lockExpiry';
+import { reservationLabel } from '@/utils/reservation';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
 import { type Offer } from '@/utils/bbPay';
 import { releaseErrorMessage, type PixProof } from '@/utils/pixProof';
 import { useUser } from '@/composables/useUser';
-import { useLockQuery, useParticipantIdQuery } from '@/queries/wallet';
+import {
+  useLockClockQuery,
+  useLockQuery,
+  useParticipantIdQuery,
+} from '@/queries/wallet';
 import { useLockSolicitationQuery, usePixProofQuery } from '@/queries/bbPay';
 import QRCode from 'qrcode';
 
@@ -65,7 +78,64 @@ const solicitationQuery = useLockSolicitationQuery(offer, lockNetwork);
 const proofQuery = usePixProofQuery(
   computed(() => solicitationQuery.data.value?.numeroSolicitacao ?? null),
 );
-const proof = computed(() => proofQuery.data.value ?? null);
+const releaseStatus = computed(() => proofQuery.data.value);
+const proof = computed(() =>
+  releaseStatus.value?.status === 'ready' ? releaseStatus.value.proof : null,
+);
+
+// The step the buyer is on; an unreachable bank keeps the step already reached.
+const STEPS = [
+  'Aguardando Pix',
+  'Pagamento recebido, gerando a prova',
+  'Enviar para a rede',
+  'Concluído',
+];
+const reached = ref(0);
+watch(
+  () => releaseStatus.value?.status,
+  (status) => {
+    if (status === 'waiting') reached.value = 0;
+    if (status === 'proving') reached.value = 1;
+    if (status === 'ready') reached.value = 2;
+  },
+  { immediate: true },
+);
+const proving = computed(() => reached.value === 1);
+const bankUnreachable = computed(
+  () => releaseStatus.value?.status === 'unreachable',
+);
+// While the proof is made or the release is sent, leaving loses the outcome from view.
+useLeaveGuard(computed(() => proving.value || submitting.value));
+
+const reservation = computed(() => {
+  const lock = lockQuery.data.value;
+  return lock
+    ? reservationLabel(lockNetwork.value, {
+        lockID: props.lockID,
+        amount: lock.amount,
+        token: lock.tokenAddress,
+      })
+    : null;
+});
+
+// Remaining time as the contract counts it, read from the chain every minute
+// and ticked down locally in between. No reading, no countdown.
+const clockQuery = useLockClockQuery(
+  lockNetwork,
+  computed(() => props.lockID),
+  computed(() => lockQuery.data.value?.expirationBlock),
+);
+const now = useNow({ interval: 1000 });
+const secondsLeft = computed(() => {
+  const read = clockQuery.data.value;
+  if (read === null || read === undefined) return null;
+  const elapsed = (now.value.getTime() - clockQuery.dataUpdatedAt.value) / 1000;
+  return Math.max(0, read - elapsed);
+});
+const expired = computed(() => secondsLeft.value === 0);
+const urgent = computed(
+  () => secondsLeft.value !== null && secondsLeft.value <= URGENT_SECONDS,
+);
 
 // Function to generate QR code SVG
 const generateQrCodeSvg = async (text: string) => {
@@ -99,7 +169,7 @@ const submitProof = async () => {
     if (error) {
       console.error('Error refreshing proof:', error);
       user.showToast('error', releaseErrorMessage(error));
-    } else if (data) emit('pixValidated', data);
+    } else if (data?.status === 'ready') emit('pixValidated', data.proof);
   } finally {
     submitting.value = false;
   }
@@ -176,60 +246,103 @@ onUnmounted(() => {
       </span>
     </div>
     <div class="main-container max-w-md text-black">
+      <CustomAlert v-if="proving" type="proving" />
       <div
         class="flex-col items-center justify-center flex w-full bg-white sm:p-8 p-4 rounded-lg break-normal"
       >
-        <div
-          v-if="qrCodeSvg"
-          v-html="qrCodeSvg"
-          class="w-48 h-48 flex items-center justify-center"
-        ></div>
-        <div
-          v-else-if="loadFailed"
-          role="alert"
-          class="w-48 h-48 flex flex-col items-center justify-center gap-3 text-center"
+        <p v-if="reservation" class="text-center text-sm font-semibold mb-2">
+          {{ reservation }}
+        </p>
+        <p
+          v-if="secondsLeft !== null"
+          role="timer"
+          class="text-center text-sm mb-3"
+          :class="
+            expired
+              ? 'font-extrabold text-red-700'
+              : urgent
+                ? 'font-bold text-red-700 bg-red-50 rounded px-2 py-1'
+                : 'font-medium'
+          "
         >
-          <span class="text-sm font-medium">
-            Não foi possível gerar a cobrança Pix.
-          </span>
-          <button
-            type="button"
-            class="text-sm font-semibold underline"
-            @click="retryLoad"
+          {{ expired ? EXPIRED_TEXT : countdownText(secondsLeft) }}
+        </p>
+        <ol class="flex flex-col gap-1 w-full mb-3 text-sm" aria-label="Etapas">
+          <li
+            v-for="(label, index) in STEPS"
+            :key="label"
+            :aria-current="index === reached ? 'step' : undefined"
+            :class="
+              index === reached
+                ? 'font-bold'
+                : index < reached
+                  ? 'text-emerald-700'
+                  : 'text-gray-500'
+            "
           >
-            Tentar de novo
-          </button>
-        </div>
-        <div
-          v-else
-          class="w-48 h-48 flex items-center justify-center rounded-lg"
+            {{ index < reached ? '✓' : `${index + 1}.` }} {{ label }}
+          </li>
+        </ol>
+        <p
+          v-if="bankUnreachable"
+          role="status"
+          class="text-center text-sm mb-2"
         >
-          <SpinnerComponent width="8" height="8"></SpinnerComponent>
-        </div>
-        <span class="text-center font-bold">Código Pix</span>
-        <div class="break-words w-4/5">
-          <span class="text-center text-xs">
-            {{ qrCode }}
-          </span>
-        </div>
-        <div class="flex flex-col items-center gap-1">
-          <img
-            alt="Copiar código Pix"
-            src="@/assets/copyPix.svg?url"
-            width="16"
-            height="16"
-            class="pt-2 cursor-pointer hover:opacity-70 transition-opacity"
-            @click="copyToClipboard"
-          />
-          <transition name="fade">
-            <span
-              v-if="copyFeedback"
-              class="text-xs text-emerald-500 font-semibold"
-            >
-              Código copiado!
+          Não foi possível consultar o pagamento agora; tentando de novo.
+        </p>
+        <template v-if="!expired">
+          <div
+            v-if="qrCodeSvg"
+            v-html="qrCodeSvg"
+            class="w-48 h-48 flex items-center justify-center"
+          ></div>
+          <div
+            v-else-if="loadFailed"
+            role="alert"
+            class="w-48 h-48 flex flex-col items-center justify-center gap-3 text-center"
+          >
+            <span class="text-sm font-medium">
+              Não foi possível gerar a cobrança Pix.
             </span>
-          </transition>
-        </div>
+            <button
+              type="button"
+              class="text-sm font-semibold underline"
+              @click="retryLoad"
+            >
+              Tentar de novo
+            </button>
+          </div>
+          <div
+            v-else
+            class="w-48 h-48 flex items-center justify-center rounded-lg"
+          >
+            <SpinnerComponent width="8" height="8"></SpinnerComponent>
+          </div>
+          <span class="text-center font-bold">Código Pix</span>
+          <div class="break-words w-4/5">
+            <span class="text-center text-xs">
+              {{ qrCode }}
+            </span>
+          </div>
+          <div class="flex flex-col items-center gap-1">
+            <img
+              alt="Copiar código Pix"
+              src="@/assets/copyPix.svg?url"
+              width="16"
+              height="16"
+              class="pt-2 cursor-pointer hover:opacity-70 transition-opacity"
+              @click="copyToClipboard"
+            />
+            <transition name="fade">
+              <span
+                v-if="copyFeedback"
+                class="text-xs text-emerald-500 font-semibold"
+              >
+                Código copiado!
+              </span>
+            </transition>
+          </div>
+        </template>
       </div>
       <CustomButton
         :is-disabled="!proof || submitting"

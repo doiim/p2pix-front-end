@@ -14,6 +14,7 @@ export const queryKeyRoots = {
   sellerLockState: ['seller-lock-state'],
   unreleasedLock: ['unreleased-lock'],
   lock: ['lock'],
+  lockClock: ['lock-clock'],
   participantId: ['participant-id'],
   aaAddress: ['aa-address'],
   passkeyBalances: ['passkey-balances'],

@@ -176,7 +176,7 @@ const getUnreleasedLockById = async (
 ): Promise<UnreleasedLock> => {
   const { address, client } = p2pixOn(network);
 
-  const { amount, token, seller } = toLock(
+  const { amount, token, seller, expirationBlock } = toLock(
     await client.readContract({
       address,
       abi: p2PixAbi,
@@ -190,6 +190,7 @@ const getUnreleasedLockById = async (
     amount: Number(formatEther(amount)),
     tokenAddress: token,
     sellerAddress: seller,
+    expirationBlock,
   };
 };
 

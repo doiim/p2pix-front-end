@@ -50,8 +50,8 @@ export function useLockSolicitationQuery(
 }
 
 /**
- * The prover's proof of Pix payment. Polls until it answers with one (`null`
- * means not yet), then stops; a refetch that comes back `null` resumes it.
+ * The prover's status for a charge. Polls until the proof is `ready`, then
+ * stops; a refetch that comes back not ready resumes it.
  */
 export function usePixProofQuery(numeroSolicitacao: Ref<string | null>) {
   return useQuery({
@@ -61,6 +61,7 @@ export function usePixProofQuery(numeroSolicitacao: Ref<string | null>) {
     ]),
     queryFn: () => getSolicitation(numeroSolicitacao.value ?? ''),
     enabled: computed(() => Boolean(numeroSolicitacao.value)),
-    refetchInterval: (query) => (query.state.data ? false : 10_000),
+    refetchInterval: (query) =>
+      query.state.data?.status === 'ready' ? false : 10_000,
   });
 }

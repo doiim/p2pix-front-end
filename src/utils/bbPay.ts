@@ -146,23 +146,42 @@ export const createSolicitation = async (
 };
 
 /**
- * The proof of Pix payment `release` takes. Resolves `null` while there is
- * nothing to submit yet: the bank has not confirmed the payment (402), the
- * proof is still being produced (202) or the prover asked for a retry (503).
- * Throws on any other failure.
+ * Where the prover stands on a charge: `waiting` (402, or 503 retry: not paid
+ * yet), `proving` (202: payment received, proof being produced), `ready`
+ * (200: the proof `release` takes) or `unreachable` (502: the bank could not
+ * be asked right now; keep polling). Any other failure throws.
  */
+export type ReleaseStatus =
+  | { status: 'waiting' | 'proving' | 'unreachable' }
+  | { status: 'ready'; proof: PixProof };
+
+const isProving = (body: unknown): boolean =>
+  typeof body === 'object' &&
+  body !== null &&
+  'status' in body &&
+  body.status === 'proving';
+
 export const getSolicitation = async (
   numeroSolicitacao: string,
-): Promise<PixProof | null> => {
+): Promise<ReleaseStatus> => {
   const response = await fetch(`${API_URL}/release/${numeroSolicitacao}`);
-  if ([202, 402, 503].includes(response.status)) return null;
+  if ([402, 503].includes(response.status)) return { status: 'waiting' };
+  if (response.status === 502) return { status: 'unreachable' };
+  if (response.status === 202) {
+    // Only the documented body counts as "proving"; anything else is not a claim of payment.
+    const body: unknown = await response.json().catch(() => null);
+    return { status: isProving(body) ? 'proving' : 'waiting' };
+  }
   if (!response.ok) {
     throw new Error(`Error checking solicitation: ${response.status}`);
   }
   const obj = await response.json();
   if (!obj.proof) throw new Error('Unexpected /release answer');
-  return toPixProof(
-    String(obj.numeroSolicitacao ?? numeroSolicitacao),
-    obj.proof as RawProof,
-  );
+  return {
+    status: 'ready',
+    proof: toPixProof(
+      String(obj.numeroSolicitacao ?? numeroSolicitacao),
+      obj.proof as RawProof,
+    ),
+  };
 };

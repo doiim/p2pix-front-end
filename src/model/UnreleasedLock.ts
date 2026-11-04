@@ -5,4 +5,6 @@ export type UnreleasedLock = {
   sellerAddress: Address;
   tokenAddress: Address;
   amount: number;
+  /** In the contract's own block count (`block.number` on its chain). */
+  expirationBlock: bigint;
 };

@@ -38,6 +38,8 @@ import { brzOnlyText, type SwapFailure } from '@/utils/swapFailure';
 import { TokenEnum } from '@/model/NetworkEnum';
 import type { Address, Hex } from 'viem';
 import { releaseErrorMessage, type PixProof } from '@/utils/pixProof';
+import { reservationLabel } from '@/utils/reservation';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
 
 enum Step {
   Search,
@@ -68,6 +70,8 @@ const loadingRelease = computed(
   () => releaseLockMutation.isPending.value || swapReleasing.value,
 );
 const flowStep = ref<Step>(Step.Search);
+// Closing or reloading while the release is in flight would hide its outcome.
+useLeaveGuard(loadingRelease);
 
 // The hero follows the step; the account panel stays beside the offer card.
 const hero = computed(() => {
@@ -93,6 +97,17 @@ const hero = computed(() => {
 });
 const sellerAddress = ref<Address>();
 const tokenAmount = ref<number>();
+const lockToken = ref<Address>();
+// What the open-purchase banner names; the lock's network is the selected one there.
+const openPurchase = computed(() =>
+  lockToken.value && tokenAmount.value !== undefined
+    ? reservationLabel(network.value, {
+        lockID: lockID.value,
+        amount: tokenAmount.value,
+        token: lockToken.value,
+      })
+    : undefined,
+);
 const lockID = ref<string>('');
 const showModal = ref<boolean>(false);
 // The Pix warning shows each time the QR step opens (new lock or resumed one).
@@ -266,6 +281,7 @@ const checkForUnreleasedLocks = async (): Promise<void> => {
   if (lock) {
     lockID.value = String(lock.lockID);
     tokenAmount.value = lock.amount;
+    lockToken.value = lock.tokenAddress;
     sellerAddress.value = lock.sellerAddress;
     showModal.value = flowStep.value === Step.Search;
   } else {
@@ -282,6 +298,7 @@ if (paramLockID) {
   if (lockToRedirect) {
     lockID.value = String(lockToRedirect.lockID);
     tokenAmount.value = lockToRedirect.amount;
+    lockToken.value = lockToRedirect.tokenAddress;
     sellerAddress.value = lockToRedirect.sellerAddress;
     flowStep.value = Step.Buy;
   } else {
@@ -330,6 +347,7 @@ onMounted(async () => {
         <CustomAlert
           v-if="flowStep == Step.Search && showModal"
           :type="'redirect'"
+          :detail="openPurchase"
           @close-alert="showModal = false"
           @go-to-lock="resumeLock"
         />
@@ -338,6 +356,7 @@ onMounted(async () => {
           :type="'pixWarning'"
           @close-alert="showPixWarning = false"
         />
+        <CustomAlert v-if="loadingRelease" :type="'releasing'" />
         <CustomAlert
           v-if="
             flowStep == Step.List &&
