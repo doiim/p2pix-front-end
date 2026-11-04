@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { createSolicitation, getSolicitation } from '@/utils/bbPay';
+import {
+  clearSolicitation,
+  createSolicitation,
+  getSolicitation,
+  loadSolicitation,
+  saveSolicitation,
+} from '@/utils/bbPay';
 
 const RAW_PROOF = {
   recipient: '0x8963e134e6d22ee9a26ac62a99964ab391ead816',
@@ -38,6 +44,16 @@ describe('getSolicitation', () => {
   it('does not claim payment on a 202 of another shape', async () => {
     vi.stubGlobal('fetch', answer(202, { whatever: 1 }));
     expect(await getSolicitation('1408799')).toEqual({ status: 'waiting' });
+  });
+
+  it('is expired on a 410 that says so', async () => {
+    vi.stubGlobal('fetch', answer(410, { status: 'expired' }));
+    expect(await getSolicitation('1408799')).toEqual({ status: 'expired' });
+  });
+
+  it('throws on a 410 of another shape', async () => {
+    vi.stubGlobal('fetch', answer(410, { gone: true }));
+    await expect(getSolicitation('1408799')).rejects.toThrow('410');
   });
 
   it('is unreachable on 502, not an error', async () => {
@@ -107,6 +123,32 @@ describe('createSolicitation', () => {
     });
   });
 
+  it('keeps a valid charge limit and ignores an invalid one', async () => {
+    const offer = {
+      amount: 100,
+      sellerId: '11155111-101',
+      lockID: 42n,
+      chainId: 11155111,
+    };
+    vi.stubGlobal(
+      'fetch',
+      answer(200, {
+        numeroSolicitacao: 1,
+        timestampLimiteSolicitacao: '2030-01-01T12:30:00Z',
+      }),
+    );
+    expect(
+      (await createSolicitation(offer)).timestampLimiteSolicitacao?.getTime(),
+    ).toBe(Date.parse('2030-01-01T12:30:00Z'));
+    vi.stubGlobal(
+      'fetch',
+      answer(200, { numeroSolicitacao: 1, timestampLimiteSolicitacao: 'x' }),
+    );
+    expect(
+      (await createSolicitation(offer)).timestampLimiteSolicitacao,
+    ).toBeUndefined();
+  });
+
   it('throws when the prover rejects the request', async () => {
     vi.stubGlobal('fetch', answer(400, { error: 'lockId required' }));
     await expect(
@@ -117,5 +159,29 @@ describe('createSolicitation', () => {
         chainId: 11155111,
       }),
     ).rejects.toThrow('400');
+  });
+});
+
+describe('stored solicitation', () => {
+  const p2pix = '0x0000000000000000000000000000000000000001';
+
+  it('round-trips the limit and can be cleared', () => {
+    // This environment has no usable localStorage; a Map is the smallest stand-in.
+    const store = new Map<string, string>();
+    vi.stubGlobal('localStorage', {
+      getItem: (key: string) => store.get(key) ?? null,
+      setItem: (key: string, value: string) => store.set(key, value),
+      removeItem: (key: string) => store.delete(key),
+    });
+    const limit = new Date('2030-01-01T12:30:00Z');
+    saveSolicitation(1, p2pix, 7n, {
+      numeroSolicitacao: '9',
+      timestampLimiteSolicitacao: limit,
+    });
+    expect(loadSolicitation(1, p2pix, 7n)?.timestampLimiteSolicitacao).toEqual(
+      limit,
+    );
+    clearSolicitation(1, p2pix, 7n);
+    expect(loadSolicitation(1, p2pix, 7n)).toBeNull();
   });
 });

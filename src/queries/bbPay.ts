@@ -16,8 +16,10 @@ import { queryKeyRoots } from './keys';
  * The Pix charge for a lock, requested once: the fiat leg may already be paid,
  * so a remount (this cache) or a reload (localStorage) reuses the charge
  * instead of posting again. A failed request is not retried either — the
- * prover may have created the charge before the error. Another browser still
- * posts again; only a `lockId` idempotency key on the prover closes that.
+ * prover may have created the charge before the error. Another browser posts
+ * again: a prover that answers `POST /request` idempotently per lock returns the
+ * same charge, an older one creates a second. The same goes for replacing an
+ * expired charge: only offer that once expiry is known (410 or a passed limit).
  * `allowed` is false for an expired reservation: no charge is created or read.
  */
 export function useLockSolicitationQuery(
@@ -52,8 +54,8 @@ export function useLockSolicitationQuery(
 }
 
 /**
- * The prover's status for a charge. Polls until the proof is `ready`, then
- * stops; a refetch that comes back not ready resumes it. `active` is false
+ * The prover's status for a charge. Polls until the proof is `ready` (or the
+ * charge `expired`), then stops; a refetch that comes back not ready resumes it. `active` is false
  * for an expired reservation: nothing left to wait for.
  */
 export function usePixProofQuery(
@@ -68,6 +70,8 @@ export function usePixProofQuery(
     queryFn: () => getSolicitation(numeroSolicitacao.value ?? ''),
     enabled: computed(() => Boolean(numeroSolicitacao.value) && active.value),
     refetchInterval: (query) =>
-      query.state.data?.status === 'ready' ? false : 10_000,
+      ['ready', 'expired'].includes(query.state.data?.status ?? '')
+        ? false
+        : 10_000,
   });
 }

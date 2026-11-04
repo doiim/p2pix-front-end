@@ -11,7 +11,8 @@ import {
 import { reservationLabel } from '@/utils/reservation';
 import CustomButton from '@/components/ui/CustomButton.vue';
 import SpinnerComponent from '@/components/ui/SpinnerComponent.vue';
-import { type Offer } from '@/utils/bbPay';
+import { clearSolicitation, type Offer } from '@/utils/bbPay';
+import { p2pixOn } from '@/blockchain/events';
 import { releaseErrorMessage, type PixProof } from '@/utils/pixProof';
 import { useUser } from '@/composables/useUser';
 import {
@@ -104,11 +105,38 @@ const solicitationQuery = useLockSolicitationQuery(
   lockNetwork,
   mayCharge,
 );
+// The step the buyer is on; an unreachable bank keeps the step already reached.
+const reached = ref(0);
+const limit = computed(
+  () => solicitationQuery.data.value?.timestampLimiteSolicitacao,
+);
+// A paid charge (reached > 0: proving/ready) is never hidden by the clock: the payment may
+// have landed just before the limit.
+const limitPassed = computed(
+  () =>
+    limit.value !== undefined &&
+    now.value.getTime() >= limit.value.getTime() &&
+    reached.value === 0,
+);
 const proofQuery = usePixProofQuery(
   computed(() => solicitationQuery.data.value?.numeroSolicitacao ?? null),
-  computed(() => !expired.value),
+  computed(() => !expired.value && !limitPassed.value),
 );
 const releaseStatus = computed(() => proofQuery.data.value);
+// Only a positive signal (410 or a known passed limit) offers a new charge; a
+// plain 402 or a timeout never does, since an older prover would create a
+// second charge. The reservation's own expiry wins.
+const chargeExpired = computed(
+  () =>
+    !expired.value &&
+    (releaseStatus.value?.status === 'expired' || limitPassed.value),
+);
+const limitText = computed(() =>
+  limit.value?.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+  }),
+);
 const proof = computed(() =>
   releaseStatus.value?.status === 'ready' ? releaseStatus.value.proof : null,
 );
@@ -116,14 +144,12 @@ const urgent = computed(
   () => secondsLeft.value !== null && secondsLeft.value <= URGENT_SECONDS,
 );
 
-// The step the buyer is on; an unreachable bank keeps the step already reached.
 const STEPS = [
   'Aguardando Pix',
   'Pagamento recebido, gerando a prova',
   'Enviar para a rede',
   'Concluído',
 ];
-const reached = ref(0);
 watch(
   () => releaseStatus.value?.status,
   (status) => {
@@ -187,6 +213,18 @@ const submitProof = async () => {
   } finally {
     submitting.value = false;
   }
+};
+
+const regenerate = () => {
+  if (!offer.value) return;
+  qrCode.value = '';
+  qrCodeSvg.value = '';
+  clearSolicitation(
+    offer.value.chainId,
+    p2pixOn(lockNetwork.value).address,
+    offer.value.lockID,
+  );
+  void solicitationQuery.refetch();
 };
 
 const copyToClipboard = async () => {
@@ -304,7 +342,32 @@ onUnmounted(() => {
         >
           Não foi possível consultar o pagamento agora; tentando de novo.
         </p>
-        <template v-if="!expired">
+        <div
+          v-if="chargeExpired"
+          role="alert"
+          class="flex flex-col items-center gap-3 text-center"
+        >
+          <span class="text-sm font-bold text-red-700">
+            Esta cobrança Pix expirou. Não pague este QR.
+          </span>
+          <SpinnerComponent
+            v-if="solicitationQuery.isFetching.value"
+            width="8"
+            height="8"
+          ></SpinnerComponent>
+          <button
+            v-else
+            type="button"
+            class="text-sm font-semibold underline"
+            @click="regenerate"
+          >
+            Gerar nova cobrança
+          </button>
+        </div>
+        <template v-else-if="!expired">
+          <p v-if="limitText" class="text-center text-xs mb-2">
+            Cobrança válida até {{ limitText }}
+          </p>
           <div
             v-if="qrCodeSvg"
             v-html="qrCodeSvg"
