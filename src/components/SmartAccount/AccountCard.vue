@@ -48,7 +48,7 @@ useIntervalFn(() => {
       if (!account.discovered.value && !account.discovering.value)
         void account.refreshDiscovered();
     });
-}, 15_000);
+}, 30_000);
 
 // Switching between Comprar and Vender remounts the panel: keep the open
 // screen and the balances, only re-read them.

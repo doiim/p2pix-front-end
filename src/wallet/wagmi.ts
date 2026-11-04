@@ -145,8 +145,14 @@ const passkey = passkeyConfig ? passkeyConnector(passkeyConfig) : undefined;
 export const wagmiConfig = createConfig({
   chains: Networks,
   transports: Object.fromEntries(
-    Networks.map((c) => [c.id, http(c.rpcUrls.default.http[0])]),
+    Networks.map((c) => [
+      c.id,
+      http(c.rpcUrls.default.http[0], { batch: true }),
+    ]),
   ),
+  // Concurrent contract reads collapse into one Multicall3 eth_call; a chain
+  // without multicall3 in its definition reads one call at a time.
+  batch: { multicall: true },
   connectors: [
     injected(),
     ...buildWalletConnect(),
