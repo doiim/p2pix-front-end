@@ -18,10 +18,12 @@ import { queryKeyRoots } from './keys';
  * instead of posting again. A failed request is not retried either — the
  * prover may have created the charge before the error. Another browser still
  * posts again; only a `lockId` idempotency key on the prover closes that.
+ * `allowed` is false for an expired reservation: no charge is created or read.
  */
 export function useLockSolicitationQuery(
   offer: Ref<Offer | null>,
   network: Ref<NetworkConfig>,
+  allowed: Ref<boolean>,
 ) {
   return useQuery({
     queryKey: computed(() => [
@@ -40,7 +42,7 @@ export function useLockSolicitationQuery(
       saveSolicitation(chainId, address, lockID, created);
       return created;
     },
-    enabled: computed(() => offer.value !== null),
+    enabled: computed(() => offer.value !== null && allowed.value),
     staleTime: Infinity,
     gcTime: Infinity,
     // a retry is a second POST /request, i.e. a second charge
@@ -51,16 +53,20 @@ export function useLockSolicitationQuery(
 
 /**
  * The prover's status for a charge. Polls until the proof is `ready`, then
- * stops; a refetch that comes back not ready resumes it.
+ * stops; a refetch that comes back not ready resumes it. `active` is false
+ * for an expired reservation: nothing left to wait for.
  */
-export function usePixProofQuery(numeroSolicitacao: Ref<string | null>) {
+export function usePixProofQuery(
+  numeroSolicitacao: Ref<string | null>,
+  active: Ref<boolean>,
+) {
   return useQuery({
     queryKey: computed(() => [
       ...queryKeyRoots.pixProof,
       numeroSolicitacao.value ?? '',
     ]),
     queryFn: () => getSolicitation(numeroSolicitacao.value ?? ''),
-    enabled: computed(() => Boolean(numeroSolicitacao.value)),
+    enabled: computed(() => Boolean(numeroSolicitacao.value) && active.value),
     refetchInterval: (query) =>
       query.state.data?.status === 'ready' ? false : 10_000,
   });

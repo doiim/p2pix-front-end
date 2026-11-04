@@ -74,13 +74,46 @@ const offer = computed<Offer | null>(() => {
     chainId: lockNetwork.value.id,
   };
 });
-const solicitationQuery = useLockSolicitationQuery(offer, lockNetwork);
+
+// Remaining time as the contract counts it, read from the chain every minute
+// and ticked down locally in between. No reading, no countdown.
+const clockQuery = useLockClockQuery(
+  lockNetwork,
+  computed(() => props.lockID),
+  computed(() => lockQuery.data.value?.expirationBlock),
+);
+const now = useNow({ interval: 1000 });
+const secondsLeft = computed(() => {
+  const read = clockQuery.data.value;
+  if (read === null || read === undefined) return null;
+  const elapsed = (now.value.getTime() - clockQuery.dataUpdatedAt.value) / 1000;
+  return Math.max(0, read - elapsed);
+});
+const expired = computed(() => secondsLeft.value === 0);
+// No charge for an expired reservation. While the expiry is being read there
+// is none either; only a clock that cannot be known (unknown chain, failed
+// read) leaves the charge unblocked.
+const expiryUnknown = computed(
+  () => clockQuery.data.value === null || clockQuery.isError.value,
+);
+const mayCharge = computed(
+  () => !expired.value && (secondsLeft.value !== null || expiryUnknown.value),
+);
+const solicitationQuery = useLockSolicitationQuery(
+  offer,
+  lockNetwork,
+  mayCharge,
+);
 const proofQuery = usePixProofQuery(
   computed(() => solicitationQuery.data.value?.numeroSolicitacao ?? null),
+  computed(() => !expired.value),
 );
 const releaseStatus = computed(() => proofQuery.data.value);
 const proof = computed(() =>
   releaseStatus.value?.status === 'ready' ? releaseStatus.value.proof : null,
+);
+const urgent = computed(
+  () => secondsLeft.value !== null && secondsLeft.value <= URGENT_SECONDS,
 );
 
 // The step the buyer is on; an unreachable bank keeps the step already reached.
@@ -118,25 +151,6 @@ const reservation = computed(() => {
     : null;
 });
 
-// Remaining time as the contract counts it, read from the chain every minute
-// and ticked down locally in between. No reading, no countdown.
-const clockQuery = useLockClockQuery(
-  lockNetwork,
-  computed(() => props.lockID),
-  computed(() => lockQuery.data.value?.expirationBlock),
-);
-const now = useNow({ interval: 1000 });
-const secondsLeft = computed(() => {
-  const read = clockQuery.data.value;
-  if (read === null || read === undefined) return null;
-  const elapsed = (now.value.getTime() - clockQuery.dataUpdatedAt.value) / 1000;
-  return Math.max(0, read - elapsed);
-});
-const expired = computed(() => secondsLeft.value === 0);
-const urgent = computed(
-  () => secondsLeft.value !== null && secondsLeft.value <= URGENT_SECONDS,
-);
-
 // Function to generate QR code SVG
 const generateQrCodeSvg = async (text: string) => {
   try {
@@ -156,7 +170,7 @@ const generateQrCodeSvg = async (text: string) => {
 };
 
 // Emits
-const emit = defineEmits<{ pixValidated: [proof: PixProof] }>();
+const emit = defineEmits<{ pixValidated: [proof: PixProof]; back: [] }>();
 
 // The polled proof can be older than the contract's freshness window
 // (`proofMaxAgeMs`), which makes `release` revert ProofExpired. Re-read it at
@@ -345,6 +359,12 @@ onUnmounted(() => {
         </template>
       </div>
       <CustomButton
+        v-if="expired"
+        text="Voltar para o início"
+        @button-clicked="emit('back')"
+      />
+      <CustomButton
+        v-else
         :is-disabled="!proof || submitting"
         :text="
           proof && !submitting ? 'Enviar para a rede' : 'Validando pagamento...'

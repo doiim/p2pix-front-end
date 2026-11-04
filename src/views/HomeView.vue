@@ -382,6 +382,7 @@ onMounted(async () => {
           :lockID="lockID"
           embedded
           @pix-validated="releaseTransaction"
+          @back="flowStep = Step.Search"
         />
         <LoadingComponent
           v-else
